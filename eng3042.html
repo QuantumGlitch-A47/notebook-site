@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ENG 3042 Propulsion and Turbomach 3</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body style="--course:var(--c3042)">
+<div class="wrap">
+<header class="site-head">
+  <a class="label" href="./">Aerosystems Notebook</a>
+  <nav class="label" aria-label="Site"><a href="./#courses" aria-current="page">Courses</a><a href="./#about">About</a></nav>
+</header>
+<a class="back" href="./#courses">← All courses</a>
+<div class="course-title">
+  <p class="label"><i></i>ENG 3042 · Semester 1</p>
+  <h1>Propulsion and Turbomach 3</h1>
+</div>
+<div class="course">
+  <aside>
+    <nav class="nav" aria-label="Course sections">
+      <p class="nav__course">Propulsion and Turbomach 3<span>ENG 3042</span></p>
+      <ol>
+          <li><a href="#s01" class="is-active"><span class="num">01</span>Introduction</a></li>
+          <li><a href="#s02"><span class="num">02</span>Labs</a></li>
+          <li><a class="nav__sub" href="#s02-1">2.1 Jet engine noise</a></li>
+      </ol>
+      <div class="progress"><i></i></div>
+    </nav>
+  </aside>
+  <main class="content">
+    <section class="section" id="s01">
+      <header class="section-head">
+        <span class="num">01 / Introduction</span>
+        <h2>Introduction</h2>
+        <p class="lede">How aircraft and rockets produce thrust, from the thermodynamics of gas flow to the parts of a gas turbine.</p>
+      </header>
+      <div class="prose"><p>The course covers propellers, axial and centrifugal compressors, turbines, combustion systems, intakes and nozzles, and how each is designed. It compares propulsion methods, looks at pollution from aircraft, and includes lab testing of a gas turbine where compressibility matters.</p></div>
+    </section>
+
+    <section class="section" id="s02">
+      <header class="section-head">
+        <span class="num">02 / Labs</span>
+        <h2>Labs</h2>
+        <p class="lede">Experiments and assignments from this course, with the full reports.</p>
+      </header>
+
+      <h3 class="sub" id="s02-1"><span class="num">2.1</span>Jet engine noise</h3>
+      <div class="prose"><p>Noise of a small Cussons jet engine at idle, 30%, 50% and 70% throttle, recorded with a calibrated microphone and analysed with Fourier analysis to link sound level to jet velocity.</p></div>
+      <p class="lab-link"><a href="reports/eng3042-jet-engine-noise.pdf">Open report (PDF) →</a></p>
+    </section>
+
+    <nav class="pager label" aria-label="Other courses">
+      <a href="eng3039.html"><span class="muted">← Previous</span>ENG 3039</a>
+      <a href="eng3059.html"><span class="muted">Next →</span>ENG 3059</a>
+    </nav>
+  </main>
+</div>
+</div>
+<!-- Rive runtime: uncomment when you add your first .riv file
+<script src="https://unpkg.com/@rive-app/canvas@2"></script>
+<script>
+  new rive.Rive({ src: "rive/your-file.riv", canvas: document.getElementById("rive-s02"),
+    stateMachines: "State Machine 1", autoplay: true,
+    onLoad: function (r) { r.resizeDrawingSurfaceToCanvas(); } });
+</script>
+-->
+<script src="notebook.js"></script>
+</body>
+</html>
