@@ -119,4 +119,5 @@ a{color:inherit}
   .section{margin-bottom:var(--s12)}
   .section-head h2{font-size:32px;line-height:36px}
 }
+.hero,.hero p{max-width:none}
 @media (prefers-reduced-motion:reduce){.folder__sheet{transition:none}}
