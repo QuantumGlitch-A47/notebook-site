@@ -1,0 +1,715 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Propeller Theory Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout concept: a lab bench. Sticky 3D stage on the left, notes and live equations on the right. One color per vector type, used everywhere. */
+:root{
+  --bg:#EDF1F5; --panel:#FFFFFF; --ink:#15222E; --muted:#566676; --line:#D3DCE5;
+  --accent:#0A6C8A; --accent-ink:#FFFFFF; --stage:#E3E9EF; --eq:#F3F6F9;
+  --c-abs:#D9480F; --c-rel:#1971C2; --c-u:#5F6B77; --c-ax:#2F9E44; --c-wh:#7048E8;
+  --warn:#C92A2A; --ok:#2B8A3E;
+  --f-head:"Space Grotesk",system-ui,sans-serif; --f-body:Inter,system-ui,sans-serif; --f-mono:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0D141C; --panel:#141E29; --ink:#E4ECF3; --muted:#93A4B4; --line:#263545;
+  --accent:#4FC3E0; --accent-ink:#06222B; --stage:#0A1118; --eq:#101923;
+  --c-abs:#FF8A4C; --c-rel:#5CAEFF; --c-u:#ADB5BD; --c-ax:#5FD07A; --c-wh:#A48BFF;
+  --warn:#FF7A7A; --ok:#6FD38A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D141C; --panel:#141E29; --ink:#E4ECF3; --muted:#93A4B4; --line:#263545;
+  --accent:#4FC3E0; --accent-ink:#06222B; --stage:#0A1118; --eq:#101923;
+  --c-abs:#FF8A4C; --c-rel:#5CAEFF; --c-u:#ADB5BD; --c-ax:#5FD07A; --c-wh:#A48BFF;
+  --warn:#FF7A7A; --ok:#6FD38A; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body);
+  padding-block:14px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1360px;margin:0 auto}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 24px;margin-bottom:12px}
+h1{font:700 24px/1.1 var(--f-head);margin:0;letter-spacing:-.01em}
+.sub{margin:4px 0 0;color:var(--muted);font-size:13px}
+nav#tabs{display:flex;gap:2px;overflow-x:auto;max-width:100%;border-bottom:1px solid var(--line);scrollbar-width:thin}
+nav#tabs button{flex:0 0 auto;background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);padding:6px 12px 7px;text-align:left;cursor:pointer;font:500 13px var(--f-body)}
+nav#tabs button small{display:block;font:500 10px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;opacity:.8}
+nav#tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+nav#tabs button:focus-visible,.btn:focus-visible,input:focus-visible,summary:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main#app{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:22px;align-items:start}
+.stage{position:sticky;top:12px;height:min(80vh,740px);min-height:360px;background:var(--stage);border:1px solid var(--line);border-radius:10px;overflow:hidden;touch-action:none;cursor:grab}
+.stage:active{cursor:grabbing}
+.stage canvas{display:block;width:100%;height:100%}
+.labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.lbl{position:absolute;left:0;top:0;font:500 12px var(--f-mono);color:var(--ink);padding:1px 5px;border-radius:4px;white-space:nowrap;background:var(--stage);background:color-mix(in srgb,var(--stage) 72%,transparent)}
+.lbl.abs{color:var(--c-abs)}.lbl.rel{color:var(--c-rel)}.lbl.u{color:var(--c-u)}.lbl.ax{color:var(--c-ax)}.lbl.wh{color:var(--c-wh)}
+.lbl.big{font:700 13px var(--f-head)}
+.tools{position:absolute;top:8px;right:10px;display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;z-index:2}
+.tools button{background:var(--panel);color:var(--muted);border:0;padding:5px 12px;font:500 12px var(--f-body);cursor:pointer}
+.tools button+button{border-left:1px solid var(--line)}
+.tools button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.tools button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.hint{position:absolute;top:8px;left:10px;max-width:calc(100% - 150px);line-height:1.35;font:11px var(--f-mono);color:var(--muted);pointer-events:none}
+.legend{position:absolute;left:10px;bottom:8px;right:10px;display:flex;flex-wrap:wrap;gap:4px 12px;font:500 11px var(--f-mono);pointer-events:none}
+.legend span{display:inline-flex;align-items:center;gap:5px;color:var(--ink)}
+.legend i{width:14px;height:4px;border-radius:2px;display:inline-block}
+.nogl{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:var(--muted)}
+.panel{min-width:0}
+.tabpanel[hidden]{display:none}
+.tabpanel>section{padding:16px 0;border-top:1px solid var(--line)}
+.tabpanel>section:first-child{border-top:0;padding-top:2px}
+h2{font:700 12px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+h3.t{font:700 22px/1.2 var(--f-head);margin:0 0 6px;text-wrap:balance}
+p{margin:0 0 8px;max-width:68ch}
+.feyn{font-size:16px}
+.ctls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px}
+.ctl{min-width:0}
+.ctl label{display:flex;justify-content:space-between;gap:8px;font-size:13px;font-weight:500}
+.ctl output{font:500 13px var(--f-mono);color:var(--accent)}
+.ctl input[type=range]{width:100%;accent-color:var(--accent);margin:4px 0 0}
+.ctl .d{font-size:12px;color:var(--muted);line-height:1.35}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.btn{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 11px;font:500 13px var(--f-body);cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.eq{background:var(--eq);border-radius:8px;padding:10px 12px;font:400 13px/1.9 var(--f-mono);overflow-x:auto;margin:0 0 8px}
+.eq b{font-weight:500;color:var(--accent)}
+.eq .n{color:var(--muted);font-family:var(--f-body);font-size:12px}
+.v{font-weight:500;color:var(--accent)}
+.vt{width:100%;border-collapse:collapse;font-size:13px}
+.vt th{font:500 11px var(--f-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:4px 8px 4px 0}
+.vt td{padding:5px 8px 5px 0;border-top:1px solid var(--line);vertical-align:top}
+.vt td:first-child{font:500 13px var(--f-mono);white-space:nowrap;padding-right:12px}
+.vt td:last-child{font:500 12px var(--f-mono);text-align:right;white-space:nowrap;color:var(--accent)}
+.tw{overflow-x:auto}
+details{border-top:1px solid var(--line);padding:8px 0}
+details:last-of-type{border-bottom:1px solid var(--line)}
+summary{cursor:pointer;font-weight:600;font-size:14px}
+details>div{padding-top:6px;font-size:14px}
+details ul,.goals{margin:6px 0 0;padding-left:20px}
+.goals{list-style:none;padding:0}
+.goals li{display:flex;gap:8px;margin:5px 0;font-size:14px}
+.goals input{margin-top:4px;accent-color:var(--accent)}
+.bar{display:flex;height:22px;border-radius:5px;overflow:hidden;background:var(--eq);font:500 11px var(--f-mono);margin:6px 0 2px}
+.bar div{display:grid;place-items:center;color:#fff;white-space:nowrap;overflow:hidden;transition:width .2s}
+.chk{display:flex;flex-wrap:wrap;gap:6px 14px;font:500 12px var(--f-mono)}
+.ok{color:var(--ok)}.bad{color:var(--warn)}
+svg.chart{width:100%;height:auto;display:block;background:var(--eq);border-radius:8px}
+svg.chart text{fill:var(--muted);font:11px var(--f-mono)}
+.warn{color:var(--warn);font-size:13px;min-height:1.3em}
+textarea{width:100%;min-height:70px;background:var(--eq);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px;font:14px var(--f-body);resize:vertical}
+@media (max-width:900px){
+  main#app{grid-template-columns:minmax(0,1fr);gap:12px}
+  .stage{top:max(6px,env(safe-area-inset-top,0px));height:42vh;min-height:260px;z-index:5}
+  .ctls{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:reduce){.bar div{transition:none}}
+</style>
+<div class="wrap">
+<style>/* Aerosystems Notebook: site look, light only */
+:root,:root:not([data-theme="light"]),:root[data-theme="dark"]{
+  --bg:#EDF1F5; --panel:#FFFFFF; --ink:#15222E; --muted:#566676; --line:#D3DCE5;
+  --accent:#0A6C8A; --accent-ink:#FFFFFF; --stage:#E3E9EF; --eq:#F3F6F9;
+  --c-abs:#D9480F; --c-rel:#1971C2; --c-u:#5F6B77; --c-ax:#2F9E44; --c-wh:#7048E8;
+  --warn:#C92A2A; --ok:#2B8A3E;
+  --f-head:"Space Grotesk",system-ui,sans-serif; --f-body:Inter,system-ui,sans-serif; --f-mono:"JetBrains Mono",ui-monospace,monospace;
+--bg:#ffffff;--panel:#ffffff;--ink:#111111;--muted:#5a5a55;--line:#d4d4ce;--accent:#111111;--accent-ink:#ffffff;--stage:#f4f4f2;--eq:#f7f7f5;--f-head:"Helvetica Neue",Helvetica,Arial,sans-serif;--f-body:"Helvetica Neue",Helvetica,Arial,sans-serif;--f-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;color-scheme:light;}
+.nbk-back{display:block;padding:12px 24px;border-bottom:2px solid #111;font:700 12px/16px "Helvetica Neue",Helvetica,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#111;text-decoration:none;background:#fff}
+.nbk-back:hover{text-decoration:underline}
+</style>
+<a class="nbk-back" href="../eng3042.html#s02">← Propulsion and Turbomach 3</a>
+<header class="top">
+  <div><h1>Propeller Theory Lab</h1><p class="sub">Propulsion and Turbomachinery 3, propeller notes. One 3D model for each notes set. Change a number and watch the equations answer.</p></div>
+  <nav id="tabs" role="tablist" aria-label="Notes sets"></nav>
+</header>
+<main id="app">
+  <div class="stage" id="stage"><div class="hint">drag: orbit · Slide button, right drag or shift drag: move · wheel or pinch: zoom · double click: reset</div><div class="labels" id="labels"></div><div class="legend" id="legend"></div></div>
+  <div class="panel" id="panel"></div>
+</main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+var T=window.THREE;
+var D2R=Math.PI/180,R2D=180/Math.PI,GAM=1.4,CP=1005,RG=287;
+var COL={abs:0xE8590C,rel:0x228BE6,u:0x7B8794,ax:0x2F9E44,wh:0x7950F2};
+function $(s,r){return (r||document).querySelector(s)}
+function el(tag,cls,html){var e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e}
+function fmt(x,d){return isFinite(x)?x.toFixed(d==null?2:d):'n/a'}
+function clamp(x,a,b){return Math.min(b,Math.max(a,x))}
+
+/* ---------- stage: one renderer, one camera, many scenes ---------- */
+var stageEl=$('#stage'),labelsEl=$('#labels'),legendEl=$('#legend');
+var camera=new T.PerspectiveCamera(38,1,0.05,300),renderer=null;
+try{renderer=new T.WebGLRenderer({antialias:true,alpha:true})}catch(e){renderer=null}
+if(renderer){renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));stageEl.insertBefore(renderer.domElement,stageEl.firstChild)}
+else stageEl.appendChild(el('div','nogl','3D needs WebGL and this browser blocked it. The controls and equations still work.'));
+var orbit={th:0.6,ph:1.2,dist:10,tx:0,ty:0,tz:0},active=null;
+function applyCam(){var sp=Math.sin(orbit.ph);
+  camera.position.set(orbit.tx+orbit.dist*sp*Math.cos(orbit.th),orbit.ty+orbit.dist*Math.cos(orbit.ph),orbit.tz+orbit.dist*sp*Math.sin(orbit.th));
+  camera.lookAt(orbit.tx,orbit.ty,orbit.tz)}
+function setCam(c){for(var k in c)orbit[k]=c[k]}
+var ptrs={};
+var panMode=false,tools=el('div','tools'),bOrb=el('button',null,'Orbit'),bPan=el('button',null,'Slide');
+bOrb.type='button';bPan.type='button';tools.appendChild(bOrb);tools.appendChild(bPan);stageEl.appendChild(tools);
+function setMode(m){panMode=m;bOrb.setAttribute('aria-pressed',m?'false':'true');bPan.setAttribute('aria-pressed',m?'true':'false')}
+bOrb.addEventListener('click',function(){setMode(false)});bPan.addEventListener('click',function(){setMode(true)});
+['pointerdown','dblclick','wheel'].forEach(function(n){tools.addEventListener(n,function(e){e.stopPropagation()})});
+setMode(false);
+function panBy(dx,dy){
+  var h=Math.max(stageEl.clientHeight,1),s=2*orbit.dist*Math.tan(camera.fov*D2R/2)/h;
+  camera.updateMatrixWorld();
+  var rt=new T.Vector3().setFromMatrixColumn(camera.matrixWorld,0),up=new T.Vector3().setFromMatrixColumn(camera.matrixWorld,1);
+  orbit.tx+=(-dx*rt.x+dy*up.x)*s;orbit.ty+=(-dx*rt.y+dy*up.y)*s;orbit.tz+=(-dx*rt.z+dy*up.z)*s}
+function zoomAt(cx,cy,f){
+  var r=stageEl.getBoundingClientRect(),w=Math.max(r.width,1),h=Math.max(r.height,1);
+  var nx=((cx-r.left)/w)*2-1,ny=1-((cy-r.top)/h)*2,nd=clamp(orbit.dist*f,0.8,60),k=nd/orbit.dist;
+  camera.updateMatrixWorld();
+  var rt=new T.Vector3().setFromMatrixColumn(camera.matrixWorld,0),up=new T.Vector3().setFromMatrixColumn(camera.matrixWorld,1);
+  var th=Math.tan(camera.fov*D2R/2),ox=nx*orbit.dist*th*camera.aspect,oy=ny*orbit.dist*th;
+  orbit.tx+=(rt.x*ox+up.x*oy)*(1-k);orbit.ty+=(rt.y*ox+up.y*oy)*(1-k);orbit.tz+=(rt.z*ox+up.z*oy)*(1-k);
+  orbit.dist=nd}
+stageEl.addEventListener('contextmenu',function(e){e.preventDefault()});
+stageEl.addEventListener('pointerdown',function(e){
+  ptrs[e.pointerId]={x:e.clientX,y:e.clientY,pan:panMode||e.button===2||e.button===1||e.shiftKey};
+  try{stageEl.setPointerCapture(e.pointerId)}catch(_){}});
+stageEl.addEventListener('pointermove',function(e){
+  var p=ptrs[e.pointerId];if(!p)return;var ids=Object.keys(ptrs);
+  if(ids.length===1){var dx=e.clientX-p.x,dy=e.clientY-p.y;
+    if(p.pan)panBy(dx,dy);else{orbit.th-=dx*0.008;orbit.ph=clamp(orbit.ph-dy*0.008,0.08,3.05)}}
+  else if(ids.length===2){var q=ptrs[ids[0]==String(e.pointerId)?ids[1]:ids[0]];
+    var d0=Math.hypot(p.x-q.x,p.y-q.y),d1=Math.hypot(e.clientX-q.x,e.clientY-q.y);
+    panBy(((e.clientX+q.x)-(p.x+q.x))/2,((e.clientY+q.y)-(p.y+q.y))/2);
+    if(d1>5)zoomAt((e.clientX+q.x)/2,(e.clientY+q.y)/2,d0/d1)}
+  p.x=e.clientX;p.y=e.clientY});
+function endPtr(e){delete ptrs[e.pointerId]}
+stageEl.addEventListener('pointerup',endPtr);stageEl.addEventListener('pointercancel',endPtr);
+stageEl.addEventListener('wheel',function(e){e.preventDefault();zoomAt(e.clientX,e.clientY,Math.exp(e.deltaY*0.0012))},{passive:false});
+stageEl.addEventListener('dblclick',function(){if(active)setCam(active.cam)});
+function resize(){if(!renderer)return;var w=stageEl.clientWidth,h=stageEl.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/Math.max(h,1);camera.updateProjectionMatrix()}
+if(window.ResizeObserver)new ResizeObserver(resize).observe(stageEl);else window.addEventListener('resize',resize);
+resize();
+
+function lights(sc){sc.add(new T.HemisphereLight(0xffffff,0x5a6b7a,0.9));
+  var d=new T.DirectionalLight(0xffffff,0.85);d.position.set(3,6,5);sc.add(d);
+  var d2=new T.DirectionalLight(0xffffff,0.3);d2.position.set(-4,-2,-3);sc.add(d2)}
+function mat(c,o){var m={color:c,roughness:0.55,metalness:0.25};for(var k in o)m[k]=o[k];return new T.MeshStandardMaterial(m)}
+function disposeTree(o){o.traverse(function(n){if(n.geometry)n.geometry.dispose()})}
+
+/* ---------- 3D arrow (shaft + head), set from point a to point b ---------- */
+var UP=new T.Vector3(0,1,0);
+function Arrow(color,r,head){
+  this.r=r||0.035;this.head=head||0.16;
+  var m=new T.MeshBasicMaterial({color:color});
+  this.g=new T.Group();
+  this.shaft=new T.Mesh(new T.CylinderGeometry(1,1,1,10),m);
+  this.cone=new T.Mesh(new T.ConeGeometry(1,1,14),m);
+  this.g.add(this.shaft);this.g.add(this.cone)}
+Arrow.prototype.set=function(a,b){
+  var d=b.clone().sub(a),L=d.length();
+  if(L<1e-3){this.g.visible=false;return}
+  this.g.visible=true;
+  var hl=Math.min(this.head,L*0.45),dir=d.clone().normalize(),q=new T.Quaternion().setFromUnitVectors(UP,dir);
+  this.shaft.scale.set(this.r,Math.max(L-hl,1e-4),this.r);
+  this.shaft.position.copy(a).addScaledVector(dir,(L-hl)/2);this.shaft.quaternion.copy(q);
+  this.cone.scale.set(this.r*2.8,hl,this.r*2.8);
+  this.cone.position.copy(a).addScaledVector(dir,L-hl/2);this.cone.quaternion.copy(q)};
+function V3(x,y,z){return new T.Vector3(x,y,z)}
+
+/* ---------- blade profile in the x-y plane. x is blade motion, flow runs toward -y.
+   sgn=-1: rotor metal follows relative flow. sgn=+1: stator or NGV metal follows absolute flow. ---------- */
+function foilT(s){return 5*(0.2969*Math.sqrt(s)-0.1260*s-0.3516*s*s+0.2843*s*s*s-0.1036*s*s*s*s)}
+function bladeGeom(psi1,psi2,sgn,chord,thick,span){
+  var N=30,pts=[],x=0,y=0,i,sp=0;
+  for(i=0;i<=N;i++){var s=(1-Math.cos(Math.PI*i/N))/2,psi=psi1+(psi2-psi1)*s;
+    if(i>0){var ds=s-sp;x+=sgn*Math.sin(psi)*chord*ds;y-=Math.cos(psi)*chord*ds}sp=s;
+    var tx=sgn*Math.sin(psi),ty=-Math.cos(psi);
+    pts.push({x:x,y:y,nx:-ty,ny:tx,t:thick*foilT(s)})}
+  var sh=new T.Shape();
+  sh.moveTo(pts[0].x+pts[0].nx*pts[0].t,pts[0].y+pts[0].ny*pts[0].t);
+  for(i=1;i<=N;i++)sh.lineTo(pts[i].x+pts[i].nx*pts[i].t,pts[i].y+pts[i].ny*pts[i].t);
+  for(i=N;i>=0;i--)sh.lineTo(pts[i].x-pts[i].nx*pts[i].t,pts[i].y-pts[i].ny*pts[i].t);
+  sh.closePath();
+  var g=new T.ExtrudeGeometry(sh,{depth:span,bevelEnabled:false});
+  g.translate(0,0,-span/2);g.computeBoundingBox();return g}
+/* cambered aerofoil blade for the 3D machines. chord along x, thickness along z, span along y from 0 to span */
+function foilGeom(chord,span,tr,camber){
+  var N=24,up=[],lo=[],i,m=camber||0;
+  for(i=0;i<=N;i++){var s=(1-Math.cos(Math.PI*i/N))/2,yt=tr*foilT(s)*chord,yc=m*4*s*(1-s)*chord,sl=m*4*(1-2*s),th=Math.atan(sl),c=Math.cos(th),sn=Math.sin(th);
+    up.push([s*chord-chord/2-yt*sn,yc+yt*c]);lo.push([s*chord-chord/2+yt*sn,yc-yt*c])}
+  var sh=new T.Shape();sh.moveTo(up[0][0],up[0][1]);
+  for(i=1;i<=N;i++)sh.lineTo(up[i][0],up[i][1]);
+  for(i=N-1;i>=0;i--)sh.lineTo(lo[i][0],lo[i][1]);
+  sh.closePath();
+  var g=new T.ExtrudeGeometry(sh,{depth:span,bevelEnabled:false});
+  g.rotateX(-Math.PI/2);return g}
+
+/* faint motion trails: reads the particle position buffer of pg every frame and draws a fading tail behind each particle */
+function trailPoints(pg,hex,hist){
+  hist=hist||22;var pa=pg.attributes.position,n=Math.floor(pa.array.length/3),H=new Float32Array(n*hist*3),init=false,i,k;
+  var ca=pg.attributes.color,nv=n*(hist-1)*2,pos=new Float32Array(nv*3),al=new Float32Array(nv),vc=new Float32Array(nv*3),g=new T.BufferGeometry();
+  g.setAttribute('position',new T.BufferAttribute(pos,3));g.setAttribute('alpha',new T.BufferAttribute(al,1));g.setAttribute('vcol',new T.BufferAttribute(vc,3));
+  var c=new T.Color(hex);
+  var m=new T.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{col:{value:new T.Vector3(c.r,c.g,c.b)},useV:{value:ca?1:0}},
+    vertexShader:'attribute float alpha;attribute vec3 vcol;varying float vA;varying vec3 vC;void main(){vA=alpha;vC=vcol;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+    fragmentShader:'uniform vec3 col;uniform float useV;varying float vA;varying vec3 vC;void main(){gl_FragColor=vec4(mix(col,vC,useV),0.25+0.75*vA);}'});
+  var ls=new T.LineSegments(g,m);ls.frustumCulled=false;
+  var hd=new T.Points(pg,new T.PointsMaterial({color:ca?0xffffff:hex,vertexColors:!!ca,size:4.5,sizeAttenuation:false}));hd.frustumCulled=false;ls.add(hd);
+  ls.onBeforeRender=function(){var a=pa.array,v=0;
+    for(i=0;i<n;i++){var b=i*hist*3,x=a[i*3],y=a[i*3+1],z=a[i*3+2];
+      var jump=!init||Math.abs(x-H[b])+Math.abs(y-H[b+1])+Math.abs(z-H[b+2])>1.5;
+      for(k=hist-1;k>0;k--){var d=b+k*3,s=jump?b:b+(k-1)*3;H[d]=jump?x:H[s];H[d+1]=jump?y:H[s+1];H[d+2]=jump?z:H[s+2]}
+      H[b]=x;H[b+1]=y;H[b+2]=z;
+      for(k=0;k<hist-1;k++){var p0=b+k*3,p1=b+(k+1)*3,q=v*3;
+        pos[q]=H[p0];pos[q+1]=H[p0+1];pos[q+2]=H[p0+2];pos[q+3]=H[p1];pos[q+4]=H[p1+1];pos[q+5]=H[p1+2];
+        al[v]=1-k/(hist-1);al[v+1]=1-(k+1)/(hist-1);
+        if(ca){var cc=ca.array,r0=cc[i*3],g0=cc[i*3+1],b0=cc[i*3+2];vc[q]=r0;vc[q+1]=g0;vc[q+2]=b0;vc[q+3]=r0;vc[q+4]=g0;vc[q+5]=b0}
+        v+=2}}
+    init=true;g.attributes.position.needsUpdate=true;g.attributes.alpha.needsUpdate=true;if(ca)g.attributes.vcol.needsUpdate=true};
+  return ls}
+
+/* ---------- panel helpers ---------- */
+var panelRoot=$('#panel');
+function sec(host,title,html){var s=el('section');if(title)s.appendChild(el('h2',null,title));if(html)s.insertAdjacentHTML('beforeend',html);if(title!=='Study goals')host.appendChild(s);return s}
+function det(host,title,html){var d=el('details');d.innerHTML='<summary>'+title+'</summary><div>'+html+'</div>';host.appendChild(d);return d}
+function slider(parent,sp,state,onChange){
+  var w=el('div','ctl'),id='c'+Math.random().toString(36).slice(2,8);
+  w.innerHTML='<label for="'+id+'"><span>'+sp.label+'</span><output></output></label><input id="'+id+'" type="range" min="'+sp.min+'" max="'+sp.max+'" step="'+sp.step+'">'+(sp.desc?'<div class="d">'+sp.desc+'</div>':'');
+  var inp=$('input',w),out=$('output',w);inp.value=state[sp.k];
+  function show(){out.textContent=fmt(state[sp.k],sp.dec)+(sp.unit?' '+sp.unit:'')}
+  inp.addEventListener('input',function(){state[sp.k]=parseFloat(inp.value);show();onChange(sp.k)});
+  show();parent.appendChild(w);
+  return {set:function(v){state[sp.k]=v;inp.value=v;show()}}}
+function btn(parent,label,fn){var b=el('button','btn',label);b.type='button';b.addEventListener('click',function(){fn(b)});parent.appendChild(b);return b}
+function fill(root,vals){var n=root.querySelectorAll('[data-k]');for(var i=0;i<n.length;i++){var v=vals[n[i].getAttribute('data-k')];if(v!=null)n[i].textContent=v}}
+function varTable(rows){var h='<div class="tw"><table class="vt"><thead><tr><th>Symbol</th><th>Meaning</th><th>Unit</th><th>Now</th></tr></thead><tbody>';
+  rows.forEach(function(r){h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td data-k="'+(r[3]||'')+'">'+(r[3]?'':'')+'</td></tr>'});
+  return h+'</tbody></table></div>'}
+function goals(items){return '<ul class="goals">'+items.map(function(t){return '<li><input type="checkbox" aria-label="done"><span>'+t+'</span></li>'}).join('')+'</ul>'}
+function selfTest(host,prompt,points){}
+
+/* ---------- tab registry ---------- */
+var defs=[],tabs=[];
+function addTab(d){defs.push(d)}
+function mkTab(d){
+  var t={def:d,scene:new T.Scene(),labels:[],legend:d.legend||[],cam:d.cam,panel:el('div','tabpanel'),update:null,refresh:null};
+  t.panel.hidden=true;panelRoot.appendChild(t.panel);lights(t.scene);
+  t.label=function(text,cls){var e=el('div','lbl '+(cls||''),text);e.style.display='none';labelsEl.appendChild(e);var o={e:e,pos:new T.Vector3(),hidden:false};t.labels.push(o);return o};
+  return t}
+function showLegend(t){legendEl.innerHTML=t.legend.map(function(l){return '<span><i style="background:var('+l[0]+')"></i>'+l[1]+'</span>'}).join('')}
+var tabBar=$('#tabs');
+function activate(i){
+  if(!tabs[i]){tabs[i]=mkTab(defs[i]);defs[i].build(tabs[i]);if(tabs[i].refresh)tabs[i].refresh()}
+  if(active){active.panel.hidden=true;active.labels.forEach(function(l){l.e.style.display='none'})}
+  active=tabs[i];active.panel.hidden=false;setCam(active.cam);showLegend(active);
+  Array.prototype.forEach.call(tabBar.children,function(b,j){b.setAttribute('aria-selected',j===i?'true':'false')});
+  try{history.replaceState(null,'','#set'+(i+1))}catch(e){}}
+function boot(){
+  defs.forEach(function(d,i){var b=el('button',null,'<small>'+(d.tag||('Set '+d.num))+'</small>'+d.name);b.setAttribute('role','tab');b.addEventListener('click',function(){activate(i)});tabBar.appendChild(b)});
+  var m=/^#set(\d)$/.exec(location.hash),idx=m?clamp(parseInt(m[1],10)-1,0,defs.length-1):0;
+  activate(idx);
+  window.addEventListener('hashchange',function(){var m2=/^#set(\d)$/.exec(location.hash);if(m2){var j=clamp(parseInt(m2[1],10)-1,0,defs.length-1);if(tabs[j]!==active)activate(j)}});
+  var last=performance.now(),clock=0;
+  (function frame(now){requestAnimationFrame(frame);var dt=Math.min(0.05,(now-last)/1000);last=now;
+    if(document.hidden||!active)return;clock+=dt;
+    if(active.update)active.update(dt,clock);
+    if(renderer){applyCam();renderer.render(active.scene,camera);
+      var w=stageEl.clientWidth,h=stageEl.clientHeight,v=new T.Vector3();
+      active.labels.forEach(function(l){if(l.hidden){l.e.style.display='none';return}
+        v.copy(l.pos).project(camera);
+        if(v.z>1){l.e.style.display='none';return}
+        l.e.style.display='block';l.e.style.transform='translate('+((v.x*0.5+0.5)*w)+'px,'+((-v.y*0.5+0.5)*h)+'px) translate(-50%,-50%)'})}
+  })(last)}
+
+/* shared handle for the other script parts */
+window.PT={T:T,D2R:D2R,R2D:R2D,GAM:GAM,CP:CP,RG:RG,COL:COL,$:$,el:el,fmt:fmt,clamp:clamp,Arrow:Arrow,V3:V3,bladeGeom:bladeGeom,foilGeom:foilGeom,trailPoints:trailPoints,mat:mat,disposeTree:disposeTree,
+  sec:sec,det:det,slider:slider,btn:btn,fill:fill,varTable:varTable,goals:goals,selfTest:selfTest,addTab:addTab,boot:boot,setCam:setCam};
+})();
+(function(){
+'use strict';
+var P=window.PT,T=P.T;
+var GM=1.4,RR=287,CPA=GM*RR/(GM-1);
+/* ---------- gas dynamics relations (perfect gas) ---------- */
+function T0T(M,g){return 1+(g-1)/2*M*M}
+function P0P(M,g){return Math.pow(T0T(M,g),g/(g-1))}
+function mfp(M,g,R){return M*Math.sqrt(g/R)/Math.pow(T0T(M,g),(g+1)/(2*(g-1)))}
+function aas(M,g){return (1/M)*Math.pow(2/(g+1)*T0T(M,g),(g+1)/(2*(g-1)))}
+function mFromAA(ar,sup,g){var lo=sup?1:1e-4,hi=sup?30:1,i,m;
+  for(i=0;i<70;i++){m=(lo+hi)/2;var v=aas(m,g);
+    if(sup){if(v>ar)hi=m;else lo=m}else{if(v>ar)lo=m;else hi=m}}
+  return (lo+hi)/2}
+function mFromP0P(r,g){return Math.sqrt(Math.max(0,(Math.pow(Math.max(r,1),(g-1)/g)-1)*2/(g-1)))}
+function shock(M1,g){var m2=Math.sqrt(((g-1)*M1*M1+2)/(2*g*M1*M1-(g-1))),pr=2*g/(g+1)*M1*M1-(g-1)/(g+1),
+  rr=(g+1)*M1*M1/(2+(g-1)*M1*M1),tr=pr/rr;
+  return {M2:m2,p:pr,rho:rr,T:tr,u:1/rr,p0:P0P(m2,g)*pr/P0P(M1,g),ds:Math.log(tr)-(g-1)/g*Math.log(pr)}}
+function ray(M,g){var d=1+g*M*M,k=(1+g)/d;
+  return {p:k,T:M*M*k*k,T0:M*M*(1+g)/(d*d)*(2+(g-1)*M*M),p0:k*Math.pow((2+(g-1)*M*M)/(g+1),g/(g-1)),ds:Math.log(M*M*Math.pow(k,(g+1)/g))}}
+function mFromRayT0(r,g){var lo=1e-4,hi=1,i,m;for(i=0;i<70;i++){m=(lo+hi)/2;if(ray(m,g).T0<r)lo=m;else hi=m}return (lo+hi)/2}
+function rcrit(eta,g){return Math.pow(1-(1/eta)*(g-1)/(g+1),-g/(g-1))}
+P.G={GM:GM,RR:RR,CPA:CPA,T0T:T0T,P0P:P0P,mfp:mfp,aas:aas,mFromAA:mFromAA,mFromP0P:mFromP0P,shock:shock,ray:ray,mFromRayT0:mFromRayT0,rcrit:rcrit};
+
+/* ---------- small helpers ---------- */
+function sample(f,a,b,n){var o=[],i;for(i=0;i<=n;i++){var x=a+(b-a)*i/n;o.push([x,f(x)])}return o}
+function ramp(t){return new T.Color().setHSL((1-Math.min(1,Math.max(0,t)))*0.66,0.85,0.5)}
+function smooth(a,b,x){var t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t)}
+/* line chart as an SVG string. o: w,h,x:[a,b],y:[a,b],xl,yl,series:[{pts,c,n,dash}],marks:[{x,y,c}],vx:[x],hy:[y] */
+function chart(o){
+  var W=o.w||420,H=o.h||230,L=44,B=34,Tp=o.series&&o.series.length>1?26:12,Rt=12,pw=W-L-Rt,ph=H-Tp-B;
+  function X(x){return L+(x-o.x[0])/(o.x[1]-o.x[0])*pw}
+  function Y(y){return Tp+ph-(y-o.y[0])/(o.y[1]-o.y[0])*ph}
+  function cl(y){return Math.min(o.y[1],Math.max(o.y[0],y))}
+  var s='<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+(o.label||'chart')+'">',i;
+  for(i=0;i<=4;i++){var xv=o.x[0]+(o.x[1]-o.x[0])*i/4,yv=o.y[0]+(o.y[1]-o.y[0])*i/4;
+    s+='<line x1="'+X(xv)+'" y1="'+Tp+'" x2="'+X(xv)+'" y2="'+(Tp+ph)+'" style="stroke:var(--line)"/>';
+    s+='<line x1="'+L+'" y1="'+Y(yv)+'" x2="'+(L+pw)+'" y2="'+Y(yv)+'" style="stroke:var(--line)"/>';
+    s+='<text x="'+X(xv)+'" y="'+(H-B+14)+'" text-anchor="middle">'+P.fmt(xv,o.xd==null?1:o.xd)+'</text>';
+    s+='<text x="'+(L-5)+'" y="'+(Y(yv)+4)+'" text-anchor="end">'+P.fmt(yv,o.yd==null?2:o.yd)+'</text>'}
+  s+='<text x="'+(L+pw/2)+'" y="'+(H-4)+'" text-anchor="middle">'+(o.xl||'')+'</text>';
+  s+='<text x="12" y="'+(Tp+ph/2)+'" text-anchor="middle" transform="rotate(-90 12 '+(Tp+ph/2)+')">'+(o.yl||'')+'</text>';
+  (o.vx||[]).forEach(function(v){s+='<line x1="'+X(v)+'" y1="'+Tp+'" x2="'+X(v)+'" y2="'+(Tp+ph)+'" style="stroke:var(--muted)" stroke-dasharray="4 3"/>'});
+  (o.hy||[]).forEach(function(v){s+='<line x1="'+L+'" y1="'+Y(v)+'" x2="'+(L+pw)+'" y2="'+Y(v)+'" style="stroke:var(--muted)" stroke-dasharray="4 3"/>'});
+  (o.series||[]).forEach(function(se,k){
+    var d='',pen=false;se.pts.forEach(function(p){if(!isFinite(p[1])||p[1]<o.y[0]-1e9||p[1]>o.y[1]+1e9){pen=false;return}
+      d+=(pen?'L':'M')+X(p[0]).toFixed(1)+' '+Y(cl(p[1])).toFixed(1);pen=true});
+    s+='<path d="'+d+'" fill="none" stroke-width="2.2" style="stroke:var('+se.c+')"'+(se.dash?' stroke-dasharray="6 4"':'')+'/>';
+    if(se.n){var lx=L+8+k*(o.lg||118);s+='<line x1="'+lx+'" y1="11" x2="'+(lx+16)+'" y2="11" stroke-width="3" style="stroke:var('+se.c+')"/><text x="'+(lx+20)+'" y="15" style="fill:var('+se.c+')">'+se.n+'</text>'}});
+  (o.marks||[]).forEach(function(m){if(isFinite(m.x)&&isFinite(m.y))s+='<circle cx="'+X(m.x)+'" cy="'+Y(cl(m.y))+'" r="5" style="fill:var('+(m.c||'--accent')+');stroke:var(--panel)" stroke-width="2"/>'});
+  return s+'</svg>'}
+/* lathe about the x axis. xs: axial stations, rs: radii, col(x)->THREE.Color optional */
+function latheX(xs,rs,col,op){
+  op=op||{};var pts=xs.map(function(x,i){return new T.Vector2(Math.max(rs[i],0.001),x)});
+  var g=new T.LatheGeometry(pts,op.seg||44);g.rotateZ(-Math.PI/2);
+  if(col){var pa=g.attributes.position,cs=new Float32Array(pa.count*3),i;
+    for(i=0;i<pa.count;i++){var c=col(pa.getX(i));cs[i*3]=c.r;cs[i*3+1]=c.g;cs[i*3+2]=c.b}
+    g.setAttribute('color',new T.BufferAttribute(cs,3))}
+  var m=new T.MeshStandardMaterial({color:op.color||0xffffff,vertexColors:!!col,side:T.DoubleSide,transparent:true,opacity:op.opacity==null?0.55:op.opacity,roughness:0.5,metalness:0.1,depthWrite:false});
+  return new T.Mesh(g,m)}
+function swap(group,old,nu){if(old){group.remove(old);if(old.geometry)old.geometry.dispose()}group.add(nu);return nu}
+function cloud(n,color,size,vcol){
+  var arr=new Float32Array(n*3),g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(arr,3));
+  var cs=null;if(vcol){cs=new Float32Array(n*3);g.setAttribute('color',new T.BufferAttribute(cs,3))}
+  var o=P.trailPoints(g,color||0x2D8BE0);o.frustumCulled=false;return {obj:o,arr:arr,col:cs,n:n,dirty:function(){g.attributes.position.needsUpdate=true;if(cs)g.attributes.color.needsUpdate=true}}}
+function ring(r,color,x){var m=new T.Mesh(new T.TorusGeometry(r,0.025,8,48),new T.MeshBasicMaterial({color:color}));m.rotation.y=Math.PI/2;if(x!=null)m.position.x=x;return m}
+function disc(r,color,op){var m=new T.Mesh(new T.CircleGeometry(r,40),new T.MeshBasicMaterial({color:color,transparent:true,opacity:op==null?0.4:op,side:T.DoubleSide,depthWrite:false}));m.rotation.y=Math.PI/2;return m}
+function readout(host,rows){ /* rows: [key,label,unit] */
+  var h='<div class="tw"><table class="vt"><tbody>'+rows.map(function(r){return '<tr><td>'+r[1]+'</td><td>'+(r[2]||'')+'</td><td data-k="'+r[0]+'"></td></tr>'}).join('')+'</tbody></table></div>';
+  host.insertAdjacentHTML('beforeend',h)}
+function chk(label,ok){return '<span class="'+(ok?'ok':'bad')+'">'+(ok?'ok ':'check ')+label+'</span>'}
+function feyn(host,title,text){return P.sec(host,null,'<h3 class="t">'+title+'</h3><p class="feyn">'+text+'</p>')}
+P.U={sample:sample,ramp:ramp,smooth:smooth,chart:chart,latheX:latheX,swap:swap,cloud:cloud,ring:ring,disc:disc,readout:readout,chk:chk,feyn:feyn};
+})();
+(function(){
+'use strict';
+var P=window.PT,T=P.T,U=P.U,V3=P.V3,fmt=P.fmt,D2R=Math.PI/180,R2D=180/Math.PI,TAU=2*Math.PI;
+function ctlBox(host,title){var s=P.sec(host,title);var c=P.el('div','ctls');s.appendChild(c);return {s:s,c:c}}
+function top(host,title,text){var f=P.sec(host,null,'<h3 class="t">'+title+'</h3><p class="feyn">'+text+'</p>');host.insertBefore(f,host.firstChild)}
+function chartDiv(host,k){var d=P.el('div');d.setAttribute('data-chart',k);host.appendChild(d);return d}
+P.P3={ctlBox:ctlBox,top:top,chartDiv:chartDiv};
+
+/* propeller geometry helper: hub, spinner and B blades made of segments along +y, axis along +x */
+function makeProp(R,B,segN){
+  var g=new T.Group(),spin=new T.Group(),i,k;g.add(spin);
+  var sp=new T.Mesh(new T.ConeGeometry(R*0.12,R*0.4,24),new T.MeshStandardMaterial({color:0x8795A3,roughness:0.4,metalness:0.4}));
+  sp.rotation.z=Math.PI/2;sp.position.x=-R*0.2;spin.add(sp);
+  var hub=new T.Mesh(new T.CylinderGeometry(R*0.12,R*0.12,R*0.2,24),new T.MeshStandardMaterial({color:0x8795A3,roughness:0.4,metalness:0.4}));hub.rotation.z=Math.PI/2;spin.add(hub);
+  var blades=[],NS=30,NP=26,L=2*NP,i2,j2;
+  function foilT(u){return 5*(0.2969*Math.sqrt(u)-0.1260*u-0.3516*u*u+0.2843*u*u*u-0.1036*u*u*u*u)}
+  var nvert=NS*L+2,pos=new Float32Array(nvert*3),col=new Float32Array(nvert*3),idx=[];
+  for(i2=0;i2<NS;i2++){var cc=U.ramp(0.15+0.5*i2/(NS-1));for(j2=0;j2<L;j2++){var vi=(i2*L+j2)*3;col[vi]=cc.r;col[vi+1]=cc.g;col[vi+2]=cc.b}
+    if(i2<NS-1)for(j2=0;j2<L;j2++){var a0=i2*L+j2,a1=i2*L+(j2+1)%L,b0=a0+L,b1=a1+L;idx.push(a0,b0,a1,a1,b0,b1)}}
+  var cr=NS*L,ct=NS*L+1,cR=U.ramp(0.15),cT=U.ramp(0.65);
+  col[cr*3]=cR.r;col[cr*3+1]=cR.g;col[cr*3+2]=cR.b;col[ct*3]=cT.r;col[ct*3+1]=cT.g;col[ct*3+2]=cT.b;
+  for(j2=0;j2<L;j2++){var k2=(j2+1)%L;idx.push(cr,j2,k2);idx.push(ct,(NS-1)*L+k2,(NS-1)*L+j2)}
+  var bg2=new T.BufferGeometry();bg2.setAttribute('position',new T.BufferAttribute(pos,3));bg2.setAttribute('color',new T.BufferAttribute(col,3));bg2.setIndex(idx);
+  var bmat=new T.MeshStandardMaterial({vertexColors:true,roughness:0.45,metalness:0.2,side:T.DoubleSide});
+  /* one continuous blade surface. betaFn(r) gives pitch in degrees at scene radius r */
+  function setBeta(betaFn){
+    for(i2=0;i2<NS;i2++){var u=i2/(NS-1),rr=R*(0.16+0.84*u),ch=R*0.2*(1-0.45*rr/R),tr=0.15-0.05*u,be=-betaFn(rr)*Math.PI/180,cb=Math.cos(be),sb=Math.sin(be),cx=0,cy=0;
+      for(j2=0;j2<L;j2++){var up=j2<=NP,m=up?j2:L-j2,sv=(1-Math.cos(Math.PI*m/NP))/2,yt=tr*foilT(sv)*ch,xc=-0.05*4*sv*(1-sv)*ch,x=xc+(up?-yt:yt),z=-(sv*ch-ch/2),
+          X=x*cb+z*sb,Z=-x*sb+z*cb,vi=(i2*L+j2)*3;pos[vi]=X;pos[vi+1]=rr;pos[vi+2]=Z;cx+=X;cy+=Z}
+      if(i2===0){pos[cr*3]=cx/L;pos[cr*3+1]=rr;pos[cr*3+2]=cy/L}
+      if(i2===NS-1){pos[ct*3]=cx/L;pos[ct*3+1]=rr;pos[ct*3+2]=cy/L}}
+    bg2.attributes.position.needsUpdate=true;bg2.computeVertexNormals()}
+  setBeta(function(rr){return 32-22*(rr/R)});
+  for(k=0;k<B;k++){var bg=new T.Group();bg.rotation.x=TAU*k/B;spin.add(bg);blades.push(bg);bg.add(new T.Mesh(bg2,bmat))}
+  return {g:g,spin:spin,blades:blades,setBeta:setBeta}}
+P.P3.makeProp=makeProp;
+
+/* ================= Set 1: basic description ================= */
+P.addTab({num:1,tag:'Propeller 1',name:'Blade sections and twist',
+ legend:[['--c-abs','blade speed rΩ'],['--c-rel','inflow Vin'],['--c-ax','resultant Vaero'],['--c-wh','chord line']],
+ cam:{th:0.7,ph:1.25,dist:10,tx:0,ty:0.5,tz:0},
+ build:function(t){
+  var sc=t.scene,host=t.panel,R=3,Rp=1.35,S={V:60,n:34,B:3,rf:0.75,b0:20.5,tw:1,al:5,spin:0},Kv=0.011,i,prop=null,propH=new T.Group(),NS=14;sc.add(propH);
+  var ax=new T.Mesh(new T.CylinderGeometry(0.015,0.015,9,8),new T.MeshBasicMaterial({color:0x8795A3}));ax.rotation.z=Math.PI/2;ax.position.x=0;sc.add(ax);
+  var aV=new P.Arrow(P.COL.abs,0.045,0.2),aI=new P.Arrow(P.COL.rel,0.045,0.2),aA=new P.Arrow(P.COL.ax,0.06,0.24);sc.add(aV.g);sc.add(aI.g);sc.add(aA.g);
+  var chord=new T.Mesh(new T.CylinderGeometry(0.02,0.02,1,8),new T.MeshBasicMaterial({color:P.COL.wh}));sc.add(chord);
+  var lV=t.label('','abs'),lI=t.label('','rel'),lA=t.label('','ax'),lF=t.label('flow, flight direction','u');lF.pos.set(-4.2,0.3,0);
+  var ctl=ctlBox(host,'Controls'),sl={},spinOn=false;
+  function phi(r){return Math.atan2(S.V,r*(Rp/R)*TAU*S.n)}
+  function beta(r){var ref=S.rf*R,tw=S.tw?(phi(r)-phi(ref))*R2D:0;return S.b0+tw}
+  function build(){if(prop){propH.remove(prop.g);P.disposeTree&&P.disposeTree(prop.g)}prop=makeProp(R,S.B,NS);propH.add(prop.g);paint()}
+  function paint(){prop.setBeta(beta)}
+  function refresh(){
+    paint();var r=S.rf*R,Om=TAU*S.n,Vb=r*(Rp/R)*Om,Va=Math.hypot(Vb,S.V),ph=phi(r),be=beta(r),al=be-ph*R2D,tip=Math.hypot(Rp*Om,S.V);
+    var P0=V3(0,r,0),Sx=V3(-S.V*Kv,r,Vb*Kv),Mid=V3(0,r,Vb*Kv);
+    aA.set(Sx,P0);aI.set(Sx,Mid);aV.set(Mid,P0);
+    var cb=be*D2R,cl=1.2;chord.position.set(Math.sin(cb)*0,r,0);chord.scale.set(1,cl,1);chord.quaternion.setFromUnitVectors(V3(0,1,0),V3(Math.sin(cb),0,-Math.cos(cb)));
+    lV.pos.set(0,r-0.25,Vb*Kv/2);lV.e.textContent='rΩ = '+fmt(Vb,0)+' m/s';lI.pos.set(-S.V*Kv/2,r+0.25,Vb*Kv);lI.e.textContent='Vin = '+fmt(S.V,0)+' m/s';lA.pos.set(-S.V*Kv/2-0.2,r,Vb*Kv/2);lA.e.textContent='Vaero = '+fmt(Va,0)+' m/s';
+    lV.hidden=lI.hidden=lA.hidden=spinOn;
+    P.fill(host,{Vb:fmt(Vb,1),Va:fmt(Va,1),ph:fmt(ph*R2D,2),be:fmt(be,2),al:fmt(al,2),tip:fmt(tip,0),tipM:fmt(tip/340.3,2),Om:fmt(Om,1),rr:fmt(r*Rp/R,2),b0:fmt(S.b0,1),Vin:fmt(S.V,0),Bn:S.B,
+      alroot:fmt(beta(0.2*R)-phi(0.2*R)*R2D,1),altip:fmt(beta(R)-phi(R)*R2D,1),phroot:fmt(phi(0.2*R)*R2D,1),phtip:fmt(phi(R)*R2D,1)});
+    var f=function(g){return U.sample(g,0.2,1,40)};
+    host.querySelector('[data-chart="ang"]').innerHTML=U.chart({x:[0.2,1],y:[-10,90],xl:'radius r / R',yl:'angle (degrees)',yd:0,label:'Advance angle, pitch angle and angle of attack along the blade',lg:92,
+      series:[{pts:f(function(x){return phi(x*R)*R2D}),c:'--c-rel',n:'φ'},{pts:f(function(x){return beta(x*R)}),c:'--c-wh',n:'β'},{pts:f(function(x){return beta(x*R)-phi(x*R)*R2D}),c:'--c-ax',n:'α'}],marks:[{x:S.rf,y:ph*R2D,c:'--c-rel'},{x:S.rf,y:be,c:'--c-wh'},{x:S.rf,y:al,c:'--c-ax'}],hy:[0]});
+    host.querySelector('[data-chart="vel"]').innerHTML=U.chart({x:[0.2,1],y:[0,Math.ceil(tip/50)*50],xl:'radius r / R',yl:'speed (m/s)',yd:0,label:'Blade speed and resultant speed along the blade',
+      series:[{pts:f(function(x){return x*Rp*Om}),c:'--c-abs',n:'rΩ'},{pts:f(function(x){return Math.hypot(x*Rp*Om,S.V)}),c:'--c-ax',n:'Vaero'},{pts:f(function(){return S.V}),c:'--c-rel',n:'Vin'}],marks:[{x:S.rf,y:Va,c:'--c-ax'}]})}
+  t.refresh=refresh;
+  [{k:'V',label:'Inflow speed, Vin',min:0,max:150,step:1,unit:'m/s',dec:0,desc:'Taken equal to flight speed here.'},
+   {k:'n',label:'Rotational speed, n',min:10,max:60,step:0.5,unit:'rev/s',dec:1,desc:'Blade angular speed is Ω = 2πn.'},
+   {k:'rf',label:'Section position, r / R',min:0.2,max:1,step:0.01,unit:'',dec:2,desc:'Where the velocity triangle is drawn.'},
+   {k:'b0',label:'Whole blade pitch, β0',min:5,max:60,step:0.5,unit:'deg',dec:1,desc:'Pitch at the section r = 0.75R.'},
+   {k:'al',label:'Wanted angle of attack, α',min:0,max:12,step:0.1,unit:'deg',dec:1,desc:'Used by the variable pitch button.'}].forEach(function(sp){sl[sp.k]=P.slider(ctl.c,sp,S,function(k){if(k==='rf'||k==='V'||k==='n'||k==='b0'||k==='al')refresh()})});
+  sl.B=P.slider(ctl.c,{k:'B',label:'Number of blades, B',min:2,max:8,step:1,unit:'',dec:0,desc:'All blades are identical.'},S,function(){build();refresh()});
+  var row=P.el('div','row');ctl.s.appendChild(row);
+  P.btn(row,'Twist on, constant α',function(b){S.tw=S.tw?0:1;b.textContent=S.tw?'Twist off, flat blade':'Twist on, constant α';refresh()});
+  P.btn(row,'Variable pitch: set β0 for wanted α',function(){var r=0.75*R;S.rf=0.75;sl.rf.set(0.75);S.b0=phi(r)*R2D+S.al;S.b0=Math.max(5,Math.min(60,S.b0));sl.b0.set(S.b0);refresh()});
+  P.btn(row,'Spin the propeller',function(b){spinOn=!spinOn;b.textContent=spinOn?'Stop spinning':'Spin the propeller';refresh()});
+  top(host,'A propeller is a rotating wing, and each slice sees a different wind','Inflow is the same all along the blade. Blade speed grows with radius. So the wind direction at the root differs from the wind direction at the tip. Twist turns each slice to match its own wind. Then every slice works at a good angle of attack.');
+  var e=P.sec(host,'Equations, live');
+  e.insertAdjacentHTML('beforeend','<div class="eq">Disc area: <b>A = πD²/4</b>, shaft power <b>P = QΩ</b>, <b>Ω = 2πn</b> = <span class="v" data-k="Om"></span> rad/s<br>Useful power: <b>P_thrust = T V</b><br>Section speeds at r = <span class="v" data-k="rr"></span> m: <b>V_blade = rΩ</b> = <span class="v" data-k="Vb"></span> m/s<br><b>V_aero = √((rΩ)² + Vin²)</b> = <span class="v" data-k="Va"></span> m/s<br>Advance angle: <b>φ = atan(Vin / rΩ)</b> = <span class="v" data-k="ph"></span>°<br>Pitch and attack: <b>β = φ + α</b>, so α = <span class="v" data-k="al"></span>° with β = <span class="v" data-k="be"></span>°<br>Pitch split: <b>β(r) = β0 + βt(r)</b>, βt is the twist<br>Tip speed: <b>√((RΩ)² + Vin²)</b> = <span class="v" data-k="tip"></span> m/s, Mach <span class="v" data-k="tipM"></span> at 340 m/s</div>');
+  chartDiv(e,'ang');chartDiv(e,'vel');
+  e.insertAdjacentHTML('beforeend','<p>Check the first chart. The advance angle φ falls from root to tip. With twist on, β falls by the same amount, so α stays flat. With twist off, α grows toward the tip. Root: φ = <span class="v" data-k="phroot"></span>°, tip: φ = <span class="v" data-k="phtip"></span>°. Attack at root <span class="v" data-k="alroot"></span>°, at tip <span class="v" data-k="altip"></span>°.</p>');
+  P.sec(host,'Variables',P.varTable([['B','Number of blades','-','Bn'],['n, Ω','Revolutions per second, radians per second','1/s','Om'],['V, Vin','Flight speed and inflow speed','m/s','Vin'],['r, R','Blade radial position, disc radius','m','rr'],['V_blade','Blade speed in the disc plane','m/s','Vb'],['V_aero','Resultant velocity seen by the section','m/s','Va'],['φ','Advance angle, between Vaero and the blade motion','deg','ph'],['α','Aerodynamic angle of attack','deg','al'],['β, β0, βt','Pitch angle, whole blade pitch, twist','deg','be']]));
+  var d=P.sec(host,'Go deeper');
+  P.det(d,'Why the root is thick and the tip is thin','<p>The root carries all the centrifugal pull and all the aerodynamic load of the blade beyond it, so it must be thick. Outboard sections carry less load and can be thin and tuned for low drag. Most of the thrust comes from the outer part of the blade because its speed is highest.</p>');
+  P.det(d,'Fixed pitch against variable pitch','<p>Fixed pitch sets β0 once. When V rises, φ rises and α falls. Variable pitch turns the whole blade so α stays near its best value. Press the variable pitch button, then move the inflow speed. Compare α before and after.</p>');
+  P.sec(host,'Study goals',P.goals(['Define B, n, D, A, Q, T, Ω, P_prop and P_thrust','Explain why inflow speed is not the flight speed in later theory','Draw the velocity triangle and mark φ, α and β','Explain why φ falls from root to tip and why twist follows','Say what fixed and variable pitch each do']));
+  P.selfTest(host,'Explain to a child why a propeller blade is twisted.',['Blade speed grows with radius','Wind direction therefore changes along the blade','Each slice must face its own wind at a good angle of attack','Twist is the pitch change that follows φ']);
+  build();
+  t.update=function(dt){if(spinOn&&prop)prop.spin.rotation.x+=TAU*S.n*0.02*dt*6}
+ }});
+
+/* ================= Set 2: performance coefficients ================= */
+P.addTab({num:2,tag:'Propeller 2',name:'Performance coefficients',
+ legend:[['--c-ax','thrust T'],['--c-rel','flight speed V'],['--c-abs','torque Q']],
+ cam:{th:0.9,ph:1.2,dist:9,tx:0,ty:0,tz:0},
+ build:function(t){
+  var sc=t.scene,host=t.panel,S={V:110,n:34,D:2.7,rho:1.1,T:3730,Q:2233},prop=null,propH=new T.Group(),cur=null;sc.add(propH);
+  var aT=new P.Arrow(P.COL.ax,0.07,0.28),aV=new P.Arrow(P.COL.rel,0.05,0.24),aQ=new P.Arrow(P.COL.abs,0.05,0.2);sc.add(aT.g);sc.add(aV.g);sc.add(aQ.g);
+  var arc=new T.Mesh(new T.TorusGeometry(1,0.03,8,40,4.2),new T.MeshBasicMaterial({color:P.COL.abs}));arc.rotation.y=Math.PI/2;sc.add(arc);
+  var lT=t.label('','ax'),lV=t.label('','rel'),lQ=t.label('','abs'),lD=t.label('','u');
+  var ctl=ctlBox(host,'Controls'),sl={},rad=1.5;
+  function rebuild(){if(prop){propH.remove(prop.g)}prop=makeProp(1.5,3,8);propH.add(prop.g);}
+  function calc(){var Om=TAU*S.n,A=Math.PI*S.D*S.D/4,Pp=S.Q*Om,Pt=S.T*S.V,J=S.V/(S.n*S.D),CT=S.T/(S.rho*S.n*S.n*Math.pow(S.D,4)),CQ=S.Q/(S.rho*S.n*S.n*Math.pow(S.D,5)),CP=Pp/(S.rho*Math.pow(S.n,3)*Math.pow(S.D,5)),Tc=S.V>0?S.T/(S.rho*S.V*S.V*S.D*S.D):NaN,Cs=S.V>0?Math.pow(S.rho*Math.pow(S.V,5)/(Pp*S.n*S.n),0.2):0,eta=Pp>0?Pt/Pp:0;
+    return {Om:Om,A:A,Pp:Pp,Pt:Pt,J:J,CT:CT,CQ:CQ,CP:CP,Tc:Tc,Cs:Cs,eta:eta,etaC:CP>0?CT*J/CP:0,CPq:TAU*CQ}}
+  function refresh(){cur=calc();var sD=S.D/2.7;propH.scale.set(1,sD,sD);rad=1.5*sD;
+    var ln=Math.min(3.5,0.4+S.T/1500),lv=Math.min(3.5,0.3+S.V/45);
+    aT.set(V3(1.4,0,0),V3(1.4+ln,0,0));aV.set(V3(-4.5,-rad-0.6,0),V3(-4.5+lv,-rad-0.6,0));aQ.g.visible=false;
+    arc.scale.set(rad*0.75,rad*0.75,rad*0.75);arc.position.x=0.6;arc.rotation.x=0;
+    lT.pos.set(1.4+ln/2,0.4,0);lT.e.textContent='T = '+fmt(S.T,0)+' N';lV.pos.set(-4.5+lv/2,-rad-1,0);lV.e.textContent='V = '+fmt(S.V,0)+' m/s';lQ.pos.set(0.6,rad*0.75+0.35,0);lQ.e.textContent='Q = '+fmt(S.Q,0)+' N m';lD.pos.set(0,-rad-0.35,0);lD.e.textContent='D = '+fmt(S.D,2)+' m';
+    P.fill(host,{J:fmt(cur.J,3),CT:fmt(cur.CT,4),Tc:isFinite(cur.Tc)?fmt(cur.Tc,3):'indeterminate',CQ:fmt(cur.CQ,4),CP:fmt(cur.CP,4),CP2:fmt(cur.CPq,4),Cs:fmt(cur.Cs,3),eta:fmt(cur.eta,4),etaC:fmt(cur.etaC,4),Pp:fmt(cur.Pp/1000,1),Pt:fmt(cur.Pt/1000,1),Om:fmt(cur.Om,1),A:fmt(cur.A,2),Tc2:isFinite(cur.Tc)?fmt(cur.CT/(cur.J*cur.J),3):'-',
+      V:fmt(S.V,0),n:fmt(S.n,1),D:fmt(S.D,2),rho:fmt(S.rho,2),T:fmt(S.T,0),Q:fmt(S.Q,0)});
+    host.querySelector('[data-chart="tc"]').innerHTML=U.chart({x:[0.1,2],y:[0,Math.max(1,Math.min(20,cur.CT/0.01/10))],xl:'advance ratio J',yl:'Tc = CT / J²',yd:1,label:'Thrust coefficient Tc against advance ratio at this CT',
+      series:[{pts:U.sample(function(j){return cur.CT/(j*j)},0.1,2,60),c:'--c-ax'}],marks:[{x:cur.J,y:cur.CT/(cur.J*cur.J),c:'--c-wh'}]});
+    host.querySelector('[data-chart="sc"]').innerHTML=U.chart({x:[0,2],y:[0,1],xl:'scale factor on n and V together',yl:'ratio to now',label:'Dimensional scaling at fixed J',lg:100,
+      series:[{pts:[[0,0],[2,1]],c:'--c-rel',n:'CT, CP, η',dash:true},{pts:U.sample(function(s){return s*s/4},0,2,40),c:'--c-ax',n:'T and Q'},{pts:U.sample(function(s){return s*s*s/8},0,2,40),c:'--c-abs',n:'P'}],marks:[]})}
+  t.refresh=refresh;
+  [{k:'V',label:'Flight speed, V',min:0,max:300,step:1,unit:'m/s',dec:0,desc:'Zero is static thrust, J = 0.'},
+   {k:'n',label:'Rotational speed, n',min:10,max:80,step:0.5,unit:'rev/s',dec:1,desc:''},
+   {k:'D',label:'Diameter, D',min:1,max:4,step:0.05,unit:'m',dec:2,desc:'Disc area A = πD²/4.'},
+   {k:'rho',label:'Air density, ρ',min:0.4,max:1.3,step:0.01,unit:'kg/m³',dec:2,desc:'Falls with altitude.'},
+   {k:'T',label:'Thrust, T',min:0,max:30000,step:10,unit:'N',dec:0,desc:''},
+   {k:'Q',label:'Torque, Q',min:100,max:20000,step:10,unit:'N m',dec:0,desc:'Applied by the engine.'}].forEach(function(sp){sl[sp.k]=P.slider(ctl.c,sp,S,function(){refresh()})});
+  var row=P.el('div','row');ctl.s.appendChild(row);
+  P.btn(row,'Notes example point',function(){S.V=110;S.n=34;S.D=2.7;S.rho=1.1;S.T=3730;S.Q=2233;['V','n','D','rho','T','Q'].forEach(function(k){sl[k].set(S[k])});refresh()});
+  P.btn(row,'Double n and V, same J',function(){S.n=Math.min(80,S.n*2);S.V=Math.min(300,S.V*2);S.T=Math.min(30000,S.T*4);S.Q=Math.min(20000,S.Q*4);['V','n','T','Q'].forEach(function(k){sl[k].set(S[k])});refresh()});
+  top(host,'Coefficients remove units, so one chart serves every size and speed','A propeller of any size behaves the same at the same advance ratio. Thrust, torque and power rise with size and speed. The coefficients do not. Press the double button and watch CT, CP and η stay still while T, Q and P jump.');
+  var e=P.sec(host,'Equations, live');
+  e.insertAdjacentHTML('beforeend','<div class="eq">Advance ratio: <b>J = V / (nD)</b> = <span class="v" data-k="J"></span><br>Thrust coefficient (rotation scaled): <b>CT = T / (ρ n² D⁴)</b> = <span class="v" data-k="CT"></span><br>Thrust coefficient (flight speed scaled): <b>Tc = T / (ρ V² D²)</b> = <span class="v" data-k="Tc"></span>, and <b>Tc = CT / J²</b> = <span class="v" data-k="Tc2"></span><br>Torque coefficient: <b>CQ = Q / (ρ n² D⁵)</b> = <span class="v" data-k="CQ"></span><br>Power coefficient: <b>CP = P / (ρ n³ D⁵)</b> = <span class="v" data-k="CP"></span>, and <b>CP = 2π CQ</b> = <span class="v" data-k="CP2"></span><br>Speed-power coefficient: <b>Cs = (ρ V⁵ / (P n²))^(1/5)</b> = <span class="v" data-k="Cs"></span><br>Efficiency: <b>η = T V / (Q Ω)</b> = <span class="v" data-k="eta"></span>, and <b>η = CT J / CP</b> = <span class="v" data-k="etaC"></span></div>');
+  U.readout(e,[['Pp','Shaft power QΩ','kW'],['Pt','Thrust power T V','kW'],['A','Disc area','m²'],['Om','Ω','rad/s']]);
+  chartDiv(e,'tc');chartDiv(e,'sc');
+  e.insertAdjacentHTML('beforeend','<p>Tc blows up as J goes to zero because V is in the denominator. That is why CT is the useful coefficient for static thrust. The scaling chart shows T and Q grow with the square of n and P with the cube. CT, CP and η do not move.</p>');
+  P.sec(host,'Variables',P.varTable([['J','Advance ratio, flight speed against tip-speed scale','-','J'],['CT','Thrust coefficient','-','CT'],['Tc','Thrust coefficient scaled with V','-','Tc'],['CQ, CP','Torque and power coefficients','-','CQ'],['Cs','Speed-power coefficient','-','Cs'],['η','Propeller efficiency, thrust power over shaft power','-','eta'],['T, Q','Thrust, torque','N, N m','T'],['D, ρ','Diameter, air density','m, kg/m³','D']]));
+  var d=P.sec(host,'Go deeper');
+  P.det(d,'Show CP = 2π CQ','<p>P = QΩ = Q 2π n. Then CP = P/(ρ n³ D⁵) = 2π n Q/(ρ n³ D⁵) = 2π Q/(ρ n² D⁵) = 2π CQ.</p>');
+  P.det(d,'Show η = CT J / CP','<p>η = T V/(QΩ). Put T = CT ρ n² D⁴ and P = CP ρ n³ D⁵. Then η = CT V /(CP n D) = CT J / CP.</p>');
+  P.det(d,'Propeller efficiency is not propulsive efficiency','<p>This η compares thrust power with shaft power and includes every loss. Propulsive efficiency ηF, used later, only counts the kinetic energy given to the slipstream.</p>');
+  P.sec(host,'Study goals',P.goals(['Define J, CT, Tc, CQ, CP, Cs and η','Never mix up CT and Tc','Derive CP = 2π CQ','Derive η = CT J / CP','Say why coefficients make propeller data reusable']));
+  P.selfTest(host,'Explain to a child why we use J instead of speed alone.',['A big slow propeller and a small fast one can behave the same','J compares flight speed with blade tip speed scale nD','Same J means same blade angles of attack','So one chart covers every size']);
+  rebuild();
+  t.update=function(dt){if(prop)prop.spin.rotation.x+=Math.min(1.2,cur?cur.Om*0.01:0.3)*dt*6}
+ }});
+})();
+(function(){
+'use strict';
+var P=window.PT,T=P.T,U=P.U,V3=P.V3,fmt=P.fmt,D2R=Math.PI/180,R2D=180/Math.PI,TAU=2*Math.PI,X=P.P3,ctlBox=X.ctlBox,top=X.top,chartDiv=X.chartDiv;
+
+/* teaching model of a three blade propeller, tuned to the notes example (J = 1.2, beta0 = 28.5 deg, CT = 0.055, eta = 0.86).
+   It is not the NACA 5868-9 data. It has the same trends: CT and CP fall with J, eta rises to a peak and falls to zero. */
+function model(J,b){var k=b/28.5,tn=Math.tan(b*D2R)/Math.tan(28.5*D2R),J0=1.535*tn,Jp=1.12*J0,kk=Math.pow(k,1.2),
+  CT=0.141*kk*Math.max(0,1-J*J/(J0*J0)),CP=0.1495*kk*tn*Math.max(1e-6,1-J*J/(Jp*Jp));
+  return {CT:CT,CP:CP,eta:CT>0?Math.min(0.9,CT*J/CP):0,J0:J0}}
+function solveBeta(ct,J){var lo=8,hi=50,i;if(model(J,lo).CT>ct)return lo;if(model(J,hi).CT<ct)return hi;
+  for(i=0;i<50;i++){var m=(lo+hi)/2;if(model(J,m).CT<ct)lo=m;else hi=m}return (lo+hi)/2}
+
+/* ================= Set 3: performance charts and calculation ================= */
+P.addTab({num:3,tag:'Propeller 3',name:'Charts and design',
+ legend:[['--c-ax','efficiency surface'],['--c-wh','your design point'],['--c-abs','best pitch ridge']],
+ cam:{th:0.55,ph:1.1,dist:10,tx:0,ty:1.3,tz:0},
+ build:function(t){
+  var sc=t.scene,host=t.panel,S={V:110,rho:1.1,T:3730,Cs:2,J:1.2,er:0.86},cur=null,i,j;
+  var NJ=38,NB=21,Jm=1.9,pos=new Float32Array(NJ*NB*3),col=new Float32Array(NJ*NB*3),idx=[];
+  function mapP(J,e,b){return [J*3-2.8,e*4,(b-25)*0.3]}
+  for(j=0;j<NB;j++)for(i=0;i<NJ;i++){var Jv=Jm*i/(NJ-1),bv=15+20*j/(NB-1),m=model(Jv,bv),p=mapP(Jv,m.eta,bv),c=U.ramp(1-Math.min(1,m.eta/0.9)*1);k3(j*NJ+i,p,c)}
+  function k3(n,p,c){pos[n*3]=p[0];pos[n*3+1]=p[1];pos[n*3+2]=p[2];col[n*3]=c.r;col[n*3+1]=c.g;col[n*3+2]=c.b}
+  for(j=0;j<NB-1;j++)for(i=0;i<NJ-1;i++){var a=j*NJ+i;idx.push(a,a+1,a+NJ,a+1,a+NJ+1,a+NJ)}
+  var gm=new T.BufferGeometry();gm.setAttribute('position',new T.BufferAttribute(pos,3));gm.setAttribute('color',new T.BufferAttribute(col,3));gm.setIndex(idx);gm.computeVertexNormals();
+  var surf=new T.Mesh(gm,new T.MeshStandardMaterial({vertexColors:true,side:T.DoubleSide,roughness:0.6,metalness:0.05,transparent:true,opacity:0.88}));sc.add(surf);
+  var rp=[],rb;for(j=0;j<NB;j++){var bb=15+20*j/(NB-1),be=0,bj=0;for(i=0;i<200;i++){var jj=Jm*i/199,e=model(jj,bb).eta;if(e>be){be=e;bj=jj}}var q=mapP(bj,be,bb);rp.push(new T.Vector3(q[0],q[1]+0.04,q[2]))}
+  var rg=new T.BufferGeometry().setFromPoints(rp);sc.add(new T.Line(rg,new T.LineBasicMaterial({color:P.COL.abs})));
+  var mk=new T.Mesh(new T.SphereGeometry(0.13,16,12),new T.MeshBasicMaterial({color:P.COL.wh}));sc.add(mk);
+  var base=new T.GridHelper(6,12,0x8795A3,0x8795A3);base.position.set(0.1,0,0);sc.add(base);
+  var lJ=t.label('advance ratio J','u'),lB=t.label('blade pitch β0, 15 to 35 deg','u'),lE=t.label('efficiency η','u'),lM=t.label('','wh');lJ.pos.set(0.1,0,3.3);lB.pos.set(3.6,0,0);lE.pos.set(-3,3.4,3);
+  var ctl=ctlBox(host,'Design inputs'),sl={};
+  function calc(){var Pw=S.T*S.V/S.er,n=Math.sqrt(S.rho*Math.pow(S.V,5)/(Pw*Math.pow(S.Cs,5))),D=S.V/(n*S.J),CT=S.T/(S.rho*n*n*Math.pow(D,4)),Q=Pw/(TAU*n),b=solveBeta(CT,S.J),m=model(S.J,b);
+    return {P:Pw,n:n,D:D,CT:CT,Q:Q,b:b,m:m,CP:Pw/(S.rho*Math.pow(n,3)*Math.pow(D,5)),Om:TAU*n}}
+  function refresh(){cur=calc();var q=mapP(S.J,cur.m.eta,cur.b);mk.position.set(q[0],q[1]+0.12,q[2]);lM.pos.set(q[0],q[1]+0.55,q[2]);lM.e.textContent='J = '+fmt(S.J,2)+', β0 = '+fmt(cur.b,1)+'°';
+    var ok=Math.abs(S.V-110)<0.5&&Math.abs(S.rho-1.1)<0.005&&Math.abs(S.T-3730)<5&&Math.abs(S.Cs-2)<0.01&&Math.abs(S.J-1.2)<0.005&&Math.abs(S.er-0.86)<0.002;
+    P.fill(host,{P:fmt(cur.P/1000,1),n:fmt(cur.n,1),D:fmt(cur.D,2),CT:fmt(cur.CT,4),Q:fmt(cur.Q,0),b:fmt(cur.b,1),em:fmt(cur.m.eta,3),CP:fmt(cur.CP,4),Om:fmt(cur.Om,1),Pthr:fmt(S.T*S.V/1000,1),
+      ex:ok?'Notes example check. The notes print P = 477 kW, n = 34, D = 2.7 m, CT = 0.055, β0 = 28.5° and Q = 2052 N m. You get '+fmt(cur.P/1000,0)+' kW, '+fmt(cur.n,0)+', '+fmt(cur.D,2)+' m, '+fmt(cur.CT,3)+', '+fmt(cur.b,1)+'° and '+fmt(cur.Q,0)+' N m. Check Q yourself: P/(2πn) with the notes’ own P and n gives about 2233, so the printed 2052 looks like a slip.':'Press Load notes example to compare with the printed numbers.'});
+    var bs=[15,20,25,30,35],cs=['--c-rel','--c-ax','--c-u','--c-abs','--c-wh'];
+    function mk3(key,ymax,yl){return U.chart({x:[0,1.9],y:[0,ymax],xl:'advance ratio J',yl:yl,yd:2,label:yl+' against J for several blade pitch settings',lg:60,
+      series:bs.map(function(b,k){return {pts:U.sample(function(J){return model(J,b)[key]},0,1.9,80),c:cs[k],n:b+'°'}}).concat([{pts:U.sample(function(J){return model(J,cur.b)[key]},0,1.9,80),c:'--accent',dash:true}]),marks:[{x:S.J,y:key==='CT'?cur.CT:key==='CP'?cur.CP:cur.m.eta,c:'--c-wh'}]})}
+    host.querySelector('[data-chart="ct"]').innerHTML=mk3('CT',0.35,'CT');host.querySelector('[data-chart="cp"]').innerHTML=mk3('CP',0.45,'CP');host.querySelector('[data-chart="et"]').innerHTML=mk3('eta',1,'η')}
+  t.refresh=refresh;
+  [{k:'V',label:'Cruise speed, V',min:40,max:250,step:1,unit:'m/s',dec:0,desc:''},
+   {k:'rho',label:'Air density, ρ',min:0.4,max:1.3,step:0.01,unit:'kg/m³',dec:2,desc:'Set by altitude.'},
+   {k:'T',label:'Thrust needed, T = drag',min:500,max:12000,step:10,unit:'N',dec:0,desc:''},
+   {k:'Cs',label:'Speed-power coefficient, Cs',min:1,max:3.5,step:0.01,unit:'',dec:2,desc:'You read this from the Cs chart.'},
+   {k:'J',label:'Advance ratio, J',min:0.5,max:1.9,step:0.01,unit:'',dec:2,desc:'Read from the best efficiency line.'},
+   {k:'er',label:'Efficiency read from the chart, η',min:0.5,max:0.92,step:0.005,unit:'',dec:3,desc:'About 0.86 near Cs = 2.'}].forEach(function(sp){sl[sp.k]=P.slider(ctl.c,sp,S,function(){refresh()})});
+  var row=P.el('div','row');ctl.s.appendChild(row);
+  P.btn(row,'Load notes example',function(){S.V=110;S.rho=1.1;S.T=3730;S.Cs=2;S.J=1.2;S.er=0.86;['V','rho','T','Cs','J','er'].forEach(function(k){sl[k].set(S[k])});refresh()});
+  top(host,'A chart turns a flight condition into a propeller','You know the speed, air density and thrust. The chart tells you the best efficiency and the advance ratio. Then simple algebra gives power, rotation speed, diameter and torque. The surface shows how efficiency depends on J and blade pitch. Move the design point and watch it ride the ridge.');
+  var e=P.sec(host,'Equations, live');
+  e.insertAdjacentHTML('beforeend','<div class="eq">1. Power from efficiency: <b>P = T V / η</b> = <span class="v" data-k="P"></span> kW (thrust power <span class="v" data-k="Pthr"></span> kW)<br>2. Rotation speed from Cs: <b>Cs = (ρ V⁵ / (P n²))^(1/5)</b>, so <b>n = √(ρ V⁵ / (P Cs⁵))</b> = <span class="v" data-k="n"></span> rev/s<br>3. Diameter from J: <b>D = V / (n J)</b> = <span class="v" data-k="D"></span> m<br>4. Thrust coefficient: <b>CT = T / (ρ n² D⁴)</b> = <span class="v" data-k="CT"></span><br>5. Blade pitch from the CT chart at this J: β0 = <span class="v" data-k="b"></span>°<br>6. Torque: <b>Q = P / Ω</b>, <b>Ω = 2πn</b>, Q = <span class="v" data-k="Q"></span> N m<br>Power coefficient: <b>CP = P/(ρ n³ D⁵)</b> = <span class="v" data-k="CP"></span>, model efficiency at the point: <span class="v" data-k="em"></span></div>');
+  e.insertAdjacentHTML('beforeend','<p class="n" data-k="ex"></p><p class="n">The surface and curves come from a teaching model fitted to the notes example. They show the right trends but they are not the NACA 5868-9 data. Use the NACA report for real numbers.</p>');
+  chartDiv(e,'ct');chartDiv(e,'cp');chartDiv(e,'et');
+  e.insertAdjacentHTML('beforeend','<p>CT and CP are high at J = 0 and fall as J rises. Higher pitch moves the whole curve to the right. Efficiency starts at zero when J = 0, climbs to a peak and drops to zero where CT = 0. Each pitch has its own peak, so a fixed pitch works well in a narrow band. Variable pitch rides along the ridge.</p>');
+  P.sec(host,'Variables',P.varTable([['V, ρ','Cruise speed and air density','m/s, kg/m³','V'],['T','Thrust, equal to aircraft drag in cruise','N','T'],['η','Efficiency read from the chart','-','em'],['Cs','Speed-power coefficient','-','CT'],['J','Advance ratio','-','CT'],['β0','Blade pitch at 0.75R','deg','b'],['P, Q, n, D','Shaft power, torque, rotation speed, diameter','','P']]));
+  var d=P.sec(host,'Go deeper');
+  P.det(d,'Order of the calculation','<p>Start on the Cs chart. Pick Cs where η is highest and read J from the maximum efficiency line. Then P from η, n from Cs, D from J, CT from its definition, and β0 from the CT chart. The CP chart is not needed because η already holds both CT and CP.</p>');
+  P.det(d,'Why a real design goes on','<p>You still need an engine that supplies this power at this speed, usually through a gearbox. The airframe must carry the torque. The blade structure must carry centrifugal and aerodynamic loads. Noise adds more limits.</p>');
+  P.sec(host,'Study goals',P.goals(['Say how CT, CP and η change with J and pitch','Explain why variable pitch widens the efficient range','Work the example from the notes with your own chart readings','Say which charts you used and why not all']));
+  P.selfTest(host,'Explain to a child how to pick a propeller from a chart.',['Know speed, air density and thrust needed','Read best efficiency and J from the chart','Get power, then rotation speed, then diameter','Finish with CT, blade pitch and torque']);
+  refresh();
+ }});
+
+/* ================= Set 4: actuator disc ================= */
+P.addTab({num:4,tag:'Propeller 4',name:'Actuator disc theory',
+ legend:[['--c-rel','low pressure'],['--c-abs','high pressure'],['--c-ax','thrust'],['--c-u','air particles']],
+ cam:{th:0.5,ph:1.2,dist:15,tx:0.5,ty:0,tz:0},
+ build:function(t){
+  var sc=t.scene,host=t.panel,S={V:60,V3:75,rho:1.2,D:2.7},cur=null,tubeH=new T.Group(),tube=null,i;sc.add(tubeH);
+  var Rs=1.3,L=7,disc=new T.Mesh(new T.CylinderGeometry(Rs,Rs,0.06,40),new T.MeshBasicMaterial({color:0x7950F2,transparent:true,opacity:0.5}));disc.rotation.z=Math.PI/2;sc.add(disc);
+  var N=200,parts=U.cloud(N,0x1C7ED6,0.08,false),XP=[],AP=[],RP=[];for(i=0;i<N;i++){XP.push(-L+Math.random()*2*L);AP.push(Math.random()*TAU);RP.push(Math.sqrt(Math.random()))}sc.add(parts.obj);
+  var aT=new P.Arrow(P.COL.ax,0.07,0.3);sc.add(aT.g);
+  var l1=t.label('','u'),l2=t.label('','u'),l3=t.label('','u'),lT=t.label('','ax'),lP=t.label('','abs'),lN=t.label('','rel');
+  function calc(){var V3=Math.max(S.V3,S.V),V2=(S.V+V3)/2,A=Math.PI*S.D*S.D/4,m=S.rho*V2*A,Tn=m*(V3-S.V),dp=0.5*S.rho*(V3*V3-S.V*S.V),Pw=0.5*m*(V3*V3-S.V*S.V);
+    return {V3:V3,V2:V2,A:A,m:m,T:Tn,dp:dp,Tdisc:A*dp,P:Pw,Pt:Tn*S.V,a:S.V>0?(V2-S.V)/S.V:NaN,b:S.V>0?(V3-S.V)/S.V:NaN,eF:V3>0?(S.V>0?S.V/V2:0):0}}
+  function vx(x){if(!cur)return S.V;var s=x/(0.9*Rs);if(x<0)return S.V+(cur.V2-S.V)/(1+s*s);return cur.V3-(cur.V3-cur.V2)/(1+s*s)}
+  function rx(x){var v=vx(x),r=Rs*Math.sqrt(cur.V2/Math.max(v,0.05*cur.V2));return Math.min(r,Rs*2.2)}
+  function px(x){var v=vx(x);return x<0?0.5*S.rho*(S.V*S.V-v*v):0.5*S.rho*(cur.V3*cur.V3-v*v)}
+  var ctl=ctlBox(host,'Controls'),sl={};
+  function refresh(){cur=calc();var xs=[],rs=[],k;for(k=0;k<=60;k++){var x=-L+2*L*k/60;if(Math.abs(x)<1e-9)x=-0.001;xs.push(x);rs.push(rx(x))}
+    tube=U.swap(tubeH,tube,U.latheX(xs,rs,function(x){var p=px(x),sc2=Math.max(cur.dp*0.9,1e-6);return U.ramp(0.5-0.5*Math.max(-1,Math.min(1,p/sc2)))},{opacity:0.45}));
+    var Ln=Math.min(3.2,0.3+cur.T/2500);aT.set(V3(0.2,-0,0),V3(0.2+Ln,0,0));
+    l1.pos.set(-L,Rs*1.5,0);l1.e.textContent='1: V = '+fmt(S.V,0)+' m/s';l2.pos.set(0,Rs*1.45,0);l2.e.textContent='2: V2 = '+fmt(cur.V2,1)+' m/s';l3.pos.set(L,Rs*1.9,0);l3.e.textContent='3: V3 = '+fmt(cur.V3,1)+' m/s';
+    lT.pos.set(0.2+Ln/2,-0.5,0);lT.e.textContent='T = '+fmt(cur.T,0)+' N';lP.pos.set(0.7,-Rs-0.3,0);lP.e.textContent='Δp = '+fmt(cur.dp,0)+' Pa';lN.pos.set(-1,-Rs-0.3,0);lN.e.textContent='p2 below p∞';
+    P.fill(host,{V:fmt(S.V,1),V2:fmt(cur.V2,2),V3:fmt(cur.V3,2),a:isFinite(cur.a)?fmt(cur.a,4):'n/a, V = 0',b:isFinite(cur.b)?fmt(cur.b,4):'n/a, V = 0',m:fmt(cur.m,1),T:fmt(cur.T,0),Td:fmt(cur.Tdisc,0),dp:fmt(cur.dp,0),P:fmt(cur.P/1000,2),Pt:fmt(cur.Pt/1000,2),eF:fmt(cur.eF,4),A:fmt(cur.A,2),dVin:fmt(cur.V2-S.V,2),dVs:fmt(cur.V3-S.V,2),half:fmt((cur.V2-S.V)/Math.max(cur.V3-S.V,1e-9),3),
+      st:S.V<0.5?'Static thrust: V = 0, so V2 = ΔVslip/2 and T = ρ A V2 V3 = ½ ρ A V3².':'Forward flight. Check: a = b/2 gives a / b = 0.5.'});
+    var xsr=U.sample(function(x){return x},-L,L,1);
+    function ser(f){var u=[],d=[],kk,x;for(kk=0;kk<=60;kk++){x=-L+L*kk/60-0.0001;u.push([x/Rs,f(x)]);x=0.0001+L*kk/60;d.push([x/Rs,f(x)])}return [u,d]}
+    var vs=ser(vx),ps=ser(px),vmax=Math.ceil(cur.V3*1.05/10)*10,pmax=Math.max(10,Math.ceil(cur.dp*0.9/100)*100);
+    host.querySelector('[data-chart="v"]').innerHTML=U.chart({x:[-L/Rs,L/Rs],y:[0,vmax],xl:'axial position x / R',yl:'speed (m/s)',yd:0,label:'Speed along the axis',
+      series:[{pts:vs[0],c:'--c-rel'},{pts:vs[1],c:'--c-rel'}],marks:[{x:-L/Rs,y:S.V,c:'--c-u'},{x:0,y:cur.V2,c:'--c-wh'},{x:L/Rs,y:cur.V3,c:'--c-ax'}],vx:[0]});
+    host.querySelector('[data-chart="p"]').innerHTML=U.chart({x:[-L/Rs,L/Rs],y:[-pmax*0.6,pmax],xl:'axial position x / R',yl:'p − p∞ (Pa)',yd:0,label:'Pressure along the axis',
+      series:[{pts:ps[0],c:'--c-abs'},{pts:ps[1],c:'--c-abs'}],marks:[],vx:[0],hy:[0]})}
+  t.refresh=refresh;
+  [{k:'V',label:'Flight speed, V',min:0,max:120,step:0.5,unit:'m/s',dec:1,desc:'Set to 0 for static thrust.'},
+   {k:'V3',label:'Slipstream speed, V3',min:5,max:200,step:0.5,unit:'m/s',dec:1,desc:'Held at V or above. Larger V3 means more thrust.'},
+   {k:'rho',label:'Air density, ρ',min:0.4,max:1.3,step:0.01,unit:'kg/m³',dec:2,desc:''},
+   {k:'D',label:'Disc diameter, D',min:1,max:4,step:0.05,unit:'m',dec:2,desc:'Area A = πD²/4.'}].forEach(function(sp){sl[sp.k]=P.slider(ctl.c,sp,S,function(){refresh()})});
+  var row=P.el('div','row');ctl.s.appendChild(row);
+  P.btn(row,'Static thrust, V = 0',function(){S.V=0;S.V3=Math.max(S.V3,20);sl.V.set(0);sl.V3.set(S.V3);refresh()});
+  P.btn(row,'Cruise example',function(){S.V=60;S.V3=75;sl.V.set(60);sl.V3.set(75);refresh()});
+  top(host,'Treat the propeller as a pressure step that speeds the air up','Draw a tube around all the air that passes through the disc. The disc is a thin sheet that adds pressure. Air speeds up all along the tube. Half of the speed gain happens before the disc and half after it. The tube gets thinner as the air gets faster.');
+  var e=P.sec(host,'Equations, live');
+  e.insertAdjacentHTML('beforeend','<div class="eq">Speeds: <b>V2 = V(1 + a)</b> = <span class="v" data-k="V2"></span>, <b>V3 = V(1 + b)</b> = <span class="v" data-k="V3"></span>, with V3 &gt; V2 &gt; V<br>Factors: a = <span class="v" data-k="a"></span>, b = <span class="v" data-k="b"></span><br>Bernoulli before and after the disc, not across it: <b>p∞ + ½ρV² = p2 + ½ρV2²</b> and <b>p2′ + ½ρV2² = p∞ + ½ρV3²</b><br>Pressure jump: <b>Δp = p2′ − p2 = ½ρ(V3² − V²)</b> = <span class="v" data-k="dp"></span> Pa<br>Mass flow: <b>ṁ = ρ V2 A</b> = <span class="v" data-k="m"></span> kg/s<br>Thrust, streamtube: <b>T = ṁ(V3 − V)</b> = <span class="v" data-k="T"></span> N<br>Thrust, disc: <b>T = AΔp</b> = <span class="v" data-k="Td"></span> N<br>Equate them: <b>Δp = ρV²(1 + a)b</b> and <b>(1 + a)b = b + b²/2</b>, so <b>a = b/2</b><br>Check: (V2 − V)/(V3 − V) = <span class="v" data-k="half"></span></div>');
+  e.insertAdjacentHTML('beforeend','<p class="n" data-k="st"></p>');
+  chartDiv(e,'v');chartDiv(e,'p');
+  e.insertAdjacentHTML('beforeend','<p>Speed rises smoothly through the disc. Pressure does not. It falls ahead of the disc, jumps up by Δp across the disc, and falls back to ambient far behind. The tube colour follows the pressure.</p>');
+  P.sec(host,'Variables',P.varTable([['V, V2, V3','Far upstream, at the disc, far downstream speeds','m/s','V'],['a, b','Inflow factor and slipstream factor','-','a'],['A, D','Disc area and diameter','m², m','A'],['ṁ','Mass flow through the disc','kg/s','m'],['p2, p2′','Pressure just before and just after the disc','Pa',''],['Δp','Pressure jump across the disc','Pa','dp'],['T','Thrust','N','T']]));
+  var d=P.sec(host,'Go deeper');
+  P.det(d,'The five assumptions','<p>Isentropic, incompressible, one-dimensional, irrotational and an infinitely thin disc. The disc is a model of the average effect of the blades, not a real object.</p>');
+  P.det(d,'Derive a = b/2','<p>T = ṁ(V3 − V) = ρV2 A (V3 − V) and T = AΔp give Δp = ρV(1+a) · bV. Two Bernoulli equations give Δp = ½ρ(V3² − V²) = ½ρV²(2b + b²). Equate: (1+a)b = b + b²/2. Then ab = b²/2, so a = b/2.</p>');
+  P.det(d,'Static thrust, V = 0','<p>With V = 0 the factors are undefined. Use increments: V2 = ΔVin and V3 = ΔVslip. The same algebra gives V2 = V3/2. Then T = ρ A V2 V3 = ½ρ A V3².</p>');
+  P.sec(host,'Study goals',P.goals(['Draw the streamtube and mark states 1, 2, 2′ and 3','Show T = ṁ(V3 − V) and T = AΔp','Show a = b/2','Explain why pressure jumps and speed does not','Work out the static thrust case']));
+  P.selfTest(host,'Explain to a child why half of the speed gain happens before the propeller.',['The disc raises pressure only behind it','Low pressure ahead of the disc pulls air in','Bernoulli links pressure and speed on each side','The algebra says exactly half']);
+  t.update=function(dt){if(!cur)return;var a=parts.arr,j;
+   for(j=0;j<N;j++){var v=vx(XP[j]);XP[j]+=v*0.03*dt*(S.V<0.5?4:1);if(XP[j]>L){XP[j]=-L;AP[j]=Math.random()*TAU;RP[j]=Math.sqrt(Math.random())}
+    var r=rx(XP[j])*RP[j]*0.96;a[j*3]=XP[j];a[j*3+1]=r*Math.cos(AP[j]);a[j*3+2]=r*Math.sin(AP[j])}parts.dirty()}
+ }});
+
+/* ================= Set 5: application of actuator disc theory ================= */
+P.addTab({num:5,tag:'Propeller 5',name:'Power and propulsive efficiency',
+ legend:[['--c-ax','useful power T V'],['--c-abs','slipstream kinetic energy T V a'],['--c-rel','real propeller from charts']],
+ cam:{th:0.35,ph:1.15,dist:11,tx:0,ty:1.6,tz:0},
+ build:function(t){
+  var sc=t.scene,host=t.panel,S={J:1.2,CT:0.055,D:2.7,n:34,rho:1.1,er:0.86},cur=null,i,sl={};
+  var barH=new T.Group();sc.add(barH);var bars=[];
+  var cols=[P.COL.ax,P.COL.abs,P.COL.rel];
+  for(i=0;i<3;i++){var m=new T.Mesh(new T.BoxGeometry(1.2,1,1.2),new T.MeshStandardMaterial({color:cols[i],roughness:0.5,metalness:0.1}));bars.push(m);sc.add(m)}
+  var base=new T.GridHelper(9,9,0x8795A3,0x8795A3);sc.add(base);
+  var lB=[t.label('','ax'),t.label('','abs'),t.label('','rel')],lE=t.label('','u');
+  function calc(){var J=S.J,CT=S.CT,a=(-1+Math.sqrt(1+8*CT/(Math.PI*J*J)))/2,b=2*a,CP=CT*J*(1+a),V=J*S.n*S.D,Pw=CP*S.rho*Math.pow(S.n,3)*Math.pow(S.D,5),Tn=CT*S.rho*S.n*S.n*Math.pow(S.D,4),Pt=Tn*V,Pc=Pt/S.er;
+    return {a:a,b:b,CP:CP,V:V,P:Pw,T:Tn,Pt:Pt,eF:1/(1+a),eta:Pt/Pw,Pc:Pc,gap:Pc-Pw}}
+  function refresh(){cur=calc();var sc2=0.006,h1=Math.max(0.02,cur.Pt*sc2/1000*0.5),h2=Math.max(0.02,(cur.P-cur.Pt)*sc2/1000*0.5);
+    var hc=Math.max(0.02,cur.Pc*sc2/1000*0.5);
+    bars[0].scale.y=h1;bars[0].position.set(-2.4,h1/2,0);bars[1].scale.y=h2;bars[1].position.set(-2.4,h1+h2/2,0);bars[2].scale.y=hc;bars[2].position.set(2.4,hc/2,0);
+    lB[0].pos.set(-3.9,h1/2,0);lB[0].e.textContent='T V = '+fmt(cur.Pt/1000,0)+' kW';lB[1].pos.set(-3.9,h1+h2/2+0.3,0);lB[1].e.textContent='T V a = '+fmt((cur.P-cur.Pt)/1000,1)+' kW';lB[2].pos.set(3.8,hc/2,0);lB[2].e.textContent='real: '+fmt(cur.Pc/1000,0)+' kW';lE.pos.set(-2.4,h1+h2+0.9,0);lE.e.textContent='actuator disc total P = '+fmt(cur.P/1000,0)+' kW';
+    var ok=Math.abs(S.J-1.2)<0.005&&Math.abs(S.CT-0.055)<0.0005&&Math.abs(S.D-2.7)<0.01&&Math.abs(S.n-34)<0.1&&Math.abs(S.rho-1.1)<0.005;
+    P.fill(host,{a:fmt(cur.a,4),b:fmt(cur.b,4),CP:fmt(cur.CP,4),V:fmt(cur.V,1),P:fmt(cur.P/1000,0),T:fmt(cur.T,0),Pt:fmt(cur.Pt/1000,1),eF:fmt(cur.eF*100,1),eta:fmt(cur.eta*100,1),Pc:fmt(cur.Pc/1000,0),gap:fmt(cur.gap/1000,0),J:fmt(S.J,2),CT:fmt(S.CT,4),
+      ex:ok?'Notes example check. The notes print a = 0.024, b = 0.048, CP = 0.0676, P = 419 kW and η = 97.7%. You get '+fmt(cur.a,3)+', '+fmt(cur.b,3)+', '+fmt(cur.CP,4)+', '+fmt(cur.P/1000,0)+' kW and '+fmt(cur.eta*100,1)+'%. The charts give η = 0.86, so the real propeller needs about '+fmt(cur.Pc/1000,0)+' kW. Actuator disc theory underestimates the power.':'Press Load notes example to compare with the printed numbers.'});
+    function fam(Js,f){return Js.map(function(Jv,k){return {pts:U.sample(function(ct){return f(ct,Jv)},0.005,0.4,60),c:['--c-rel','--c-ax','--c-abs'][k],n:'J = '+Jv}})}
+    var aF=function(ct,J){return (-1+Math.sqrt(1+8*ct/(Math.PI*J*J)))/2};
+    host.querySelector('[data-chart="a"]').innerHTML=U.chart({x:[0,0.4],y:[0,0.6],xl:'thrust coefficient CT',yl:'inflow factor a',xd:2,label:'Inflow factor against thrust coefficient',lg:90,series:fam([0.6,1.2,2],aF),marks:[{x:S.CT,y:cur.a,c:'--c-wh'}]});
+    host.querySelector('[data-chart="e"]').innerHTML=U.chart({x:[0,0.4],y:[0.5,1],xl:'thrust coefficient CT',yl:'propulsive efficiency ηF',xd:2,label:'Propulsive efficiency against thrust coefficient',lg:90,series:fam([0.6,1.2,2],function(ct,J){return 1/(1+aF(ct,J))}),marks:[{x:S.CT,y:cur.eF,c:'--c-wh'},{x:S.CT,y:S.er,c:'--c-rel'}]})}
+  t.refresh=refresh;
+  var ctl=ctlBox(host,'Controls');
+  [{k:'J',label:'Advance ratio, J',min:0.3,max:2,step:0.01,unit:'',dec:2,desc:''},
+   {k:'CT',label:'Thrust coefficient, CT',min:0.005,max:0.4,step:0.0005,unit:'',dec:4,desc:'Higher CT means a more heavily loaded disc.'},
+   {k:'D',label:'Diameter, D',min:1,max:4,step:0.05,unit:'m',dec:2,desc:''},
+   {k:'n',label:'Rotational speed, n',min:10,max:60,step:0.5,unit:'rev/s',dec:1,desc:''},
+   {k:'rho',label:'Air density, ρ',min:0.4,max:1.3,step:0.01,unit:'kg/m³',dec:2,desc:''},
+   {k:'er',label:'Real efficiency from charts',min:0.5,max:0.95,step:0.005,unit:'',dec:3,desc:'The blue bar uses this.'}].forEach(function(sp){sl[sp.k]=P.slider(ctl.c,sp,S,function(){refresh()})});
+  var row=P.el('div','row');ctl.s.appendChild(row);
+  P.btn(row,'Load notes example',function(){S.J=1.2;S.CT=0.055;S.D=2.7;S.n=34;S.rho=1.1;S.er=0.86;Object.keys(sl).forEach(function(k){sl[k].set(S[k])});refresh()});
+  top(host,'Ideal efficiency needs a lightly loaded disc','The disc adds speed to a lot of air or a little air. Pushing a lot of air a little bit wastes less energy than pushing a little air a lot. So big, slow propellers are efficient. In this theory all shaft power becomes kinetic energy of the flow, and the only loss is the energy left in the slipstream.');
+  var e=P.sec(host,'Equations, live');
+  e.insertAdjacentHTML('beforeend','<div class="eq">Thrust: <b>T = ṁ V b = ρ A V² (1 + a) b</b> = <span class="v" data-k="T"></span> N<br>Useful power: <b>P_thrust = ρ A V³ (1 + a) b</b> = <span class="v" data-k="Pt"></span> kW<br>Applied power, change of kinetic energy: <b>P = ½ṁV3² − ½ṁV² = ρ A V³ (1 + a)² b</b>, so <b>P = T V (1 + a)</b> = <span class="v" data-k="P"></span> kW<br>Propulsive efficiency: <b>ηF = T V / ΔKĖ = 1 / (1 + a)</b> = <span class="v" data-k="eF"></span>%<br>Inflow from coefficients: <b>CT = (π/4) J² (1 + a) b</b>, <b>b = 2a</b>, so <b>a² + a − 2CT/(πJ²) = 0</b><br><b>a = (−1 + √(1 + 8CT/(πJ²))) / 2</b> = <span class="v" data-k="a"></span>, b = <span class="v" data-k="b"></span><br>Power coefficient: <b>CP = CT J (1 + a)</b> = <span class="v" data-k="CP"></span>, <b>P = CP ρ n³ D⁵</b><br>Flight speed from J: <b>V = J n D</b> = <span class="v" data-k="V"></span> m/s. Efficiency T V / P = <span class="v" data-k="eta"></span>%</div>');
+  e.insertAdjacentHTML('beforeend','<p class="n" data-k="ex"></p>');
+  U.readout(e,[['Pc','Power if the real efficiency holds, T V / η','kW'],['gap','Extra power the real propeller needs','kW']]);
+  chartDiv(e,'a');chartDiv(e,'e');
+  e.insertAdjacentHTML('beforeend','<p>High CT and low J give a large a, and efficiency falls. Heavily loaded propellers at low speed, such as a hovering rotor, lose the most. The blue dot on the second chart is your real efficiency. It sits below the ideal curve. The gap comes from the effects the theory leaves out.</p>');
+  P.sec(host,'Variables',P.varTable([['a, b','Inflow factor and slipstream factor, b = 2a','-','a'],['CT, CP, J','Thrust, power and advance ratio','-','CT'],['ηF','Propulsive efficiency, 1/(1+a)','%','eF'],['P, P_thrust','Applied and useful power','kW','P'],['V','Flight speed','m/s','V'],['ṁ','Mass flow through the disc','kg/s','']]));
+  var d=P.sec(host,'Go deeper');
+  P.det(d,'Why propeller efficiency equals propulsive efficiency here','<p>Theory has no torque or swirl. All applied power goes into streamwise kinetic energy. So T V divided by P is also T V divided by the kinetic energy rate. Both equal 1/(1+a).</p>');
+  P.det(d,'What the theory leaves out','<p>Real blades make lift through circulation, and that leaves rotation in the wake. There is friction drag on the blades too. Add root losses, non-uniform inflow and flow over the spinner. A rotational flow factor can add the wake swirl. Real efficiency here is 0.86 against 0.977 from theory, so the theory underestimates power.</p>');
+  P.sec(host,'Study goals',P.goals(['Show T = ρAV²(1+a)b and P = TV(1+a)','Show ηF = 1/(1+a) and say why a low a is good','Solve the quadratic for a from CT and J','Derive CP = CT J (1+a)','Work the notes example and compare it to the chart value']));
+  P.selfTest(host,'Explain to a child why a big slow propeller beats a small fast one.',['Thrust needs a change of momentum','More air with a small speed change costs less energy','Energy left in the slipstream is wasted','Low a means high efficiency']);
+  t.update=null;
+ }});
+})();
+PT.boot();
+</script>
+
+</body></html>

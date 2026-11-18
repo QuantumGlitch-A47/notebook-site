@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fluid Mechanics: Interactive Course Guide</title>
+<style>
+/* Aerosystems Notebook: site look, light only */
+:root{--bg:#ffffff;--card:#ffffff;--ink:#111111;--mut:#5a5a55;--line:#d4d4ce;--acc:#111111;--acc2:#0a7a52;--warn:#b45309;--bad:#b42318;--chip:#f2f2f0;--code:#f7f7f5;color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Helvetica Neue",Helvetica,Arial,sans-serif}
+.nbk-back{display:block;max-width:1100px;margin:0 auto;padding:14px 20px 10px;font:700 12px/16px "Helvetica Neue",Helvetica,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#111;text-decoration:none}
+.nbk-back:hover{text-decoration:underline}
+.nbk-rule{max-width:1060px;margin:0 auto;border:0;border-top:2px solid #111}
+header{padding:22px 20px 8px;max-width:1100px;margin:0 auto}
+header h1{margin:0 0 4px;font-size:1.6rem}
+header p{margin:0;color:var(--mut)}
+nav{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+nav .in{max-width:1100px;margin:0 auto;display:flex;gap:6px;overflow-x:auto;padding:10px 20px}
+nav button{white-space:nowrap;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 14px;border-radius:999px;cursor:pointer;font:inherit;font-size:.92rem}
+nav button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+main{max-width:1100px;margin:0 auto;padding:18px 20px 80px}
+section{display:none}section.on{display:block}
+h2{margin:6px 0 4px;font-size:1.45rem}
+h3{margin:22px 0 8px;font-size:1.12rem}
+h4{margin:14px 0 6px;font-size:1rem;color:var(--mut)}
+.lead{color:var(--mut);margin:0 0 14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:12px 0}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.tag{display:inline-block;background:var(--chip);color:var(--acc);border-radius:6px;padding:1px 8px;font-size:.8rem;font-weight:600;margin-right:6px}
+.eq{background:var(--code);border-radius:8px;padding:10px 14px;margin:10px 0;font-family:Cambria,'Times New Roman',serif;font-size:1.08rem;overflow-x:auto}
+.eq i,.m i{font-style:italic}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{border:1px solid var(--line);padding:6px 9px;text-align:left;vertical-align:top}
+th{background:var(--code)}
+td.n{text-align:center}
+ul,ol{margin:6px 0 6px 20px;padding:0}
+li{margin:3px 0}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin:8px 0}
+label.f{display:flex;flex-direction:column;font-size:.8rem;color:var(--mut);gap:2px}
+input[type=number],input[type=text],select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;width:110px}
+input.w{width:90px} textarea{width:100%;min-height:80px}
+button.b{background:var(--acc);color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;font:inherit}
+button.b.alt{background:var(--chip);color:var(--acc)}
+.out{background:var(--chip);border-radius:8px;padding:10px 14px;margin-top:8px;font-family:Cambria,serif;font-size:1.02rem}
+.out b{color:var(--acc2)}
+.warn{color:var(--warn)} .bad{color:var(--bad)} .ok{color:var(--acc2)}
+details{border:1px solid var(--line);border-radius:10px;padding:8px 14px;margin:8px 0;background:var(--card)}
+details>summary{cursor:pointer;font-weight:600}
+.feyn{border-left:4px solid var(--acc2)}
+.feyn h4{color:var(--acc2);margin-top:12px}
+.note{font-size:.88rem;color:var(--mut)}
+svg{max-width:100%;height:auto}
+.step{counter-increment:s;margin:6px 0 6px 0;padding-left:30px;position:relative}
+.step:before{content:counter(s);position:absolute;left:0;top:1px;width:22px;height:22px;border-radius:50%;background:var(--acc);color:#fff;font-size:.8rem;text-align:center;line-height:22px}
+.steps{counter-reset:s}
+@media print{nav{display:none}section{display:block!important}}
+</style>
+</head>
+<body>
+<a class="nbk-back" href="../fluid-mechanics.html#s02">← Fluid Mechanics</a>
+<hr class="nbk-rule">
+<header>
+  <h1>Fluid Mechanics: Interactive Course Guide</h1>
+  <p>A guide to the core of an introductory fluid mechanics course. It covers dimensional analysis and similarity, control volume analysis, pressure and hydrostatics, and continuity and Bernoulli. Each topic has the key equations with every variable explained, live calculators and worked examples.</p>
+</header>
+<nav><div class="in" id="tabs"></div></nav>
+<main>
+
+<!-- ============ MAP ============ -->
+<section id="map">
+<h2>Overview</h2>
+<p class="lead">Four connected topics. Each one builds a tool for solving real flow problems.</p>
+<div class="grid">
+<div class="card"><h3>1. Dimensional analysis</h3><p>Reduce a problem to dimensionless groups with the Buckingham Pi method. Use them to scale model tests to full-size machines.</p><button class="b alt" onclick="show('dim')">Open</button></div>
+<div class="card"><h3>2. Control volume</h3><p>Apply conservation of mass and linear momentum to a fixed region. Find the forces on pipes, bends, nozzles and junctions.</p><button class="b alt" onclick="show('cv')">Open</button></div>
+<div class="card"><h3>3. Pressure and hydrostatics</h3><p>Pressure in a fluid at rest, manometers, and the force and centre of pressure on submerged surfaces.</p><button class="b alt" onclick="show('stat')">Open</button></div>
+<div class="card"><h3>4. Continuity and Bernoulli</h3><p>Relate speed, pressure and height in a flowing fluid. Apply it to Pitot probes, venturi meters, tanks, jets and siphons.</p><button class="b alt" onclick="show('dyn')">Open</button></div>
+</div>
+<div class="card">
+<h3>How the topics connect</h3>
+<ul>
+<li>Pressure and hydrostatics gives the pressure forces used everywhere else.</li>
+<li>Continuity and Bernoulli links speed, pressure and height.</li>
+<li>Control volume analysis combines both to give forces from flowing fluid.</li>
+<li>Dimensional analysis stands apart. It applies to every topic and guides experiments.</li>
+</ul>
+</div>
+<div class="card">
+<h3>How to use this page</h3>
+<ul>
+<li>Read the objectives, then the key equations and variable tables.</li>
+<li>Change the inputs in each calculator and watch the results move.</li>
+<li>Work each example on paper before opening the solution.</li>
+</ul>
+</div>
+</section>
+
+<!-- ============ DIMENSIONAL ============ -->
+<section id="dim">
+<h2>1. Dimensional analysis and similarity</h2>
+<p class="lead">How to reduce a physical problem to dimensionless groups, and use them to scale model tests to full size.</p>
+
+<div class="card">
+<h3>Objectives</h3>
+<ul>
+<li>List the variables and their dimensions (M, L, T).</li>
+<li>Pick three repeating variables.</li>
+<li>Build each Pi group.</li>
+<li>Use matching Pi groups to scale a model test to a prototype.</li>
+</ul>
+</div>
+
+<div class="card feyn">
+<h3>Learn it</h3>
+<p>Physics must not depend on the unit system. So every valid equation equates dimensionless groups. Buckingham Pi: a problem with <i>n</i> variables built from <i>k</i> basic dimensions (M, L, T so k = 3) reduces to <i>n − k</i> dimensionless groups.</p>
+<div class="eq"><i>Π</i><sub>1</sub> = <i>f</i>(<i>Π</i><sub>2</sub>, <i>Π</i><sub>3</sub>, …)</div>
+<p><b>Repeating variables:</b> a set of k variables (here 3) that together contain M, L and T and cannot form a dimensionless group among themselves. They appear in every Pi group. <b>Non-repeating variables:</b> all others. Each non-repeating variable gets its own group, built by multiplying it with the repeating variables raised to powers.</p>
+<p>Rules for choosing repeating variables: one geometry variable (D, L), one flow-property variable (V, Ω), one fluid-property variable (ρ). Never pick the quantity you want to find (force, power, thrust) and never a dimensionless variable.</p>
+<h4>Steps</h4>
+<ol class="steps">
+<li class="step">Write the dependent variable as a function of all the others.</li>
+<li class="step">Write each variable's dimensions in M, L, T.</li>
+<li class="step">Count: n variables, k = 3, so n − 3 groups.</li>
+<li class="step">Pick 3 repeating variables.</li>
+<li class="step">For each other variable <i>v</i>: <i>Π</i> = <i>v</i> · r<sub>1</sub><sup>a</sup> · r<sub>2</sub><sup>b</sup> · r<sub>3</sub><sup>c</sup>. Solve a, b, c so M, L, T exponents all equal zero.</li>
+<li class="step">Check each group is dimensionless.</li>
+</ol>
+</div>
+
+<div class="card">
+<h3>Pi solver</h3>
+<p class="note">Edit any row. Tick exactly three repeating variables. The tool solves the exponents for you. Load an example with the buttons.</p>
+<div class="row" id="presets"></div>
+<table id="pitab"></table>
+<div class="row"><button class="b alt" id="addrow">Add variable</button><button class="b" id="solve">Solve</button></div>
+<div class="out" id="piout">Load a preset.</div>
+</div>
+
+<div class="card">
+<h3>Variables, listed</h3>
+<table>
+<tr><th>Symbol</th><th>Name</th><th>Dimensions</th></tr>
+<tr><td>F, T (thrust, drag)</td><td>force</td><td>M L T<sup>−2</sup></td></tr>
+<tr><td>P (power)</td><td>energy per time</td><td>M L<sup>2</sup> T<sup>−3</sup></td></tr>
+<tr><td>ρ</td><td>density</td><td>M L<sup>−3</sup></td></tr>
+<tr><td>μ</td><td>dynamic viscosity</td><td>M L<sup>−1</sup> T<sup>−1</sup></td></tr>
+<tr><td>V</td><td>velocity</td><td>L T<sup>−1</sup></td></tr>
+<tr><td>Q</td><td>volume flow rate</td><td>L<sup>3</sup> T<sup>−1</sup></td></tr>
+<tr><td>N, Ω</td><td>rotation rate (rad/s)</td><td>T<sup>−1</sup></td></tr>
+<tr><td>g</td><td>gravity</td><td>L T<sup>−2</sup></td></tr>
+<tr><td>Y</td><td>surface tension</td><td>M T<sup>−2</sup></td></tr>
+<tr><td>E, p</td><td>modulus, pressure</td><td>M L<sup>−1</sup> T<sup>−2</sup></td></tr>
+<tr><td>I (area moment)</td><td>second moment of area</td><td>L<sup>4</sup></td></tr>
+<tr><td>σ (Poisson)</td><td>ratio</td><td>dimensionless</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>Named groups to recognise</h3>
+<table>
+<tr><th>Group</th><th>Form</th><th>Ratio</th><th>Matters when</th></tr>
+<tr><td>Reynolds</td><td>ρVL/μ</td><td>inertia / viscous</td><td>viscosity matters</td></tr>
+<tr><td>Froude</td><td>V/√(gL)</td><td>inertia / gravity</td><td>free surface, waves</td></tr>
+<tr><td>Euler</td><td>Δp/(ρV²)</td><td>pressure / inertia</td><td>pressure drop</td></tr>
+<tr><td>Mach</td><td>V/c</td><td>speed / sound speed</td><td>compressible flow, above about 0.3</td></tr>
+<tr><td>Weber</td><td>ρV²L/Y</td><td>inertia / surface tension</td><td>small drops, capillary waves</td></tr>
+<tr><td>Force coefficient</td><td>F/(ρV²L²)</td><td>force / dynamic force</td><td>always the dependent group</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>Similarity: model to prototype</h3>
+<p>Geometric similarity: same shape, scaled lengths. Kinematic similarity: same velocity pattern. Dynamic similarity: same force ratios. You get dynamic similarity when every independent Pi group matches between model (m) and prototype (p). Then the dependent Pi group matches too, and you scale the measurement.</p>
+<div class="grid">
+<div>
+<h4>A. Propeller model test</h4>
+<div class="row">
+<label class="f">Scale D<sub>p</sub>/D<sub>m</sub><input class="w" type="number" id="a_sc" value="6"></label>
+<label class="f">V<sub>p</sub> km/h<input class="w" type="number" id="a_vp" value="360"></label>
+<label class="f">T<sub>p</sub> °C<input class="w" type="number" id="a_tp" value="-6"></label>
+<label class="f">p<sub>p</sub> kPa<input class="w" type="number" id="a_pp" value="64"></label>
+<label class="f">N<sub>p</sub> rev/min<input class="w" type="number" id="a_np" value="3800"></label>
+<label class="f">T<sub>m</sub> °C<input class="w" type="number" id="a_tm" value="20"></label>
+<label class="f">p<sub>m</sub> kPa<input class="w" type="number" id="a_pm" value="101"></label>
+<label class="f">V<sub>m</sub> m/s<input class="w" type="number" id="a_vm" value="20"></label>
+<label class="f">Thrust model N<input class="w" type="number" id="a_fm" value="15"></label>
+</div>
+<div class="out" id="a_out"></div>
+<p class="note">Groups: Π<sub>1</sub> = V/(ND), Π<sub>2</sub> = T/(ρN²D⁴). Density from ρ = p/(RT) with R = 287 J/kg/K.</p>
+</div>
+<div>
+<h4>B. Vehicle drag model test</h4>
+<div class="row">
+<label class="f">Scale L<sub>p</sub>/L<sub>m</sub><input class="w" type="number" id="b_sc" value="5"></label>
+<label class="f">V<sub>p</sub> m/s<input class="w" type="number" id="b_vp" value="25"></label>
+<label class="f">T<sub>p</sub> °C<input class="w" type="number" id="b_tp" value="25"></label>
+<label class="f">T<sub>m</sub> °C<input class="w" type="number" id="b_tm" value="5"></label>
+<label class="f">μ<sub>p</sub> ×10⁻⁵<input class="w" type="number" step="0.001" id="b_mp" value="1.849"></label>
+<label class="f">μ<sub>m</sub> ×10⁻⁵<input class="w" type="number" step="0.001" id="b_mm" value="1.754"></label>
+<label class="f">p kPa<input class="w" type="number" id="b_p" value="101"></label>
+<label class="f">Test speed m/s<input class="w" type="number" id="b_vt" value="50"></label>
+<label class="f">Drag model N<input class="w" type="number" id="b_fm" value="825"></label>
+</div>
+<div class="out" id="b_out"></div>
+<p class="note">Groups: Π<sub>1</sub> = D/(ρV²A), Π<sub>2</sub> = ρV√A/μ. Match Reynolds number to find V<sub>m</sub>.</p>
+</div>
+</div>
+</div>
+
+<div class="card feyn">
+<h3>Analogy</h3>
+<p>A recipe in cups versus a recipe in ratios. "Two parts flour to one part water" works in any size kitchen. Pi groups are the ratios. A 1/6 propeller behaves like the big one when the ratios match, even though every number is different.</p>
+</div>
+</section>
+
+<!-- ============ CONTROL VOLUME ============ -->
+<section id="cv">
+<h2>2. Control volume: mass and momentum</h2>
+<p class="lead">Analysis of flowing fluid through a fixed region: conservation of mass and linear momentum, and the forces on pipes, bends and nozzles.</p>
+
+<div class="card">
+<h3>Objectives</h3>
+<ul>
+<li>Define extensive and intensive properties and relate them.</li>
+<li>Draw a control volume with all velocities, pressures and forces.</li>
+<li>Use continuity to find unknown velocities.</li>
+<li>Use linear momentum to find the force that holds a pipe, bend or nozzle.</li>
+</ul>
+</div>
+
+<div class="card feyn">
+<h3>Learn it</h3>
+<p><b>Extensive property</b> depends on the amount of fluid: mass, momentum, energy, volume. <b>Intensive property</b> does not: density, pressure, temperature, velocity. Dividing extensive B by mass gives intensive b.</p>
+<div class="eq"><i>b</i> = <i>B</i> / <i>m</i> &nbsp;&nbsp; (B = m, momentum m<b>V</b>, energy E; then b = 1, <b>V</b>, e)</div>
+<p>Physics laws apply to a fixed piece of fluid (a system). A control volume (CV) is a fixed region in space. The Reynolds Transport Theorem links the two:</p>
+<div class="eq"><i>dB<sub>sys</sub>/dt</i> = <i>d/dt</i> ∫<sub>CV</sub> <i>ρ b</i> dV + ∫<sub>CS</sub> <i>ρ b</i> (<b>V</b>·<b>n</b>) dA</div>
+<ul>
+<li>First term: how much B builds up inside the CV.</li>
+<li>Second term: net B leaving through the control surface (CS).</li>
+<li><b>V·n</b> is positive at outflow, negative at inflow.</li>
+</ul>
+<h4>Mass (B = m, b = 1)</h4>
+<div class="eq">0 = <i>d/dt</i> ∫ρ dV + ∫ρ(<b>V·n</b>) dA</div>
+<p>Steady, uniform, incompressible: <b>ΣQ<sub>in</sub> = ΣQ<sub>out</sub></b>, with Q = VA.</p>
+<h4>Linear momentum (B = m<b>V</b>, b = <b>V</b>)</h4>
+<div class="eq">Σ<b>F</b> = <i>d/dt</i> ∫ρ<b>V</b> dV + ∫ρ<b>V</b>(<b>V·n</b>) dA</div>
+<p>Steady, uniform sections: <b>Σ<b>F</b> = Σ ṁ<sub>out</sub><b>V</b><sub>out</sub> − Σ ṁ<sub>in</sub><b>V</b><sub>in</sub></b>, with ṁ = ρVA.</p>
+<h4>Variables</h4>
+<table>
+<tr><th>Symbol</th><th>Meaning</th><th>Unit</th></tr>
+<tr><td>ṁ</td><td>mass flow rate = ρQ = ρVA</td><td>kg/s</td></tr>
+<tr><td><b>V</b></td><td>velocity vector at a section, with sign for direction</td><td>m/s</td></tr>
+<tr><td>p<sub>g</sub></td><td>gauge pressure at the section</td><td>Pa</td></tr>
+<tr><td>A</td><td>section area</td><td>m²</td></tr>
+<tr><td>R</td><td>force from the support or bolts on the CV contents</td><td>N</td></tr>
+<tr><td>W</td><td>weight of pipe plus fluid inside the CV</td><td>N</td></tr>
+</table>
+<h4>Forces in Σ<b>F</b></h4>
+<ul>
+<li><b>Pressure:</b> p<sub>g</sub>A, directed <i>into</i> the CV, normal to the cut surface. Use gauge pressure: atmosphere pushes equally on all sides and cancels.</li>
+<li><b>Weight:</b> W, downward. Include the fluid inside the CV when the problem gives its volume.</li>
+<li><b>Support force R:</b> the unknown. The force the device feels is −R.</li>
+</ul>
+<h4>Solving routine</h4>
+<ol class="steps">
+<li class="step">Draw the CV so the cuts go through pipe sections where p and V are known. Dashed line.</li>
+<li class="step">Pick axes. Mark every V, p, A, and every unknown force.</li>
+<li class="step">Continuity gives the unknown velocities.</li>
+<li class="step">Write each force in x and y with signs.</li>
+<li class="step">Write x momentum and y momentum: ΣF = ṁV<sub>out</sub> − ṁV<sub>in</sub>.</li>
+<li class="step">Solve R<sub>x</sub>, R<sub>y</sub>.</li>
+</ol>
+</div>
+
+<div class="card">
+<h3>Force calculator: two-port device (bend, nozzle, U-turn)</h3>
+<p class="note">Inlet flows along +x. The outlet leaves at angle θ from +x (0° = straight nozzle, 90° = elbow turning to +y, 180° = U-turn back along −x). Pressures are gauge.</p>
+<div class="row">
+<label class="f">D<sub>1</sub> m<input class="w" type="number" step="0.001" id="c_d1" value="0.25"></label>
+<label class="f">D<sub>2</sub> m<input class="w" type="number" step="0.001" id="c_d2" value="0.08"></label>
+<label class="f">V<sub>1</sub> m/s<input class="w" type="number" step="0.01" id="c_v1" value="2.2"></label>
+<label class="f">p<sub>1</sub> gauge kPa<input class="w" type="number" id="c_p1" value="250"></label>
+<label class="f">p<sub>2</sub> gauge kPa<input class="w" type="number" id="c_p2" value="20"></label>
+<label class="f">θ deg<input class="w" type="number" id="c_th" value="180"></label>
+<label class="f">ρ kg/m³<input class="w" type="number" id="c_rho" value="1000"></label>
+<label class="f">Weight W N<input class="w" type="number" step="0.1" id="c_w" value="24.5"></label>
+</div>
+<div class="row"><button class="b alt" id="c_ex4">U-bend example</button><button class="b alt" id="c_noz">Nozzle example</button></div>
+<div class="out" id="c_out"></div>
+<svg viewBox="0 0 420 150" id="c_svg" role="img" aria-label="Control volume sketch"></svg>
+<p class="note">Formula used: R = ṁ(V<sub>2</sub>d̂ − V<sub>1</sub>x̂) − p<sub>1</sub>A<sub>1</sub>x̂ + p<sub>2</sub>A<sub>2</sub>d̂, plus W added to R<sub>y</sub> (weight acts down, so R<sub>y</sub> carries it up). Here d̂ is the outlet flow direction. R is the force from the bolts on the CV.</p>
+</div>
+
+<div class="card">
+<h3>Worked example: T-junction</h3>
+<p>Water, all pipes D = 1 m. Section 1 (branch along x): V<sub>1</sub> = 5 m/s, p<sub>1</sub> = 220 kPa. Section 2 (inflow, along y): p<sub>2</sub> = 134 kPa. Section 3 (outflow, along y): Q<sub>3</sub> = 15 m³/s, p<sub>3</sub> = 52 kPa. All gauge.</p>
+<details><summary>Objectives and variables</summary>
+<ul><li>Find V<sub>2</sub>, V<sub>3</sub>.</li><li>Find F<sub>x</sub>, F<sub>y</sub> that hold the junction.</li></ul>
+<p>Variables: A = πD²/4 = 0.7854 m². Q = VA. ṁ = ρQ.</p></details>
+<details open><summary>Solution</summary>
+<div class="steps">
+<div class="step">CV: dashed box around the junction, cutting sections 1, 2, 3. Axes: x along branch 1, y along the main pipe positive toward section 2.</div>
+<div class="step">Continuity: Q<sub>1</sub> = V<sub>1</sub>A = 3.927 m³/s. Mass balance Q<sub>1</sub> + Q<sub>2</sub> = Q<sub>3</sub> gives Q<sub>2</sub> = 11.073 m³/s.</div>
+<div class="step">Velocities: V<sub>2</sub> = Q<sub>2</sub>/A = <b>14.10 m/s</b>. V<sub>3</sub> = Q<sub>3</sub>/A = <b>19.10 m/s</b>.</div>
+<div class="step">x momentum. Only section 1 has x flow. Pressure p<sub>1</sub>A pushes along +x. R<sub>x</sub> + p<sub>1</sub>A = 0 − ρQ<sub>1</sub>V<sub>1</sub>. So R<sub>x</sub> = −(220 000 × 0.7854 + 1000 × 3.927 × 5) = <b>−192.4 kN</b>.</div>
+<div class="step">y momentum. Section 2 flow moves in −y (in). Section 3 flow moves in −y (out). Pressure p<sub>2</sub>A acts in −y. Pressure p<sub>3</sub>A acts in +y.<br>R<sub>y</sub> − p<sub>2</sub>A + p<sub>3</sub>A = (−ρQ<sub>3</sub>V<sub>3</sub>) − (−ρQ<sub>2</sub>V<sub>2</sub>).<br>R<sub>y</sub> = −286.5 + 156.1 + 105.2 − 40.8 = <b>−66.0 kN</b>.</div>
+</div>
+<p>The anchor must push with 192 kN along −x and 66 kN along −y. The junction feels the opposite. The sign of R<sub>y</sub> follows the axis direction chosen.</p>
+</details>
+</div>
+
+<div class="card feyn">
+<h3>Analogy</h3>
+<p>Count people through a doorway. The CV is the room. Momentum in the room changes only when people carrying momentum enter or leave, or when someone pushes. The wall pushing back is R. A firehose crew leans back on the nozzle for the same reason: fast water leaves, so the hose must supply a forward force on the water, and the water pushes back.</p>
+</div>
+</section>
+
+<!-- ============ STATICS ============ -->
+<section id="stat">
+<h2>3. Pressure and hydrostatics</h2>
+<p class="lead">Pressure in a fluid at rest, manometers, and the force and centre of pressure on submerged surfaces.</p>
+
+<div class="card">
+<h3>Objectives</h3>
+<ul>
+<li>Relate absolute, gauge and atmospheric pressure.</li>
+<li>Read multi-fluid manometers.</li>
+<li>Find the force and centre of pressure on a plane gate.</li>
+<li>Take moments about a hinge.</li>
+</ul>
+</div>
+
+<div class="card feyn">
+<h3>Learn it</h3>
+<div class="eq"><i>p</i><sub>abs</sub> = <i>p</i><sub>atm</sub> + <i>p</i><sub>gauge</sub> &nbsp;&nbsp;&nbsp; <i>p</i> = <i>p</i><sub>0</sub> + <i>ρgh</i> = <i>p</i><sub>0</sub> + <i>γh</i></div>
+<p>Same fluid, same height, same pressure. Pressure rises with depth. Going down through a fluid adds γh. Going up subtracts γh. Use this for every manometer.</p>
+<h4>Force on a plane surface</h4>
+<div class="eq"><i>F</i> = <i>γ h<sub>c</sub> A</i> &nbsp;&nbsp;&nbsp; <i>h<sub>cp</sub></i> = <i>h<sub>c</sub></i> + <i>I<sub>xx</sub></i> / (<i>A h<sub>c</sub></i>) &nbsp;&nbsp;&nbsp; rectangle: <i>I<sub>xx</sub></i> = <i>bd</i>³/12</div>
+<table>
+<tr><th>Symbol</th><th>Meaning</th></tr>
+<tr><td>γ</td><td>specific weight = ρg (water 9810 N/m³)</td></tr>
+<tr><td>h<sub>c</sub></td><td>vertical depth of the centroid below the free surface</td></tr>
+<tr><td>A</td><td>area of the surface</td></tr>
+<tr><td>I<sub>xx</sub></td><td>second moment of area about the centroidal horizontal axis</td></tr>
+<tr><td>h<sub>cp</sub></td><td>depth of the centre of pressure, always at or below the centroid</td></tr>
+<tr><td>d, b</td><td>gate height along the slope and gate width</td></tr>
+</table>
+<p>Inclined gate: use distances along the slope for I/(Ay<sub>c</sub>), and h = y sinθ for pressure. Pressurised tank: replace the free surface with an equivalent surface at p<sub>0</sub>/γ above the liquid surface.</p>
+<p>Accelerating tank (for example a rocket tank at 9g upward): replace g with (g + a). Pressure at depth h becomes p<sub>0</sub> + ρ(g + a)h.</p>
+<p>Hinge: take moments about the hinge. F<sub>cp</sub> times its lever arm equals the applied force times its lever arm. Zero hinge reaction means the applied force acts at the centre of pressure.</p>
+</div>
+
+<div class="card">
+<h3>Gate calculator</h3>
+<div class="row">
+<label class="f">γ N/m³<input class="w" type="number" id="g_gam" value="9810"></label>
+<label class="f">Gate height d m<input class="w" type="number" step="0.01" id="g_d" value="1.8"></label>
+<label class="f">Width b m<input class="w" type="number" step="0.01" id="g_b" value="1.5"></label>
+<label class="f">Water depth h m (vertical gate, bottom at tank floor)<input type="number" step="0.01" id="g_h" value="3.6" style="width:150px"></label>
+<label class="f">Surface gauge p<sub>0</sub> kPa<input class="w" type="number" id="g_p0" value="0"></label>
+</div>
+<div class="row"><button class="b alt" id="g_ex">Load example</button></div>
+<div class="out" id="g_out"></div>
+<svg viewBox="0 0 360 200" id="g_svg" role="img" aria-label="Gate sketch"></svg>
+<h4>Find depth h from the centre-of-pressure height</h4>
+<div class="row">
+<label class="f">Height of F<sub>cp</sub> above floor m<input class="w" type="number" step="0.01" id="g_cp" value="0.8"></label>
+<div><button class="b" id="g_solve">Solve h</button></div>
+</div>
+<div class="out" id="g_out2"></div>
+<p class="note">h<sub>cp</sub> − h<sub>c</sub> = d²/(12h<sub>c</sub>). Gate bottom on floor, so h<sub>c</sub> = h − d/2 and cp at depth h − e (e = height above floor). Then h<sub>c</sub> = d²/(12(d/2 − e)).</p>
+</div>
+
+<div class="card">
+<h3>Manometer reader and pressure difference</h3>
+<p class="note">One rule: start at a known pressure, add γh going down, subtract γh going up, stop at the unknown.</p>
+<div class="row">
+<label class="f">Manometer fluid ρ<sub>m</sub><input class="w" type="number" id="m_rm" value="13546"></label>
+<label class="f">Pipe fluid ρ<input class="w" type="number" id="m_r" value="1000"></label>
+<label class="f">Reading H m<input class="w" type="number" step="0.001" id="m_h" value="0.09"></label>
+</div>
+<div class="out" id="m_out"></div>
+<p class="note">Differential U-tube: Δp = (ρ<sub>m</sub> − ρ)gH. Inverted U-tube with a light fluid: Δp = (ρ − ρ<sub>m</sub>)gH.</p>
+</div>
+
+<div class="card">
+<h3>Worked example: gate with known centre of pressure</h3>
+<ul><li>Gate 1.8 m tall, 1.5 m wide, hinge at top. Resultant acts 0.8 m above the tank bottom.</li><li>Find h, F, hinge force.</li></ul>
+<details><summary>Solution</summary>
+<div class="steps">
+<div class="step">A = 1.8 × 1.5 = 2.7 m². I<sub>xx</sub>/A = d²/12 = 0.27 m².</div>
+<div class="step">Gate bottom sits on the floor. Centroid depth h<sub>c</sub> = h − 0.9. Centre of pressure depth = h − 0.8.</div>
+<div class="step">h<sub>cp</sub> − h<sub>c</sub> = 0.1 = 0.27/h<sub>c</sub>. So h<sub>c</sub> = 2.7 m. <b>h = 3.6 m.</b></div>
+<div class="step">F = γh<sub>c</sub>A = 9810 × 2.7 × 2.7 = <b>71.5 kN</b>.</div>
+<div class="step">F is applied by the load at the same height as the resultant, so moments about the hinge balance with no help from the hinge. Hinge force = <b>0</b>.</div>
+</div></details>
+</div>
+
+<div class="card feyn">
+<h3>Analogy</h3>
+<p>Stack books on your hand. The bottom book carries every book above it. The load grows with depth, so the total push is stronger low down and the balance point sits below the middle of the stack.</p>
+</div>
+</section>
+
+<!-- ============ DYNAMICS ============ -->
+<section id="dyn">
+<h2>4. Continuity and Bernoulli</h2>
+<p class="lead">Continuity and Bernoulli's equation, with applications to flow measurement, tanks, jets and siphons.</p>
+
+<div class="card">
+<h3>Objectives</h3>
+<ul>
+<li>Apply Q = V<sub>1</sub>A<sub>1</sub> = V<sub>2</sub>A<sub>2</sub>.</li>
+<li>Apply Bernoulli between two points on a streamline.</li>
+<li>Read a Pitot-static probe, venturi and manometer.</li>
+<li>Handle tanks, jets and siphons, with and without friction loss.</li>
+</ul>
+</div>
+
+<div class="card feyn">
+<h3>Learn it</h3>
+<div class="eq"><i>p</i><sub>1</sub> + ½<i>ρV</i><sub>1</sub>² + <i>ρgz</i><sub>1</sub> = <i>p</i><sub>2</sub> + ½<i>ρV</i><sub>2</sub>² + <i>ρgz</i><sub>2</sub></div>
+<p>Derivation: work done by pressure on a fluid slice equals the gain in potential and kinetic energy. Divide by the volume swept.</p>
+<table>
+<tr><th>Term</th><th>Name</th><th>Meaning</th></tr>
+<tr><td>p</td><td>static pressure</td><td>thermodynamic pressure a moving gauge would read</td></tr>
+<tr><td>½ρV²</td><td>dynamic pressure</td><td>kinetic energy per volume</td></tr>
+<tr><td>ρgz</td><td>hydrostatic term</td><td>potential energy per volume</td></tr>
+<tr><td>p + ½ρV²</td><td>stagnation (total) pressure</td><td>what a Pitot tube reads where V = 0</td></tr>
+</table>
+<h4>Four conditions. All four, or the equation fails.</h4>
+<ol><li>Steady.</li><li>Incompressible.</li><li>Inviscid (no friction).</li><li>Along one streamline.</li></ol>
+<p>Fails in boundary layers, wakes and separated flow. Works well outside them.</p>
+<h4>Continuity and variable area</h4>
+<div class="eq"><i>Q</i> = <i>VA</i> = constant &nbsp;&nbsp; so small area means high velocity and low pressure.</div>
+<h4>Applications</h4>
+<ul>
+<li><b>Pitot-static:</b> p<sub>0</sub> − p = ½ρV², so V = √(2(p<sub>0</sub> − p)/ρ).</li>
+<li><b>Venturi:</b> V<sub>1</sub>A<sub>1</sub> = V<sub>2</sub>A<sub>2</sub>, p<sub>1</sub> − p<sub>2</sub> = ½ρ(V<sub>2</sub>² − V<sub>1</sub>²). Real flow: multiply by discharge coefficient C<sub>d</sub>.</li>
+<li><b>Free jet from a tank:</b> V = √(2gh). For stacked liquids, convert layers to pressure: V = √(2(Σγh)/ρ) with a bottom liquid.</li>
+<li><b>Siphon with loss:</b> z<sub>1</sub> = z<sub>2</sub> + V²/2g + h<sub>f</sub>, with h<sub>f</sub> = K V²/2g.</li>
+<li><b>Rotating pipe:</b> add centrifugal potential. p/ρ + V²/2 + gz − ω²r²/2 = constant.</li>
+</ul>
+<p>Total and static pressure in a converging-diverging duct: total pressure stays the same from inlet to throat (no loss). Static pressure drops at the throat because velocity rises.</p>
+</div>
+
+<div class="card">
+<h3>Venturi and manometer explorer</h3>
+<p class="note">Example: Q = 0.5 m³/s, A<sub>1</sub> = 0.05, A<sub>2</sub> = 0.07, inverted manometer fluid 600 kg/m³.</p>
+<div class="row">
+<label class="f">Q m³/s<input class="w" type="number" step="0.01" id="v_q" value="0.5"></label>
+<label class="f">A<sub>1</sub> m²<input class="w" type="number" step="0.001" id="v_a1" value="0.05"></label>
+<label class="f">A<sub>2</sub> m²<input class="w" type="number" step="0.001" id="v_a2" value="0.07"></label>
+<label class="f">ρ fluid<input class="w" type="number" id="v_r" value="1000"></label>
+<label class="f">ρ manometer<input class="w" type="number" id="v_rm" value="600"></label>
+</div>
+<input type="range" min="0.05" max="1.5" step="0.01" value="0.5" id="v_sl" style="width:100%;accent-color:#111">
+<div class="out" id="v_out"></div>
+</div>
+
+<div class="card">
+<h3>Tank jet, siphon and Pitot</h3>
+<div class="grid">
+<div>
+<h4>Stacked tank</h4>
+<div class="row">
+<label class="f">Oil depth m<input class="w" type="number" step="0.01" id="t_ho" value="2"></label>
+<label class="f">Oil SG<input class="w" type="number" step="0.01" id="t_sg" value="0.81"></label>
+<label class="f">Water above hole m<input class="w" type="number" step="0.01" id="t_hw" value="0.7"></label>
+<label class="f">Hole D mm<input class="w" type="number" id="t_d" value="50"></label>
+</div>
+<div class="out" id="t_out"></div>
+</div>
+<div>
+<h4>Siphon</h4>
+<div class="row">
+<label class="f">z<sub>1</sub> cm<input class="w" type="number" id="s_z1" value="60"></label>
+<label class="f">z<sub>2</sub> cm<input class="w" type="number" id="s_z2" value="-25"></label>
+<label class="f">z<sub>3</sub> cm (summit)<input class="w" type="number" id="s_z3" value="90"></label>
+<label class="f">D cm<input class="w" type="number" step="0.1" id="s_d" value="1"></label>
+<label class="f">Loss K<input class="w" type="number" step="0.1" id="s_k" value="0"></label>
+</div>
+<div class="out" id="s_out"></div>
+<p class="note">K = 0 is frictionless. Example value K = 5.4.</p>
+</div>
+<div>
+<h4>Pitot-static probe</h4>
+<div class="row">
+<label class="f">Δp kPa<input class="w" type="number" step="0.01" id="p_dp" value="1.2"></label>
+<label class="f">ρ kg/m³<input class="w" type="number" step="0.01" id="p_r" value="1.2"></label>
+</div>
+<div class="out" id="p_out"></div>
+</div>
+</div>
+</div>
+
+<div class="card">
+<h3>Worked example: fire hose nozzle</h3>
+<p>Hose 10 cm, nozzle 3 cm, Q = 1.5 m³/min to atmosphere. Find p<sub>1</sub> and bolt force.</p>
+<details><summary>Solution</summary>
+<div class="steps">
+<div class="step">Q = 0.025 m³/s. V<sub>1</sub> = Q/A<sub>1</sub> = 3.18 m/s. V<sub>2</sub> = Q/A<sub>2</sub> = 35.37 m/s.</div>
+<div class="step">Bernoulli (same height, p<sub>2</sub> = 0 gauge): p<sub>1</sub> = ½ρ(V<sub>2</sub>² − V<sub>1</sub>²) = <b>620 kPa</b> gauge.</div>
+<div class="step">Momentum on the nozzle CV: p<sub>1</sub>A<sub>1</sub> − F<sub>B</sub> = ṁ(V<sub>2</sub> − V<sub>1</sub>). With ṁ = 25 kg/s: F<sub>B</sub> = 4873 − 805 = <b>4.07 kN</b>.</div>
+</div></details>
+</div>
+
+<div class="card feyn">
+<h3>Analogy</h3>
+<p>A hill with a ball. Total energy per kilo stays fixed. Height, speed and pressure trade against each other. If the ball rolls through mud (friction), total drops, so you subtract a loss term h<sub>f</sub>.</p>
+</div>
+</section>
+
+<!-- ============ EXAMS ============ -->
+<section id="exam">
+<h2>5. Worked examples</h2>
+<p class="lead">Each example lists the objectives, the variables, then the steps. Try it on paper first, then compare.</p>
+<div id="exlist"></div>
+</section>
+
+</main>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const g=9.81, PI=Math.PI;
+const fmt=(x,d=3)=>{if(!isFinite(x))return '–';const a=Math.abs(x);if(a!==0&&(a>=1e5||a<1e-3))return x.toExponential(2);return (+x.toFixed(d)).toString()};
+const num=id=>parseFloat($('#'+id).value);
+
+/* ---------- tabs ---------- */
+const TABS=[['map','Overview'],['dim','1 Dimensional analysis'],['cv','2 Control volume'],['stat','3 Statics'],['dyn','4 Bernoulli'],['exam','5 Worked examples']];
+function show(id){if(!TABS.some(t=>t[0]===id))id='map';$$('section').forEach(s=>s.classList.toggle('on',s.id===id));$$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.id===id));try{history.replaceState(null,'','#'+id)}catch(e){}window.scrollTo(0,0)}
+TABS.forEach(([id,t])=>{const b=document.createElement('button');b.textContent=t;b.dataset.id=id;b.onclick=()=>show(id);$('#tabs').appendChild(b)});
+addEventListener('hashchange',()=>show(location.hash.slice(1)));
+
+/* ---------- Pi solver ---------- */
+const PRE={
+ prop:{n:'Propeller thrust',v:[['T',1,1,-2,0],['D',0,1,0,1],['ρ',1,-3,0,1],['V',0,1,-1,0],['N',0,0,-1,1]]},
+ pump:{n:'Centrifugal pump',v:[['P',1,2,-3,0],['Q',0,3,-1,0],['D',0,1,0,1],['Ω',0,0,-1,1],['ρ',1,-3,0,1],['μ',1,-1,-1,0]]},
+ car:{n:'Vehicle drag',v:[['D',1,1,-2,0],['V',0,1,-1,1],['A',0,2,0,1],['ρ',1,-3,0,1],['μ',1,-1,-1,0]]},
+ wave:{n:'Wave period',v:[['T',0,0,1,0],['ρ',1,-3,0,1],['λ',0,1,0,1],['h',0,1,0,0],['g',0,1,-2,1],['Y',1,0,-2,0]]},
+ beam:{n:'Beam vibration',v:[['T',0,0,1,0],['L',0,1,0,1],['I',0,4,0,0],['E',1,-1,-2,1],['ρ',1,-3,0,1],['σ',0,0,0,0]]}
+};
+let pirows=[];
+function drawPi(){
+ let h='<tr><th>Variable</th><th>M</th><th>L</th><th>T</th><th>Repeating</th><th></th></tr>';
+ pirows.forEach((r,i)=>{h+='<tr><td><input type="text" data-i="'+i+'" data-k="name" value="'+r[0]+'" style="width:110px"></td>'+[1,2,3].map(k=>'<td><input class="w" style="width:60px" type="number" data-i="'+i+'" data-k="'+k+'" value="'+r[k]+'"></td>').join('')+'<td class="n"><input type="checkbox" data-i="'+i+'" data-k="rep" '+(r[4]?'checked':'')+'></td><td><button class="b alt" data-del="'+i+'">x</button></td></tr>'});
+ $('#pitab').innerHTML=h;
+ $$('#pitab input').forEach(el=>el.onchange=()=>{const r=pirows[+el.dataset.i],k=el.dataset.k;if(k==='name')r[0]=el.value;else if(k==='rep')r[4]=el.checked?1:0;else r[+k]=parseFloat(el.value)||0;});
+ $$('#pitab [data-del]').forEach(b=>b.onclick=()=>{pirows.splice(+b.dataset.del,1);drawPi();solvePi()});
+}
+function frac(x){if(Math.abs(x)<1e-9)return '0';for(let d=1;d<=8;d++){const n=Math.round(x*d);if(Math.abs(n/d-x)<1e-7){return d===1?String(n):n+'/'+d}}return x.toFixed(3)}
+function sup(e){const a=Math.abs(e);if(Math.abs(a-1)<1e-9)return '';return '<sup>'+frac(a)+'</sup>'}
+function solve3(A,b){ // A 3x3 rows, b length 3
+ const M=A.map((r,i)=>[...r,b[i]]);
+ for(let c=0;c<3;c++){let p=c;for(let r=c+1;r<3;r++)if(Math.abs(M[r][c])>Math.abs(M[p][c]))p=r;if(Math.abs(M[p][c])<1e-9)return null;[M[c],M[p]]=[M[p],M[c]];for(let r=0;r<3;r++){if(r!==c){const f=M[r][c]/M[c][c];for(let k=c;k<4;k++)M[r][k]-=f*M[c][k]}}}
+ return [0,1,2].map(i=>M[i][3]/M[i][i]);
+}
+function solvePi(){
+ const reps=pirows.filter(r=>r[4]),non=pirows.filter(r=>!r[4]);
+ const n=pirows.length;
+ let o='<b>n</b> = '+n+' variables, <b>k</b> = 3 dimensions, so <b>'+(n-3)+'</b> Pi groups.<br>';
+ if(reps.length!==3){$('#piout').innerHTML=o+'<span class="warn">Tick exactly 3 repeating variables. You ticked '+reps.length+'.</span>';return}
+ const A=[0,1,2].map(d=>reps.map(r=>r[d+1]));
+ let ok=true,lines=[];
+ non.forEach((v,j)=>{
+  const sol=solve3(A,[0,1,2].map(d=>-v[d+1]));
+  if(!sol){ok=false;return}
+  const num=[],den=[];
+  const items=[[v[0],1],...reps.map((r,i)=>[r[0],sol[i]])];
+  items.forEach(([nm,e])=>{if(Math.abs(e)<1e-9)return;(e>0?num:den).push(nm+sup(e))});
+  lines.push('<i>Π</i><sub>'+(j+1)+'</sub> = '+(num.join(' ')||'1')+(den.length?' / ('+den.join(' ')+')':''));
+ });
+ if(!ok){$('#piout').innerHTML=o+'<span class="bad">These repeating variables are not dimensionally independent. Choose others (one length, one velocity or rate, one density).</span>';return}
+ $('#piout').innerHTML=o+lines.join('<br>')+'<br><span class="note">Check: any group can be inverted or raised to a power. Combine groups to reach a named form such as Reynolds number.</span>';
+}
+$('#presets').innerHTML=Object.entries(PRE).map(([k,p])=>'<button class="b alt" data-p="'+k+'">'+p.n+'</button>').join('');
+$$('#presets button').forEach(b=>b.onclick=()=>{pirows=PRE[b.dataset.p].v.map(r=>[...r]);drawPi();solvePi()});
+$('#addrow').onclick=()=>{pirows.push(['x',0,0,0,0]);drawPi()};
+$('#solve').onclick=solvePi;
+pirows=PRE.prop.v.map(r=>[...r]);drawPi();solvePi();
+
+/* ---------- similarity ---------- */
+function simA(){
+ const R=287,sc=num('a_sc'),Vp=num('a_vp')/3.6,Tp=num('a_tp')+273.15,pp=num('a_pp')*1e3,Np=num('a_np'),Tm=num('a_tm')+273.15,pm=num('a_pm')*1e3,Vm=num('a_vm'),Fm=num('a_fm');
+ const rp=pp/(R*Tp),rm=pm/(R*Tm);
+ const Nm=Vm/Vp*sc*Np; const Fp=Fm*(rp/rm)*Math.pow(Np/Nm,2)*Math.pow(sc,4);
+ $('#a_out').innerHTML='ρ<sub>p</sub> = '+fmt(rp)+', ρ<sub>m</sub> = '+fmt(rm)+' kg/m³<br>V<sub>p</sub> = '+fmt(Vp,2)+' m/s<br>Match V/(ND): N<sub>m</sub> = <b>'+fmt(Nm,1)+' rev/min</b> = '+fmt(Nm*2*PI/60,1)+' rad/s<br>Match T/(ρN²D⁴): T<sub>p</sub> = <b>'+fmt(Fp,0)+' N</b>';
+}
+function simB(){
+ const R=287,sc=num('b_sc'),Vp=num('b_vp'),Tp=num('b_tp')+273.15,Tm=num('b_tm')+273.15,mp=num('b_mp')*1e-5,mm=num('b_mm')*1e-5,p=num('b_p')*1e3,Vt=num('b_vt'),Fm=num('b_fm');
+ const rp=p/(R*Tp),rm=p/(R*Tm);
+ const Vm=Vp*(rp/rm)*(mm/mp)*sc;
+ const Fp=Fm*(rp/rm)*Math.pow(Vp/Vt,2)*sc*sc;
+ const cm=Math.sqrt(1.4*R*Tm);
+ $('#b_out').innerHTML='ρ<sub>p</sub> = '+fmt(rp)+', ρ<sub>m</sub> = '+fmt(rm)+' kg/m³<br>Reynolds match: V<sub>m</sub> = <b>'+fmt(Vm,1)+' m/s</b> (Mach '+fmt(Vm/cm,2)+')<br>Test at '+fmt(Vt,0)+' m/s: Reynolds numbers differ by factor '+fmt(Vt/Vm,2)+'. Problem: dynamic similarity is not reached.<br>If ignored: F<sub>p</sub> = F<sub>m</sub>(ρ<sub>p</sub>/ρ<sub>m</sub>)(V<sub>p</sub>/V<sub>t</sub>)²(L<sub>p</sub>/L<sub>m</sub>)² = <b>'+fmt(Fp,0)+' N</b>';
+}
+$$('#dim input[id^=a_]').forEach(e=>e.oninput=simA);$$('#dim input[id^=b_]').forEach(e=>e.oninput=simB);simA();simB();
+
+/* ---------- control volume calc ---------- */
+function cvCalc(){
+ const d1=num('c_d1'),d2=num('c_d2'),V1=num('c_v1'),p1=num('c_p1')*1e3,p2=num('c_p2')*1e3,th=num('c_th')*PI/180,rho=num('c_rho'),W=num('c_w');
+ const A1=PI*d1*d1/4,A2=PI*d2*d2/4,Q=V1*A1,V2=Q/A2,m=rho*Q;
+ const dx=Math.cos(th),dy=Math.sin(th);
+ const Rx=m*(V2*dx-V1)-p1*A1+p2*A2*dx;
+ const Ry=m*V2*dy+p2*A2*dy+W;
+ $('#c_out').innerHTML='Q = '+fmt(Q,4)+' m³/s, ṁ = '+fmt(m,2)+' kg/s<br>V<sub>2</sub> = <b>'+fmt(V2,2)+' m/s</b><br>R<sub>x</sub> = <b>'+fmt(Rx,0)+' N</b>, R<sub>y</sub> = <b>'+fmt(Ry,1)+' N</b> (force from bolts on the CV)<br>Force on the device = −R: ('+fmt(-Rx,0)+', '+fmt(-Ry,1)+') N';
+ // sketch
+ const ex=Math.cos(th),ey=Math.sin(th);
+ $('#c_svg').innerHTML='<rect x="130" y="25" width="170" height="100" rx="8" fill="none" stroke="currentColor" stroke-dasharray="6 4"/><text x="136" y="42" font-size="12" fill="currentColor">CV</text>'
+ +'<line x1="20" y1="75" x2="130" y2="75" stroke="#0b6bcb" stroke-width="4" marker-end="url(#ar)"/><text x="30" y="65" font-size="12" fill="currentColor">V₁, p₁</text>'
+ +'<line x1="300" y1="75" x2="'+(300+ex*90)+'" y2="'+(75-ey*50)+'" stroke="#0a8a5f" stroke-width="4" marker-end="url(#ar)"/><text x="310" y="'+(ey>0.3?30:100)+'" font-size="12" fill="currentColor">V₂, p₂ (θ='+fmt(th*180/PI,0)+'°)</text>'
+ +'<defs><marker id="ar" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="currentColor"/></marker></defs>'
+ +'<text x="170" y="80" font-size="12" fill="currentColor">R acts on CV</text>';
+}
+$$('#cv input[id^=c_]').forEach(e=>e.oninput=cvCalc);
+$('#c_ex4').onclick=()=>{[['c_d1',0.25],['c_d2',0.08],['c_v1',2.2],['c_p1',250],['c_p2',20],['c_th',180],['c_rho',1000],['c_w',24.5]].forEach(([k,v])=>$('#'+k).value=v);cvCalc()};
+$('#c_noz').onclick=()=>{[['c_d1',0.1],['c_d2',0.03],['c_v1',3.183],['c_p1',620.4],['c_p2',0],['c_th',0],['c_rho',1000],['c_w',0]].forEach(([k,v])=>$('#'+k).value=v);cvCalc()};
+cvCalc();
+
+/* ---------- gate ---------- */
+function gate(){
+ const gam=num('g_gam'),d=num('g_d'),b=num('g_b'),h=num('g_h'),p0=num('g_p0')*1e3;
+ const A=b*d,hc=h-d/2,he=hc+p0/gam,F=gam*he*A,off=d*d/(12*he);
+ const fromBottom=d/2-off;
+ $('#g_out').innerHTML='A = '+fmt(A,3)+' m², h<sub>c</sub> = '+fmt(hc,3)+' m'+(p0?', equivalent h<sub>c</sub> = '+fmt(he,3)+' m':'')+'<br>F = γh<sub>c</sub>A = <b>'+fmt(F/1000,2)+' kN</b><br>Centre of pressure is <b>'+fmt(off,3)+' m</b> below the centroid, at <b>'+fmt(d/2-off,3)+' m above the gate bottom</b> ('+fmt(d/2+off,3)+' m below the gate top, the hinge)';
+ const top=20,s=140/Math.max(h,d,1);
+ const wy=top, floor=top+h*s, gTop=floor-d*s;
+ $('#g_svg').innerHTML='<rect x="60" y="'+wy+'" width="200" height="'+(h*s)+'" fill="rgba(11,107,203,.18)"/><line x1="60" y1="'+wy+'" x2="260" y2="'+wy+'" stroke="#0b6bcb" stroke-width="2"/>'
+ +'<rect x="256" y="'+gTop+'" width="8" height="'+(d*s)+'" fill="currentColor" opacity=".7"/><circle cx="260" cy="'+gTop+'" r="4" fill="#b45309"/><text x="268" y="'+(gTop+4)+'" font-size="11" fill="currentColor">hinge</text>'
+ +'<line x1="60" y1="'+floor+'" x2="270" y2="'+floor+'" stroke="currentColor" stroke-width="2"/>'
+ +'<line x1="200" y1="'+(floor-fromBottom*s)+'" x2="254" y2="'+(floor-fromBottom*s)+'" stroke="#0a8a5f" stroke-width="3"/><text x="140" y="'+(floor-fromBottom*s-4)+'" font-size="11" fill="currentColor">F at cp</text>'
+ +'<text x="64" y="'+(wy+14)+'" font-size="11" fill="currentColor">h = '+fmt(h,2)+' m</text>';
+}
+$$('#stat input[id^=g_]').forEach(e=>e.oninput=gate);
+$('#g_ex').onclick=()=>{[['g_gam',9810],['g_d',1.8],['g_b',1.5],['g_h',3.6],['g_p0',0]].forEach(([k,v])=>$('#'+k).value=v);gate()};
+$('#g_solve').onclick=()=>{const d=num('g_d'),e=num('g_cp');const den=d/2-e;if(den<=0){$('#g_out2').innerHTML='<span class="warn">F<sub>cp</sub> must sit below the centroid: e &lt; d/2.</span>';return}const hc=d*d/(12*den);$('#g_out2').innerHTML='h<sub>c</sub> = '+fmt(hc,3)+' m, so <b>h = '+fmt(hc+d/2,3)+' m</b>';$('#g_h').value=fmt(hc+d/2,3);gate()};
+gate();
+
+/* ---------- manometer ---------- */
+function man(){const rm=num('m_rm'),r=num('m_r'),H=num('m_h');const dp=Math.abs(rm-r)*g*H;$('#m_out').innerHTML='Δp = |ρ<sub>m</sub> − ρ|gH = <b>'+fmt(dp,0)+' Pa</b> = '+fmt(dp/1000,3)+' kPa'}
+$$('#stat input[id^=m_]').forEach(e=>e.oninput=man);man();
+
+/* ---------- venturi ---------- */
+function ven(){const Q=num('v_q'),a1=num('v_a1'),a2=num('v_a2'),r=num('v_r'),rm=num('v_rm');const v1=Q/a1,v2=Q/a2,dp=0.5*r*(v2*v2-v1*v1);const H=Math.abs(dp)/(Math.abs(r-rm)*g);
+ $('#v_out').innerHTML='V<sub>1</sub> = '+fmt(v1,2)+' m/s, V<sub>2</sub> = '+fmt(v2,2)+' m/s<br>p<sub>1</sub> − p<sub>2</sub> = ½ρ(V<sub>2</sub>² − V<sub>1</sub>²) = <b>'+fmt(dp,0)+' Pa</b>'+(dp<0?' (diffuser: pressure rises)':'')+'<br>Manometer reading H = Δp/(|ρ − ρ<sub>m</sub>|g) = <b>'+fmt(H,3)+' m</b>';$('#v_sl').value=Q}
+$$('#dyn input[id^=v_]').forEach(e=>{if(e.id!=='v_sl')e.oninput=ven});$('#v_sl').oninput=e=>{$('#v_q').value=e.target.value;ven()};ven();
+
+/* ---------- tank, siphon, pitot ---------- */
+function tank(){const ho=num('t_ho'),sg=num('t_sg'),hw=num('t_hw'),d=num('t_d')/1000;const pint=sg*1000*g*ho;const V=Math.sqrt(2*(pint/1000+g*hw));const Q=V*PI*d*d/4;$('#t_out').innerHTML='p at interface = '+fmt(pint,0)+' Pa<br>V = √(2(p/ρ<sub>w</sub> + g·h<sub>w</sub>)) = <b>'+fmt(V,2)+' m/s</b><br>Q = <b>'+fmt(Q,5)+' m³/s</b>'}
+function siph(){const z1=num('s_z1')/100,z2=num('s_z2')/100,z3=num('s_z3')/100,d=num('s_d')/100,K=num('s_k');const V=Math.sqrt(2*g*(z1-z2)/(1+K));const Q=V*PI*d*d/4;let t='V = <b>'+fmt(V,3)+' m/s</b><br>Q = <b>'+fmt(Q*1e6*60,0)+' cm³/min</b>';if(K===0){const p3=-1000*g*(z3-z1)-0.5*1000*V*V;t+='<br>Summit gauge pressure = '+fmt(p3/1000,2)+' kPa'+(p3/1000+101.3<2.3?' <span class="bad">(below vapour pressure, cavitation)</span>':'')}$('#s_out').innerHTML=t}
+function pit(){const dp=num('p_dp')*1000,r=num('p_r');$('#p_out').innerHTML='V = √(2Δp/ρ) = <b>'+fmt(Math.sqrt(2*dp/r),2)+' m/s</b>'}
+$$('#dyn input[id^=t_]').forEach(e=>e.oninput=tank);$$('#dyn input[id^=s_]').forEach(e=>e.oninput=siph);$$('#dyn input[id^=p_]').forEach(e=>e.oninput=pit);tank();siph();pit();
+
+/* ---------- worked examples ---------- */
+const EX=[
+ {t:'Propeller thrust and model test',o:['Pi groups for T = f(D, ρ, V, N).','Model rotation rate for similarity.','Prototype thrust from model thrust.'],
+  v:[['T','thrust (N)'],['D','diameter (m)'],['ρ','air density (kg/m³)'],['V','air speed (m/s)'],['N','rotation rate (rad/s or rev/min)']],
+  s:['Repeating variables: ρ, N, D. Non-repeating: T, V. n = 5, so 2 groups.','Π₁ = V/(ND). Π₂ = T/(ρN²D⁴). So T/(ρN²D⁴) = f(V/ND).','Densities: ρ = p/(RT). Model 1.200 kg/m³. Prototype 0.835 kg/m³. V<sub>p</sub> = 100 m/s.','Match Π₁: N<sub>m</sub> = N<sub>p</sub>(V<sub>m</sub>/V<sub>p</sub>)(D<sub>p</sub>/D<sub>m</sub>) = 3800 × 0.2 × 6 = <b>4560 rev/min</b> = 477.5 rad/s.','Match Π₂: T<sub>p</sub> = T<sub>m</sub>(ρ<sub>p</sub>/ρ<sub>m</sub>)(N<sub>p</sub>/N<sub>m</sub>)²(D<sub>p</sub>/D<sub>m</sub>)⁴ = 15 × 0.695 × 0.694 × 1296 = <b>9.39 kN</b>.'],
+  r:'Repeating variables appear in every group and together hold M, L, T. Non-repeating variables each appear in one group.'},
+ {t:'Centrifugal pump',o:['Pi groups with Ω, ρ, D repeating.','Use the pump curve P/(ρΩ³D⁵) = 0.5 + 3Q/(ΩD³) for gasoline.'],
+  v:[['P','power (W)'],['Q','flow rate (m³/s)'],['D','impeller diameter (m)'],['Ω','rotation rate (rad/s)'],['ρ','density (kg/m³)'],['μ','viscosity']],
+  s:['n = 6, so 3 groups. Π₁ = P/(ρΩ³D⁵). Π₂ = Q/(ΩD³). Π₃ = ρΩD²/μ.','Neglect viscosity: Π₁ = f(Π₂).','Flow coefficient: Q = 25/3600 = 0.00694 m³/s. ΩD³ = 30 × 0.12³ = 0.05184. Π₂ = 0.134.','Power coefficient from the pump curve: 0.5 + 3(0.134) = 0.902.','ρ = 0.68 × 1000 = 680 kg/m³. ρΩ³D⁵ = 680 × 27000 × 0.12⁵ = 456.8 W.','P = 0.902 × 456.8 ≈ <b>412 W</b>.'],r:''},
+ {t:'Blood flow',o:['Continuity at the aorta and carotids.','Bernoulli between heart and brain.','Judge the ideal fluid assumption.'],
+  v:[['Q<sub>T</sub>','aorta flow'],['A','area (πd²/4)'],['P<sub>h</sub>, P<sub>b</sub>','heart and brain pressure'],['h<sub>bh</sub>','height difference 0.3 m']],
+  s:['Q<sub>T</sub> = 750/0.15 = <b>5000 mL/min</b> = 8.33×10⁻⁵ m³/s.','v<sub>aorta</sub> = Q/A = 8.33×10⁻⁵ / (π × 0.02²) = <b>0.0663 m/s</b>.','Carotid area: Q = 1.25×10⁻⁵ m³/s, A = Q/v = <b>1.56×10⁻⁵ m² = 0.156 cm²</b>.','Bernoulli: P<sub>h</sub> = P<sub>b</sub> + ½ρv² + ρgh. P<sub>b</sub> = 25 mmHg = 3333 Pa. ρgh = 2943 Pa. Kinetic term is negligible.','P<sub>h</sub> ≈ 6276 Pa ≈ <b>47 mmHg</b>.','Healthy range is 80 to 120 mmHg. The result is too low, so friction losses are large. Blood is viscous in narrow vessels, so it is not an ideal fluid.'],r:''},
+ {t:'Vehicle drag and Reynolds matching',o:['Pi groups for D = f(V, A, ρ, μ).','Model speed for Reynolds match.','Name the problem with 50 m/s.','Scale drag.'],
+  v:[['D','drag (N)'],['V','air speed'],['A','projected area'],['ρ, μ','density, viscosity']],
+  s:['Repeating: ρ, V, A (inertia set). Π₁ = D/(ρV²A). Π₂ = μ/(ρV√A), the inverse Reynolds number.','ρ = p/RT. Prototype 1.180. Model 1.265 kg/m³.','Reynolds match: V<sub>m</sub> = V<sub>p</sub>(ρ<sub>p</sub>/ρ<sub>m</sub>)(μ<sub>m</sub>/μ<sub>p</sub>)(L<sub>p</sub>/L<sub>m</sub>) = 25 × 0.933 × 0.949 × 5 = <b>110.6 m/s</b>.','At 50 m/s the Reynolds number is wrong (half the needed speed), so the test is not dynamically similar. (110 m/s also approaches Mach 0.33, where compressibility starts.)','If ignored: D<sub>p</sub> = 825 × (ρ<sub>p</sub>/ρ<sub>m</sub>)(25/50)²(5)² = <b>4.81 kN</b>.'],r:''},
+ {t:'Wave period and beam vibration',o:['Variables, dimensions and Pi groups for each problem.'],
+  v:[['λ','wavelength'],['Y','surface tension M T⁻²'],['I','area moment L⁴'],['E','modulus M L⁻¹ T⁻²'],['σ','Poisson ratio, dimensionless']],
+  s:['Wave: T = f(ρ, λ, h, g, Y). n = 6, 3 groups. Repeating: ρ, g, λ.','T√(g/λ) = f(h/λ, Y/(ρgλ²)).','Neglect Y: T√(g/λ) = f(h/λ).','Beam: T = f(L, I, E, ρ, σ). n = 6, 3 groups. Repeating: ρ, L, E. σ is already dimensionless.','T√(E/ρ)/L = f(I/L⁴, σ).','If E and I appear only as EI, treat EI as one variable (M L³ T⁻²). Then n = 5 and 2 groups remain: T√(EI/(ρL⁶)) = f(σ).'],r:'Try these in the Pi solver. Use presets Wave and Beam.'},
+ {t:'Reducing U-bend force',o:['V₂ from continuity.','Vertical bolt force.','Horizontal bolt force.'],
+  v:[['D<sub>1</sub>, D<sub>2</sub>','0.25 m, 0.08 m'],['V<sub>1</sub>','2.2 m/s'],['p<sub>1</sub>, p<sub>2</sub>','350, 120 kPa absolute; p<sub>a</sub> = 100 kPa gives 250 and 20 kPa gauge'],['W','pipe 1 kg plus water 1.5 L = 24.5 N']],
+  s:['V<sub>2</sub> = V<sub>1</sub>(D<sub>1</sub>/D<sub>2</sub>)² = 2.2 × 9.766 = <b>21.48 m/s</b>.','ṁ = ρV<sub>1</sub>A<sub>1</sub> = 1000 × 2.2 × 0.04909 = 108.0 kg/s.','y: no y momentum change and no y pressure force, so R<sub>y</sub> = W = <b>24.5 N upward</b>.','x: inlet goes +x, outlet goes −x. R<sub>x</sub> + p<sub>1</sub>A<sub>1</sub> + p<sub>2</sub>A<sub>2</sub> = ṁ(−V<sub>2</sub>) − ṁ(V<sub>1</sub>).','R<sub>x</sub> = −108 × 23.68 − 250 000 × 0.04909 − 20 000 × 0.005027 = <b>−14.9 kN</b>. Bolts pull toward −x.'],r:'The pressures are treated as absolute with p<sub>a</sub> = 100 kPa. If they were gauge, use 350 and 120 and R<sub>x</sub> grows. Try both in the Control volume calculator.'},
+ {t:'Tank jet and venturi manometer',o:['Flow rate from a stacked tank.','Manometer reading in a variable pipe.'],
+  v:[['SG<sub>oil</sub>','0.81'],['h','oil 2 m, water 0.7 m above the hole'],['D','50 mm'],['A<sub>1</sub>, A<sub>2</sub>','0.05, 0.07 m²']],
+  s:['Part 1: pressure at the oil-water interface: p = 0.81 × 9810 × 2 = 15.9 kPa. Surface velocity is zero (large tank).','Bernoulli from interface to jet: V² /2 = p/ρ<sub>w</sub> + g(0.7) = 15.89 + 6.87. V = <b>6.75 m/s</b>.','Q = V × π(0.025)² = <b>0.0132 m³/s</b>.','Part 2: V<sub>1</sub> = 0.5/0.05 = 10 m/s. V<sub>2</sub> = 0.5/0.07 = 7.14 m/s.','Δp = ½ρ(V₁² − V₂²) = 24.5 kPa.','Inverted manometer with light fluid: Δp = (ρ − ρ<sub>m</sub>)gH, so H = 24 490/(400 × 9.81) = <b>6.24 m</b>.'],r:''},
+ {t:'Siphon with and without friction',o:['Exit speed, frictionless.','Flow rate in cm³/min.','Flow rate with friction loss h_f = 5.4 V²/2g.'],
+  v:[['z<sub>1</sub>, z<sub>2</sub>','60 cm, −25 cm'],['D','1 cm'],['h<sub>f</sub>','loss head (m)']],
+  s:['Bernoulli from surface (V ≈ 0, gauge 0) to exit (gauge 0): V<sub>2</sub> = √(2g(z<sub>1</sub> − z<sub>2</sub>)).','V<sub>2</sub> = √(2 × 9.81 × 0.85) = 4.084 m/s.','Q = V<sub>2</sub>πD²/4 = 3.21×10⁻⁴ m³/s = <b>19 240 cm³/min</b>.','With friction: z<sub>1</sub> − z<sub>2</sub> = V²/2g + 5.4V²/2g = 6.4V²/2g. V = 1.614 m/s.','Q = <b>7 610 cm³/min</b>, about 40% of the frictionless value. Friction cuts the flow a lot.'],r:'The calculator in the Bernoulli tab does this. Set K = 5.4.'},
+ {t:'Rotating sprinkler arm',o:['Derive Bernoulli in a rotating frame.','Exit speed.'],
+  v:[['ω','6 rad/s'],['r','distance from rotation axis'],['L, α','0.2 m, 30°'],['p<sub>1</sub>, V<sub>1</sub>','50 mmHg gauge, 1 m/s']],
+  s:['In the rotating frame add centrifugal force mω²r. Its potential is −½ω²r².','Along the pipe: p/ρ + V²/2 + gz − ω²r²/2 = constant.','Point 1 on the axis (r = 0, z = 0). Point 2 at the tip: r<sub>2</sub> = L cos α = 0.173 m, z<sub>2</sub> = L sin α = 0.1 m, p<sub>2</sub> = 0.','p<sub>1</sub> = 50 × 133.3 = 6666 Pa.','V<sub>2</sub>² = 2p<sub>1</sub>/ρ + V<sub>1</sub>² − 2gz<sub>2</sub> + ω²r<sub>2</sub>² = 13.33 + 1 − 1.96 + 1.08 = 13.45. V<sub>2</sub> = <b>3.67 m/s</b> relative to the pipe.'],r:'Point 1 is taken on the rotation axis.'},
+ {t:'Fire hose nozzle',o:['Inlet pressure.','Bolt force.'],v:[['D<sub>1</sub>, D<sub>2</sub>','10 cm, 3 cm'],['Q','1.5 m³/min = 0.025 m³/s']],
+  s:['V<sub>1</sub> = 3.18 m/s. V<sub>2</sub> = 35.37 m/s.','p<sub>1</sub> = ½ρ(V<sub>2</sub>² − V<sub>1</sub>²) = <b>620 kPa</b>.','F<sub>B</sub> = p<sub>1</sub>A<sub>1</sub> − ṁ(V<sub>2</sub> − V<sub>1</sub>) = 4873 − 805 = <b>4.07 kN</b>.'],r:''}
+];
+$('#exlist').innerHTML=EX.map(q=>'<details><summary>'+q.t+'</summary><h4>Objectives</h4><ul>'+q.o.map(x=>'<li>'+x+'</li>').join('')+'</ul><h4>Variables</h4><table>'+q.v.map(x=>'<tr><td>'+x[0]+'</td><td>'+x[1]+'</td></tr>').join('')+'</table><h4>Solution</h4><div class="steps">'+q.s.map(x=>'<div class="step">'+x+'</div>').join('')+'</div>'+(q.r?'<p class="note">'+q.r+'</p>':'')+'</details>').join('');
+
+show(location.hash.slice(1)||'map');
+</script>
+</body>
+</html>

@@ -1,0 +1,479 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Laplace Vibration Walkthrough</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: a single "bench" panel, one step at a time, with a step rail on top and an instrument area per step */
+:root{
+  --bg:#f3f5f8; --panel:#ffffff; --ink:#152033; --muted:#5a6578; --line:#d7dde7;
+  --accent:#1f5fd1; --accent-soft:#e3ecfb; --signal:#d9480f; --good:#1d8a5b; --warn:#b7791f;
+  --grid:#e7ebf2;
+  --f-display:"Space Grotesk",system-ui,sans-serif;
+  --f-body:"Inter",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1420; --panel:#151d2c; --ink:#e6ebf4; --muted:#97a3b8; --line:#2a3548;
+  --accent:#6ea0ff; --accent-soft:#1c2a45; --signal:#ff8a4c; --good:#4cc38a; --warn:#e5b454; --grid:#1f2a3c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1420; --panel:#151d2c; --ink:#e6ebf4; --muted:#97a3b8; --line:#2a3548;
+  --accent:#6ea0ff; --accent-soft:#1c2a45; --signal:#ff8a4c; --good:#4cc38a; --warn:#e5b454; --grid:#1f2a3c; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-direction:column;gap:6px}
+.course{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-size:clamp(24px,4vw,34px);line-height:1.15;margin:0;text-wrap:balance}
+.rail{display:flex;gap:6px;flex-wrap:wrap}
+.rail button{font-family:var(--f-mono);font-size:12px;min-width:34px;height:30px;border-radius:6px;border:1px solid var(--line);
+  background:var(--panel);color:var(--muted);cursor:pointer}
+.rail button.done{color:var(--accent);border-color:var(--accent)}
+.rail button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.rail button:focus-visible,.btn:focus-visible,.opt:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.progress{height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:clamp(16px,3vw,28px);display:flex;flex-direction:column;gap:18px;min-width:0}
+.tag{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--signal)}
+h2{font-family:var(--f-display);font-size:clamp(21px,3vw,27px);line-height:1.2;margin:0;text-wrap:balance}
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:760px){.trio{grid-template-columns:1fr}}
+.cell{border-top:3px solid var(--line);padding-top:10px;min-width:0}
+.cell h3{margin:0 0 4px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.cell.what{border-color:var(--accent)} .cell.mean{border-color:var(--good)} .cell.aim{border-color:var(--signal)}
+.cell p{margin:0;max-width:65ch}
+.eq{font-family:var(--f-mono);font-size:clamp(14px,2.2vw,17px);background:var(--accent-soft);border-radius:8px;padding:14px 16px;overflow-x:auto;line-height:2.1;white-space:nowrap}
+.eq .row{display:block}
+.eq .note{font-family:var(--f-body);font-size:13px;color:var(--muted);margin-left:12px;white-space:normal}
+.fr{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;margin:0 .15em;line-height:1.35}
+.fr>span:first-child{border-bottom:1.5px solid currentColor;padding:0 .25em}
+.fr>span:last-child{padding:0 .25em}
+.hl{color:var(--signal);font-weight:600}
+.hb{color:var(--accent);font-weight:600}
+table.vars{border-collapse:collapse;width:100%;font-size:14px}
+.tablebox{overflow-x:auto}
+table.vars td,table.vars th{border-bottom:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+table.vars th{font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:400}
+table.vars td:first-child{font-family:var(--f-mono);font-weight:600;white-space:nowrap}
+.teach{border:1px dashed var(--good);border-radius:10px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start}
+.teach b{font-family:var(--f-mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--good);white-space:nowrap;padding-top:2px}
+.teach p{margin:0}
+.nav{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.btn{font-family:var(--f-body);font-weight:600;font-size:15px;padding:10px 18px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn:disabled{opacity:.4;cursor:default}
+.hint{font-size:13px;color:var(--muted)}
+canvas{display:block;width:100%;border-radius:8px;background:var(--bg)}
+.lab{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:14px}
+@media (max-width:760px){.lab{grid-template-columns:1fr}}
+.ctrls{display:flex;flex-wrap:wrap;gap:18px;align-items:center}
+.ctrl{display:flex;flex-direction:column;gap:4px;min-width:200px;flex:1}
+.ctrl label{font-family:var(--f-mono);font-size:13px;display:flex;justify-content:space-between}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.badge{font-family:var(--f-mono);font-size:13px;font-weight:600;padding:6px 12px;border-radius:999px;border:1.5px solid currentColor;display:inline-block}
+.cap{font-size:13px;color:var(--muted);margin-top:4px}
+.flow{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap}
+.box{flex:1;min-width:150px;border:1.5px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:4px}
+.box small{font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.box.s{border-color:var(--accent);background:var(--accent-soft)}
+.arrow{align-self:center;font-family:var(--f-mono);color:var(--signal);font-weight:600;font-size:14px;text-align:center}
+.recipe{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;counter-reset:r}
+@media (max-width:760px){.recipe{grid-template-columns:1fr 1fr}}
+.recipe div{border:1.5px solid var(--line);border-radius:10px;padding:12px;min-width:0}
+.recipe div.key{border-color:var(--signal)}
+.recipe b{font-family:var(--f-display);font-size:28px;color:var(--accent);display:block;line-height:1}
+.recipe span{font-weight:600;display:block;margin:6px 0 2px}
+.recipe p{margin:0;font-size:14px;color:var(--muted)}
+.reveal .line{display:none} .reveal .line.show{display:block}
+.reveal .line .why{font-family:var(--f-body);font-size:13px;color:var(--good);display:block;line-height:1.4;white-space:normal;margin-bottom:6px}
+.quiz{display:flex;flex-direction:column;gap:16px}
+.q{display:flex;flex-direction:column;gap:8px}
+.q p{margin:0;font-weight:600}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{font-family:var(--f-body);font-size:14px;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;text-align:left}
+.opt.right{border-color:var(--good);color:var(--good);font-weight:600}
+.opt.wrong{border-color:var(--signal);color:var(--signal)}
+.fb{font-size:14px;color:var(--muted);min-height:1em}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
+@media (prefers-reduced-motion: reduce){.progress i{transition:none}}
+</style>
+
+<style>/* Aerosystems Notebook: site look, light only */
+:root,:root:not([data-theme="light"]),:root[data-theme="dark"]{
+  --bg:#f3f5f8; --panel:#ffffff; --ink:#152033; --muted:#5a6578; --line:#d7dde7;
+  --accent:#1f5fd1; --accent-soft:#e3ecfb; --signal:#d9480f; --good:#1d8a5b; --warn:#b7791f;
+  --grid:#e7ebf2;
+  --f-display:"Space Grotesk",system-ui,sans-serif;
+  --f-body:"Inter",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+--bg:#ffffff;--panel:#ffffff;--ink:#111111;--muted:#5a5a55;--line:#d4d4ce;--grid:#ececea;--f-display:"Helvetica Neue",Helvetica,Arial,sans-serif;--f-body:"Helvetica Neue",Helvetica,Arial,sans-serif;--f-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;color-scheme:light;}
+.nbk-back{display:block;max-width:980px;margin:0 auto 8px;padding:0 0 10px;border-bottom:2px solid #111;font:700 12px/16px "Helvetica Neue",Helvetica,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#111;text-decoration:none}
+.nbk-back:hover{text-decoration:underline}
+</style>
+<a class="nbk-back" href="../eng3039.html#s02">← Dynamics 3</a>
+<div class="wrap">
+  <header>
+    <div class="course">ENG3039 Dynamics 3 · Chapter 6</div>
+    <h1>Laplace Transform Solution to Equations of Motion</h1>
+  </header>
+  <div class="rail" id="rail" aria-label="Steps"></div>
+  <div class="progress"><i id="bar"></i></div>
+  <main class="panel" id="stage" aria-live="polite"></main>
+  <div class="nav">
+    <button class="btn ghost" id="prev">← Back</button>
+    <span class="hint">Use ← → keys to move between steps</span>
+    <button class="btn" id="next">Next →</button>
+  </div>
+</div>
+
+<script>
+const F=(n,d)=>`<span class="fr"><span>${n}</span><span>${d}</span></span>`;
+const wn='ω<sub>n</sub>', wd='ω<sub>d</sub>', z='ζ';
+
+const steps=[
+{tag:"Step 1 · The problem",title:"A mass, a spring, a damper. Where is the mass at time t?",
+ what:"You pull the mass to x₀ and let go. Newton's second law gives the equation of motion. Dividing by m gives the standard form.",
+ mean:"The equation describes the forces at every instant. The answer you want is x(t): a formula for position at any time.",
+ aim:"Chapter 6 gives you one method that finds x(t) for every damping level, with no guessing.",
+ eq:`<span class="row">m ẍ + c ẋ + k x = 0 <span class="note">equation of motion, free vibration (right side = 0, no applied force)</span></span>
+     <span class="row">ẍ + 2${z}${wn} ẋ + ${wn}² x = 0 <span class="note">same equation, divided by m</span></span>`,
+ extra:`<div class="tablebox"><table class="vars"><tr><th>Symbol</th><th>Meaning</th><th>Units</th></tr>
+ <tr><td>m</td><td>Mass</td><td>kg</td></tr>
+ <tr><td>c</td><td>Damping coefficient. Force per unit velocity</td><td>N s/m</td></tr>
+ <tr><td>k</td><td>Spring stiffness. Force per unit stretch</td><td>N/m</td></tr>
+ <tr><td>x, ẋ, ẍ</td><td>Displacement, velocity, acceleration</td><td>m, m/s, m/s²</td></tr>
+ <tr><td>${wn} = √(k/m)</td><td>Undamped natural frequency</td><td>rad/s</td></tr>
+ <tr><td>${z} = c / (2√(km))</td><td>Damping ratio. Compares your damping to critical damping</td><td>none</td></tr>
+ <tr><td>x₀, V₀</td><td>Initial conditions: x(0) and ẋ(0)</td><td>m, m/s</td></tr></table></div>
+ <div><canvas id="springCv" height="170"></canvas><div class="cap">Live system: m = 1 kg, k = 25 N/m, c = 1 N s/m (ζ = 0.1). Released from x₀ at t = 0.</div></div>`,
+ teach:"Say in one sentence what x(t) tells you that the equation of motion does not."},
+
+{tag:"Step 2 · Why a new method",title:"Earlier chapters made you guess the answer's shape first",
+ what:"In Chapters 1 and 2 you picked a solution form based on ζ: one form for ζ < 1, another for ζ = 1, another for ζ > 1. You needed ζ before you started.",
+ mean:"Laplace moves the problem to the s domain. There, calculus turns into algebra. You solve the algebra, then move back to time.",
+ aim:"Remove the guessing. The algebra itself tells you which response shape you get.",
+ extra:`<div class="flow">
+   <div class="box"><small>Time domain · t</small><b>m ẍ + c ẋ + k x = 0</b><span class="hint">Differential equation. Hard.</span></div>
+   <div class="arrow">ℒ →</div>
+   <div class="box s"><small>s domain · s = σ + jω</small><b>(ms² + cs + k) X(s) = …</b><span class="hint">Algebra. Easy. Rearrange for X(s).</span></div>
+   <div class="arrow">ℒ⁻¹ →</div>
+   <div class="box"><small>Time domain · t</small><b>x(t) = …</b><span class="hint">Response. Read from the table.</span></div></div>
+   <p class="cap">Analogy: dividing MCMXCIV by XLII in Roman numerals is painful. Convert to 1994 ÷ 42, divide, convert back. Laplace is the conversion step.</p>`,
+ teach:"Explain to a friend why converting to the s domain is worth the trouble."},
+
+{tag:"Step 3 · The transform",title:"What ℒ does to a function",
+ what:"Multiply f(t) by e<sup>−st</sup> and integrate over all time from 0 to ∞. Time disappears. A function of s is left.",
+ mean:"Lowercase x(t) lives in time. Capital X(s) is the same information in the s domain. s = σ + jω is a complex frequency: σ is decay, ω is oscillation.",
+ aim:"You never compute this integral in the exam. You use the table of identities in the Appendix. Recognise the shapes below.",
+ eq:`<span class="row">ℒ{ f(t) } = ∫₀<sup>∞</sup> e<sup>−st</sup> f(t) dt = F(s)</span>`,
+ extra:`<div class="tablebox"><table class="vars"><tr><th>Time f(t)</th><th>s domain F(s)</th><th>Shape in time</th></tr>
+ <tr><td>e<sup>−at</sup></td><td>${F('1','s + a')}</td><td>Pure decay</td></tr>
+ <tr><td>t e<sup>−at</sup></td><td>${F('1','(s + a)²')}</td><td>Rise then decay. Repeated root</td></tr>
+ <tr><td>cos ωt</td><td>${F('s','s² + ω²')}</td><td>Oscillation, no decay</td></tr>
+ <tr><td>sin ωt</td><td>${F('ω','s² + ω²')}</td><td>Oscillation, no decay</td></tr>
+ <tr><td>e<sup>−at</sup> cos ωt</td><td>${F('s + a','(s + a)² + ω²')}</td><td>Decaying oscillation</td></tr>
+ <tr><td>e<sup>−at</sup> sin ωt</td><td>${F('ω','(s + a)² + ω²')}</td><td>Decaying oscillation</td></tr></table></div>
+ <p class="cap">Pattern to remember: "+a" next to s means "× e<sup>−at</sup>" in time. A "+ω²" in the denominator means oscillation.</p>`,
+ teach:"Point at the table and say what the 'a' and the 'ω' each do to the motion."},
+
+{tag:"Step 4 · The key trick",title:"Each derivative becomes a multiplication by s",
+ what:"These three rules transform every term of the equation of motion. x(0) and ẋ(0) are the initial conditions.",
+ mean:"Differentiation in time equals multiplication by s. The initial conditions drop into the equation by themselves.",
+ aim:"Turn a differential equation into an algebraic one. No constants to hunt for at the end. They are inside from the start.",
+ eq:`<span class="row">ℒ{ x } = X(s)</span>
+ <span class="row">ℒ{ ẋ } = <span class="hb">s</span>X(s) − x(0)</span>
+ <span class="row">ℒ{ ẍ } = <span class="hb">s²</span>X(s) − s x(0) − ẋ(0)</span>
+ <span class="row"><span class="note">With x(0) = x₀ and ẋ(0) = 0 (released from rest): ℒ{ẍ} = s²X − s x₀ and ℒ{ẋ} = sX − x₀</span></span>`,
+ teach:"Why does ẍ produce two initial-condition terms but ẋ only one?"},
+
+{tag:"Step 5 · The method",title:"Four moves, every time",
+ what:"Every Chapter 6 question follows the same path. Learn the path once.",
+ mean:"Steps 1, 2 and 4 are mechanical. Step 3 is where marks are won or lost.",
+ aim:"Practise step 3 (complete the square, partial fractions) until the shapes jump out at you. You do not need to memorise the table.",
+ extra:`<div class="recipe">
+  <div><b>1</b><span>Transform</span><p>Apply ℒ to each term. Insert x₀ and V₀.</p></div>
+  <div><b>2</b><span>Solve for X(s)</span><p>Collect X(s) terms on one side. Divide.</p></div>
+  <div class="key"><b>3</b><span>Reshape</span><p>Complete the square or use partial fractions so each piece matches the table.</p></div>
+  <div><b>4</b><span>Invert</span><p>Read each piece back to time with the table. Add them up.</p></div></div>`,
+ teach:"Recite the four moves from memory without looking."},
+
+{tag:"Step 6 · Warm-up",title:"Undamped system: the method in four lines",
+ what:"Equation: m ẍ + k x = 0, with x(0) = x₀ and ẋ(0) = 0.",
+ mean:"X(s) matches the cos identity with ω² = k/m. So the mass swings forever as a cosine.",
+ aim:"Prove the method works by getting the same answer as Chapter 1: x(t) = x₀ cos ωₙt.",
+ eq:`<span class="row">1. m(s²X − s x₀) + kX = 0 <span class="note">transform each term</span></span>
+ <span class="row">2. (ms² + k) X = m s x₀ &nbsp;⇒&nbsp; X(s) = ${F('s','s² + k/m')} x₀ <span class="note">solve for X</span></span>
+ <span class="row">3. Matches ${F('s','s² + ω²')} with ω² = k/m = ${wn}² <span class="note">reshape: already matches</span></span>
+ <span class="row">4. <span class="hl">x(t) = x₀ cos ${wn}t</span> <span class="note">invert</span></span>`,
+ teach:"Why is there no decay term in this answer? Point to the place in X(s) that tells you."},
+
+{tag:"Step 7 · The master equation",title:"Damped system: the denominator decides everything",
+ what:"Transform ẍ + 2ζωₙẋ + ωₙ²x = 0 with x₀ and ẋ(0) = 0. Solve for X(s). The denominator is the characteristic equation.",
+ mean:"The roots of the denominator are the poles. Their location in the s plane sets the motion. Real part = decay rate. Imaginary part = oscillation frequency.",
+ aim:"Find the roots first. The roots tell you which case and which reshaping trick to use. Move the slider and watch.",
+ eq:`<span class="row">(s²X − s x₀) + 2${z}${wn}(sX − x₀) + ${wn}²X = 0</span>
+ <span class="row">X(s) = ${F(`s + 2${z}${wn}`,`<span class="hl">s² + 2${z}${wn}s + ${wn}²</span>`)} x₀ <span class="note">(Eq. 6.6, the one to know)</span></span>
+ <span class="row">Roots: s = −${z}${wn} ± ${wn}√(${z}² − 1) <span class="note">quadratic formula on the denominator</span></span>`,
+ extra:`<div class="ctrls">
+   <div class="ctrl"><label for="zs"><span>Damping ratio ζ</span><span id="zv">0.20</span></label><input id="zs" type="range" min="0" max="2.5" step="0.01" value="0.2"></div>
+   <div class="ctrl"><label for="ws"><span>Natural frequency ωₙ (rad/s)</span><span id="wv">5.0</span></label><input id="ws" type="range" min="1" max="10" step="0.1" value="5"></div>
+   <span class="badge" id="caseBadge">Under-damped</span></div>
+  <div><canvas id="msd7" height="130"></canvas><div class="cap" id="msdCap"></div></div>
+  <div class="lab"><div><canvas id="poleCv" height="240"></canvas><div class="cap">s plane. × marks the poles.</div></div>
+  <div><canvas id="respCv" height="240"></canvas><div class="cap" id="respCap">Response x(t)/x₀</div></div></div>
+  <div class="tablebox"><table class="vars"><tr><th>Roots</th><th>ζ</th><th>Case</th><th>Reshape trick</th></tr>
+  <tr><td>Complex pair</td><td>ζ &lt; 1</td><td>Under-damped (sub-critical)</td><td>Complete the square</td></tr>
+  <tr><td>One repeated real</td><td>ζ = 1</td><td>Critically damped</td><td>Write as (s + ωₙ)²</td></tr>
+  <tr><td>Two distinct real</td><td>ζ &gt; 1</td><td>Over-damped</td><td>Partial fractions</td></tr></table></div>`,
+ teach:"Drag ζ from 0 to 2. Describe what the two × marks do, and what the curve does at the same moment."},
+
+{tag:"Step 8 · Case 1 · ζ < 1",title:"Under-damped: complete the square",
+ what:"The denominator has complex roots, so it will not factorise. Complete the square instead, then split the numerator to match the two table entries.",
+ mean:"The response oscillates at the damped frequency ωd inside an envelope e<sup>−ζωₙt</sup> that shrinks over time.",
+ aim:"Get Eq. 6.7. Memorise the moves (square, split, multiply by ωd/ωd), not the final formula.",
+ eq:`<span class="row">s² + 2${z}${wn}s + ${wn}² = (s + ${z}${wn})² + ${wn}²(1 − ${z}²) = (s + ${z}${wn})² + ${wd}² <span class="note">${wd} = ${wn}√(1 − ζ²)</span></span>
+ <span class="row">X = [ ${F(`s + ${z}${wn}`,`(s + ${z}${wn})² + ${wd}²`)} + ${F(`${z}${wn}`,wd)}·${F(wd,`(s + ${z}${wn})² + ${wd}²`)} ] x₀ <span class="note">split 2ζωₙ = ζωₙ + ζωₙ</span></span>
+ <span class="row"><span class="note">Match: first piece ↔ e<sup>−at</sup>cos ωt, second ↔ e<sup>−at</sup>sin ωt, with a = ζωₙ, ω = ωd</span></span>
+ <span class="row"><span class="hl">x(t) = x₀ e<sup>−${z}${wn}t</sup> [ cos ${wd}t + ${F(z,'√(1 − ζ²)')} sin ${wd}t ]</span> <span class="note">Eq. 6.7</span></span>
+ <span class="row"><span class="note">General form (any initial conditions): x(t) = e<sup>−ζωₙt</sup>[P cos ωd t + Q sin ωd t]</span></span>`,
+ extra:`<div><canvas id="c1" height="200"></canvas><div class="cap">ζ = 0.2, ωₙ = 5 rad/s. Dashed line: envelope ± e<sup>−ζωₙt</sup>.</div></div>`,
+ teach:"Why do you multiply the second term by ωd/ωd? What would go wrong without it?"},
+
+{tag:"Step 9 · Case 2 · ζ > 1",title:"Over-damped: partial fractions",
+ what:"The denominator has two distinct real roots. Factorise it, then split X(s) into two simple fractions A and B.",
+ mean:"Two pure exponential decays added together. No oscillation. The mass creeps back slowly.",
+ aim:"Get Eq. 6.9. Practise finding A and B by partial fractions.",
+ eq:`<span class="row">X = [ ${F('A',`s − ${wn}(−ζ + √(ζ² − 1))`)} + ${F('B',`s − ${wn}(−ζ − √(ζ² − 1))`)} ] x₀</span>
+ <span class="row">A = ${F('ζ + √(ζ² − 1)','2√(ζ² − 1)')} , &nbsp; B = ${F('−ζ + √(ζ² − 1)','2√(ζ² − 1)')} <span class="note">check: A + B = 1 = x(0)/x₀</span></span>
+ <span class="row"><span class="note">Each piece matches ${F('1','s + a')} ↔ e<sup>−at</sup></span></span>
+ <span class="row"><span class="hl">x(t) = x₀ e<sup>−${z}${wn}t</sup> [ A e<sup>${wn}√(ζ²−1) t</sup> + B e<sup>−${wn}√(ζ²−1) t</sup> ]</span> <span class="note">Eq. 6.9</span></span>
+ <span class="row"><span class="note">General form: x(t) = P e<sup>at</sup> + Q e<sup>bt</sup> (a, b negative)</span></span>`,
+ extra:`<div><canvas id="c2" height="200"></canvas><div class="cap">ζ = 2, ωₙ = 5 rad/s. Thin lines: the two exponential pieces. Thick line: their sum.</div></div>`,
+ teach:"Show that A + B = 1. Why must that be true at t = 0?"},
+
+{tag:"Step 10 · Case 3 · ζ = 1",title:"Critically damped: one repeated root",
+ what:"With ζ = 1 the denominator is a perfect square, (s + ωₙ)². Split the numerator s + 2ωₙ into (s + ωₙ) + ωₙ.",
+ mean:"The fastest return to zero without overshoot. The t in (1 + ωₙt) comes from the repeated root.",
+ aim:"Get Eq. 6.11, and know why designers aim near ζ = 1 for things like door closers and instrument needles.",
+ eq:`<span class="row">X = ${F(`s + 2${wn}`,`(s + ${wn})²`)} x₀ = [ ${F('1',`s + ${wn}`)} + ${F(wn,`(s + ${wn})²`)} ] x₀</span>
+ <span class="row"><span class="note">Match: 1/(s + a) ↔ e<sup>−at</sup> and 1/(s + a)² ↔ t e<sup>−at</sup></span></span>
+ <span class="row"><span class="hl">x(t) = x₀ (1 + ${wn}t) e<sup>−${wn}t</sup></span> <span class="note">Eq. 6.11 · general form (P + Qt)e<sup>at</sup></span></span>`,
+ extra:`<div><canvas id="race" height="320"></canvas><div class="cap">Three identical systems (same m and k, ωₙ = 5 rad/s), released from x₀ at the same moment. Only the damper changes. A bigger damper drawing means a stronger damper. Watch which mass settles on the dashed line first.</div></div>
+ <div><canvas id="c3" height="220"></canvas>
+ <div class="legend"><span><i style="background:var(--accent)"></i>ζ = 0.2 under</span><span><i style="background:var(--good)"></i>ζ = 1 critical</span><span><i style="background:var(--signal)"></i>ζ = 2 over</span></div>
+ <div class="cap">Fig. 6.1 recreated: all three cases, ωₙ = 5 rad/s, same x₀.</div></div>`,
+ teach:"Look at the plot. Which curve reaches zero first without crossing it? Why is that useful?"},
+
+{tag:"Step 11 · Worked example",title:"m = 1 kg, k = 25 N/m, c = 1 N s/m, released from x₀",
+ what:"Lecture example. ζ = 0.1 and ωₙ = 5 rad/s, so under-damped. Press the button to reveal one line at a time. Predict each line before you reveal it.",
+ mean:"Every line is one of the four moves. Nothing new appears.",
+ aim:"Train the order of moves under exam conditions.",
+ extra:`<div class="eq reveal" id="rev">
+ <span class="line"><span class="why">Objective: find x(t). Known: m, k, c, x(0) = x₀, ẋ(0) = 0.</span>ẍ + ẋ + 25x = 0 <span class="note">divide by m = 1</span></span>
+ <span class="line"><span class="why">Move 1: transform each term</span>(s²X − s x₀) + (sX − x₀) + 25X = 0</span>
+ <span class="line"><span class="why">Move 2: solve for X(s)</span>X(s) = ${F('s + 1','s² + s + 25')} x₀</span>
+ <span class="line"><span class="why">Check roots: b² − 4ac = 1 − 100 &lt; 0, so complex. Complete the square</span>s² + s + 25 = (s + 0.5)² + 24.75</span>
+ <span class="line"><span class="why">Move 3: split numerator s + 1 = (s + 0.5) + 0.5, multiply by √24.75/√24.75</span>X = [ ${F('s + 0.5','(s + 0.5)² + 24.75')} + ${F('0.5','√24.75')}·${F('√24.75','(s + 0.5)² + 24.75')} ] x₀</span>
+ <span class="line"><span class="why">Read off: a = 0.5, ω = √24.75 = 4.975 rad/s (this equals ωd = 5√(1 − 0.1²))</span>0.5 / 4.975 = 0.1005</span>
+ <span class="line"><span class="why">Move 4: invert with the table</span><span class="hl">x(t) = x₀ e<sup>−0.5t</sup> [ cos 4.975t + 0.1005 sin 4.975t ]</span></span>
+ <span class="line"><span class="why">Sanity check: at t = 0, x = x₀ ✓. Envelope x₀e<sup>−0.5t</sup> with ζωₙ = 0.1 × 5 = 0.5 ✓</span>Matches the Chapter 2 form e<sup>−pt</sup>[A cos ωd t + B sin ωd t]</span></div>
+ <div class="nav"><button class="btn" id="revBtn">Reveal next line</button><button class="btn ghost" id="revReset">Start again</button></div>`,
+ teach:"Cover the screen and redo the example on paper. Where did you stall?"},
+
+{tag:"Step 12 · Rotating systems",title:"Same method, angle θ instead of x",
+ what:"A hinged beam swings by angle θ. Swap mass for moment of inertia I₀, and use effective stiffness and damping. Use small angles in radians: sin θ ≈ θ, cos θ ≈ 1.",
+ mean:"A spring at distance a from the pivot stretches aθ. Its force kaθ acts with lever arm a, so its moment is ka²θ. Same for the damper: ca²θ̇.",
+ aim:"Build the equation of motion, then apply the exact same four moves.",
+ eq:`<span class="row">I₀θ̈ + c<sub>eff</sub>θ̇ + k<sub>eff</sub>θ = 0 <span class="note">units: k in N m/rad, c in N m s/rad</span></span>
+ <span class="row">Beam (Example A, 6-6): I₀ = mL², &nbsp; mL²θ̈ + ca²θ̇ + ka²θ = 0</span>
+ <span class="row">θ̈ + ${F('c','m')}(${F('a','L')})²θ̇ + ${F('k','m')}(${F('a','L')})²θ = 0</span>
+ <span class="row"><span class="note">Ex 6-6: m = 1, L = 1, a = 0.5, k = 640, c = 32 → ωₙ² = 160, 2ζωₙ = 8, ζ = 0.316, ωd = 12 rad/s</span></span>
+ <span class="row"><span class="hl">θ(t) = θ₀ e<sup>−4t</sup> [ cos 12t + 0.333 sin 12t ]</span></span>
+ <span class="row"><span class="note">Ex 6-7: c = 125 → 2ζωₙ = 31.25, ζ = 1.24, over-damped → θ ≈ θ₀(1.352e<sup>−6.45t</sup> − 0.352e<sup>−24.8t</sup>)</span></span>`,
+ teach:"Why does the spring term carry a², not a? Explain using force × lever arm."},
+
+{tag:"Step 13 · Check yourself",title:"Feynman check: find the gaps",
+ what:"Answer each question. A wrong answer shows you where to go back.",
+ mean:"If you explain each answer out loud in plain words, you own the chapter.",
+ aim:"Leave no confusion behind. Revisit the step named in the feedback.",
+ extra:`<div class="quiz" id="quiz"></div>`,
+ teach:"Teach the whole chapter in 60 seconds: problem, transform, four moves, three cases."}
+];
+steps.pop(); /* removed: Check yourself */
+
+const quiz=[
+ {q:"ℒ{ẍ} with x(0) = x₀ and ẋ(0) = 0 equals:",o:["s²X − s x₀","s²X − x₀","sX − x₀","s²X"],a:0,f:"Two terms from initial conditions, s x(0) and ẋ(0). The second is zero here. See Step 4."},
+ {q:"The denominator s² + 2s + 10 has b² − 4ac = 4 − 40 < 0. Which trick?",o:["Partial fractions","Complete the square","Repeated root form"],a:1,f:"Complex roots mean under-damped: (s + 1)² + 9, so a = 1, ωd = 3. See Step 8."},
+ {q:"Which X(s) piece gives t e^(−at)?",o:["1/(s + a)","1/(s + a)²","ω/((s + a)² + ω²)"],a:1,f:"The squared factor is the repeated root, which gives the t. See Step 10."},
+ {q:"A pole at s = −2 ± 6j means:",o:["Decay rate 6, oscillation 2 rad/s","Decay rate 2, oscillation 6 rad/s","No oscillation"],a:1,f:"Real part = decay (ζωₙ = 2). Imaginary part = ωd = 6 rad/s. See Step 7."},
+ {q:"Small angle approximation needs θ in:",o:["Degrees","Radians","Either"],a:1,f:"sin θ ≈ θ is true only in radians. See Step 12."}
+];
+
+const stage=document.getElementById('stage'), rail=document.getElementById('rail');
+let cur=0, visited=new Set([0]), anim=null;
+try{const s=parseInt(localStorage.getItem('ch6step'));if(s>=0&&s<steps.length)cur=s;}catch(e){}
+
+steps.forEach((s,i)=>{const b=document.createElement('button');b.textContent=i+1;b.title=s.tag;b.onclick=()=>go(i);rail.appendChild(b);});
+
+function go(i){cur=Math.max(0,Math.min(steps.length-1,i));visited.add(cur);try{localStorage.setItem('ch6step',cur)}catch(e){}render();}
+document.getElementById('prev').onclick=()=>go(cur-1);
+document.getElementById('next').onclick=()=>go(cur+1);
+document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='ArrowRight')go(cur+1);if(e.key==='ArrowLeft')go(cur-1);});
+
+function render(){
+ if(anim){cancelAnimationFrame(anim);anim=null;}
+ const s=steps[cur];
+ stage.innerHTML=`<div class="tag">${s.tag}</div><h2>${s.title}</h2>
+ <div class="trio"><div class="cell what"><h3>What it is</h3><p>${s.what}</p></div>
+ <div class="cell mean"><h3>What it means</h3><p>${s.mean}</p></div>
+ <div class="cell aim"><h3>The aim</h3><p>${s.aim}</p></div></div>
+ ${s.eq?`<div class="eq">${s.eq}</div>`:''}${s.extra||''}
+`;
+ [...rail.children].forEach((b,i)=>{b.className=(i===cur?'on':visited.has(i)?'done':'');});
+ document.getElementById('bar').style.width=((cur+1)/steps.length*100)+'%';
+ document.getElementById('prev').disabled=cur===0;
+ document.getElementById('next').disabled=cur===steps.length-1;
+ setup();
+}
+
+/* ---------- physics ---------- */
+function resp(zeta,w,t){
+ if(Math.abs(zeta-1)<0.005)return(1+w*t)*Math.exp(-w*t);
+ if(zeta<1){const r=Math.sqrt(1-zeta*zeta),d=w*r;return Math.exp(-zeta*w*t)*(Math.cos(d*t)+zeta/r*Math.sin(d*t));}
+ const r=Math.sqrt(zeta*zeta-1),A=(zeta+r)/(2*r),B=(-zeta+r)/(2*r);
+ return Math.exp(-zeta*w*t)*(A*Math.exp(w*r*t)+B*Math.exp(-w*r*t));
+}
+function poles(zeta,w){
+ if(Math.abs(zeta-1)<0.005)return[[-w,0],[-w,0]];
+ if(zeta<1){const d=w*Math.sqrt(1-zeta*zeta);return[[-zeta*w,d],[-zeta*w,-d]];}
+ const r=Math.sqrt(zeta*zeta-1);return[[-w*(zeta-r),0],[-w*(zeta+r),0]];
+}
+function caseOf(zeta){return Math.abs(zeta-1)<0.005?'crit':zeta<1?'under':'over';}
+
+/* ---------- drawing ---------- */
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function prep(cv){const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.height/(cv._dpr||1);cv._dpr=dpr;cv._h=cv._h||h;
+ cv.width=w*dpr;cv.height=cv._h*dpr;cv.style.height=cv._h+'px';const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,cv._h);return[c,w,cv._h];}
+
+function axes(c,W,H,pad,tMax,yMin,yMax){
+ const X=t=>pad.l+(t/tMax)*(W-pad.l-pad.r), Y=v=>pad.t+(yMax-v)/(yMax-yMin)*(H-pad.t-pad.b);
+ c.strokeStyle=css('--grid');c.lineWidth=1;c.fillStyle=css('--muted');c.font='11px "JetBrains Mono", monospace';
+ const yt=[];for(let v=Math.ceil(yMin*2)/2;v<=yMax+1e-9;v+=0.5)yt.push(v);
+ yt.forEach(v=>{c.beginPath();c.moveTo(pad.l,Y(v));c.lineTo(W-pad.r,Y(v));c.stroke();c.textAlign='right';c.textBaseline='middle';c.fillText(v.toFixed(1),pad.l-6,Y(v));});
+ const step=tMax<=2?0.5:tMax<=4?1:2;
+ for(let t=0;t<=tMax+1e-9;t+=step){c.beginPath();c.moveTo(X(t),pad.t);c.lineTo(X(t),H-pad.b);c.stroke();c.textAlign='center';c.textBaseline='top';c.fillText(t+'s',X(t),H-pad.b+5);}
+ c.strokeStyle=css('--muted');c.beginPath();c.moveTo(pad.l,Y(0));c.lineTo(W-pad.r,Y(0));c.stroke();
+ return[X,Y];
+}
+function curve(c,X,Y,f,tMax,col,lw,dash){c.strokeStyle=col;c.lineWidth=lw;c.setLineDash(dash||[]);c.beginPath();
+ for(let i=0;i<=400;i++){const t=tMax*i/400;const v=f(t);i?c.lineTo(X(t),Y(v)):c.moveTo(X(t),Y(v));}c.stroke();c.setLineDash([]);}
+
+function tWin(zeta,w){const t=Math.max(1,Math.min(8,8/w*(zeta>1?zeta*1.6:1.4)));return +t.toFixed(0)||1;}
+function drawResp(cv,zeta,w,tc){
+ const[c,W,H]=prep(cv),pad={l:38,r:12,t:12,b:24},T=tWin(zeta,w);
+ const[X,Y]=axes(c,W,H,pad,T,-1,1);
+ if(zeta<1&&zeta>0){curve(c,X,Y,t=>Math.exp(-zeta*w*t),T,css('--muted'),1,[4,4]);curve(c,X,Y,t=>-Math.exp(-zeta*w*t),T,css('--muted'),1,[4,4]);}
+ const col={under:css('--accent'),crit:css('--good'),over:css('--signal')}[caseOf(zeta)];
+ curve(c,X,Y,t=>resp(zeta,w,t),T,col,2.5);
+ if(tc!=null){const x=X(tc),y=Y(resp(zeta,w,tc));c.strokeStyle=css('--muted');c.lineWidth=1;c.beginPath();c.moveTo(x,pad.t);c.lineTo(x,H-pad.b);c.stroke();
+  c.fillStyle=col;c.beginPath();c.arc(x,y,6,0,Math.PI*2);c.fill();c.strokeStyle=css('--panel');c.lineWidth=2;c.stroke();}
+}
+function drawPoles(cv,zeta,w){
+ const[c,W,H]=prep(cv);const R=Math.max(w*1.15,w*(zeta+Math.sqrt(Math.max(0,zeta*zeta-1)))*1.1),pad=20;
+ const sx=(W-pad*2)/(R*1.15),sy=(H-pad*2)/(2*w*1.15),sc=Math.min(sx,sy);
+ const ox=W-pad-0.15*R*sc,oy=H/2,X=v=>ox+v*sc,Y=v=>oy-v*sc;
+ c.fillStyle=css('--accent-soft');c.fillRect(pad,pad/2,ox-pad,H-pad);
+ c.strokeStyle=css('--muted');c.lineWidth=1;c.beginPath();c.moveTo(pad,oy);c.lineTo(W-6,oy);c.moveTo(ox,6);c.lineTo(ox,H-6);c.stroke();
+ c.fillStyle=css('--muted');c.font='11px "JetBrains Mono", monospace';c.textAlign='left';c.fillText('jω',ox+4,14);c.textAlign='right';c.fillText('σ',W-6,oy-6);
+ c.textAlign='left';c.fillText('stable side',pad+4,pad/2+14);
+ c.strokeStyle=css('--grid');c.setLineDash([3,4]);c.beginPath();c.arc(ox,oy,w*sc,Math.PI/2,Math.PI*1.5);c.stroke();c.setLineDash([]);
+ const col={under:css('--accent'),crit:css('--good'),over:css('--signal')}[caseOf(zeta)];
+ c.strokeStyle=col;c.lineWidth=2.5;poles(zeta,w).forEach(([re,im],i)=>{const x=X(re),y=Y(im)+(caseOf(zeta)==='crit'?(i?5:-5):0),s=6;c.beginPath();c.moveTo(x-s,y-s);c.lineTo(x+s,y+s);c.moveTo(x+s,y-s);c.lineTo(x-s,y+s);c.stroke();});
+ c.fillStyle=css('--muted');c.fillText('circle radius ωₙ',pad+4,H-10);
+}
+
+/* one mass-spring-damper row; damper drawing grows with zeta so "strong damper" is visible */
+function drawMSD(c,W,cy,x,o={}){
+ const wall=24,eq=W*0.55,amp=W*0.18,mx=eq+x*amp,mw=56,mh=52,top=cy-40,bot=cy+40,zeta=o.zeta??0.1;
+ c.fillStyle=css('--muted');for(let y=top;y<bot;y+=8)c.fillRect(0,y,wall,1);c.fillRect(wall-2,top,3,bot-top);
+ c.strokeStyle=css('--muted');c.setLineDash([4,4]);c.lineWidth=1;c.beginPath();c.moveTo(eq,top);c.lineTo(eq,bot);c.stroke();c.setLineDash([]);
+ const x0=wall,x1=mx-mw/2,y1=cy-12,n=12;
+ c.strokeStyle=css('--accent');c.lineWidth=2;c.beginPath();c.moveTo(x0,y1);
+ for(let i=1;i<=n;i++){c.lineTo(x0+(x1-x0)*i/n,y1+(i===n?0:(i%2?-8:8)));}c.stroke();
+ const y2=cy+14,g=4+Math.min(zeta,2.5)*4.5,cw=34,cx0=x0+18,pist=Math.max(cx0+6,Math.min(cx0+cw-4,x1-60));
+ c.strokeStyle=css('--signal');c.lineWidth=1.5+Math.min(zeta,2.5)*0.8;
+ if(zeta>0){c.fillStyle=css('--accent-soft');c.fillRect(cx0,y2-g,cw,2*g);c.beginPath();
+  c.moveTo(x0,y2);c.lineTo(cx0,y2);c.moveTo(cx0,y2-g);c.lineTo(cx0+cw,y2-g);c.moveTo(cx0,y2+g);c.lineTo(cx0+cw,y2+g);c.moveTo(cx0,y2-g);c.lineTo(cx0,y2+g);
+  c.moveTo(pist,y2-g+3);c.lineTo(pist,y2+g-3);c.moveTo(pist,y2);c.lineTo(x1,y2);c.stroke();}
+ c.fillStyle=o.col||css('--ink');c.fillRect(x1,cy-mh/2,mw,mh);
+ c.fillStyle=css('--panel');c.font='600 15px "Space Grotesk", sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('m',mx,cy);
+ c.font='11px "JetBrains Mono", monospace';if(!o.label||W>600){c.fillStyle=css('--accent');c.fillText('k',(x0+x1)*0.62,y1-16);}
+ if(zeta>0){c.fillStyle=css('--signal');c.fillText('c',cx0+cw/2,y2+g+9);}
+ if(o.label){c.fillStyle=o.col||css('--ink');c.font='600 12px "JetBrains Mono", monospace';c.textAlign='left';c.textBaseline='top';c.fillText(o.label,wall+8,top);}
+ return eq;
+}
+function drawSpring(cv,x,o){
+ const[c,W,H]=prep(cv),eq=drawMSD(c,W,H/2-6,x,o);
+ c.fillStyle=css('--muted');c.font='11px "JetBrains Mono", monospace';c.textAlign='center';c.textBaseline='alphabetic';c.fillText('x = 0',eq,H-4);
+}
+const caseCol=k=>({under:css('--accent'),crit:css('--good'),over:css('--signal')}[k]);
+const msdText={
+ zero:"No damper (ζ = 0). Nothing removes energy, so the mass swings forever.",
+ under:"Weak damper (ζ < 1). The mass shoots past x = 0, swings back, and each swing is smaller than the last.",
+ crit:"Damper exactly strong enough (ζ = 1). The mass returns to x = 0 as fast as possible without crossing it.",
+ over:"Damper too strong (ζ > 1). The damper fights every movement, so the mass creeps back slowly and never crosses x = 0."};
+
+/* ---------- per-step setup ---------- */
+function setup(){
+ const sc=document.getElementById('springCv');
+ if(sc){const red=matchMedia('(prefers-reduced-motion: reduce)').matches;let t0=null;
+  if(red){drawSpring(sc,1);return;}
+  const loop=ts=>{if(t0===null)t0=ts;let t=((ts-t0)/1000)%9;drawSpring(sc,t<0.6?1:resp(0.1,5,t-0.6));anim=requestAnimationFrame(loop);};anim=requestAnimationFrame(loop);}
+ const red=matchMedia('(prefers-reduced-motion: reduce)').matches;
+ const zs=document.getElementById('zs');
+ if(zs){const ws=document.getElementById('ws'),msd=document.getElementById('msd7'),rc=document.getElementById('respCv');let t0=null;
+  const frame=ts=>{const zeta=+zs.value,w=+ws.value,T=tWin(zeta,w),col=caseCol(caseOf(zeta));
+   if(t0===null)t0=ts;const tt=((ts-t0)/1000)%(T+1.8),t=tt<0.8?0:Math.min(tt-0.8,T);
+   drawSpring(msd,resp(zeta,w,t),{zeta,col,label:'t = '+t.toFixed(2)+' s'});drawResp(rc,zeta,w,t);
+   if(!red)anim=requestAnimationFrame(frame);};
+  const upd=()=>{const zeta=+zs.value,w=+ws.value,k=caseOf(zeta);
+   document.getElementById('msdCap').textContent=zeta===0?msdText.zero:msdText[k];
+   t0=null;if(red){drawSpring(msd,1,{zeta,col:caseCol(k)});}
+   document.getElementById('zv').textContent=zeta.toFixed(2);document.getElementById('wv').textContent=w.toFixed(1);
+   const b=document.getElementById('caseBadge');b.textContent={under:zeta===0?'Undamped (ζ = 0)':'Under-damped · ζ < 1',crit:'Critically damped · ζ = 1',over:'Over-damped · ζ > 1'}[k];
+   b.style.color={under:css('--accent'),crit:css('--good'),over:css('--signal')}[k];
+   const p=poles(zeta,w);document.getElementById('respCap').textContent='Response x(t)/x₀ · poles: '+p.map(([r,i])=>r.toFixed(2)+(Math.abs(i)>1e-6?(i>0?' + ':' − ')+Math.abs(i).toFixed(2)+'j':'')).join(' , ');
+   drawPoles(document.getElementById('poleCv'),zeta,w);if(red)drawResp(rc,zeta,w);};
+  zs.oninput=upd;ws.oninput=upd;upd();if(!red)anim=requestAnimationFrame(frame);
+  const snap=()=>{if(Math.abs(+zs.value-1)<0.03){zs.value=1;upd();}};zs.onchange=snap;}
+ const c1=document.getElementById('c1');if(c1)drawResp(c1,0.2,5);
+ const c2=document.getElementById('c2');if(c2){const[c,W,H]=prep(c2),pad={l:38,r:12,t:12,b:24},T=4,[X,Y]=axes(c,W,H,pad,T,-0.5,1.5);
+  const zeta=2,w=5,r=Math.sqrt(3),A=(zeta+r)/(2*r),B=(-zeta+r)/(2*r);
+  curve(c,X,Y,t=>A*Math.exp(-w*(zeta-r)*t),T,css('--muted'),1.2,[4,4]);curve(c,X,Y,t=>B*Math.exp(-w*(zeta+r)*t),T,css('--muted'),1.2,[2,3]);
+  curve(c,X,Y,t=>resp(2,5,t),T,css('--signal'),2.5);
+  c.fillStyle=css('--muted');c.font='11px "JetBrains Mono", monospace';c.textAlign='left';c.fillText('A = '+A.toFixed(3)+', B = '+B.toFixed(3),X(1.6),Y(1.25));}
+ const race=document.getElementById('race');if(race){const rows=[[0.2,'ζ = 0.2  under-damped','under'],[1,'ζ = 1  critical','crit'],[2,'ζ = 2  over-damped','over']],T=2.5;let t0=null;
+  const frame=ts=>{if(t0===null)t0=ts;const tt=((ts-t0)/1000)%(T+1.8),t=red?0:(tt<0.8?0:Math.min(tt-0.8,T));
+   const[c,W,H]=prep(race);let eq;rows.forEach(([zeta,label,k],i)=>{eq=drawMSD(c,W,55+i*100,resp(zeta,5,t),{zeta,col:caseCol(k),label});});
+   c.fillStyle=css('--muted');c.font='11px "JetBrains Mono", monospace';c.textAlign='center';c.textBaseline='alphabetic';c.fillText('x = 0',eq,H-4);
+   c.textAlign='right';c.fillText('t = '+t.toFixed(2)+' s',W-4,H-4);
+   if(!red)anim=requestAnimationFrame(frame);};
+  red?frame(0):anim=requestAnimationFrame(frame);}
+ const c3=document.getElementById('c3');if(c3){const[c,W,H]=prep(c3),pad={l:38,r:12,t:12,b:24},T=3,[X,Y]=axes(c,W,H,pad,T,-1,1);
+  curve(c,X,Y,t=>resp(0.2,5,t),T,css('--accent'),2.2);curve(c,X,Y,t=>resp(2,5,t),T,css('--signal'),2.2);curve(c,X,Y,t=>resp(1,5,t),T,css('--good'),2.8);}
+ const rb=document.getElementById('revBtn');if(rb){const ls=[...document.querySelectorAll('#rev .line')];let n=0;
+  const show=()=>{ls.forEach((l,i)=>l.classList.toggle('show',i<n));rb.disabled=n>=ls.length;rb.textContent=n>=ls.length?'All lines shown':'Reveal next line ('+n+'/'+ls.length+')';};
+  rb.onclick=()=>{n++;show();};document.getElementById('revReset').onclick=()=>{n=0;show();};n=1;show();}
+ const qz=document.getElementById('quiz');if(qz){quiz.forEach((q,qi)=>{const d=document.createElement('div');d.className='q';
+  d.innerHTML=`<p>${qi+1}. ${q.q}</p><div class="opts"></div><div class="fb"></div>`;const os=d.querySelector('.opts'),fb=d.querySelector('.fb');
+  q.o.forEach((o,oi)=>{const b=document.createElement('button');b.className='opt';b.textContent=o;b.onclick=()=>{
+   [...os.children].forEach(x=>x.classList.remove('right','wrong'));b.classList.add(oi===q.a?'right':'wrong');
+   fb.textContent=(oi===q.a?'Correct. ':'Not quite. ')+q.f;};os.appendChild(b);});qz.appendChild(d);});}
+}
+const redraw=()=>{if(!anim&&stage.querySelector('canvas'))setup();};
+let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(redraw,150);});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',redraw);
+render();
+</script>
+
+</body></html>

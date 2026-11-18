@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ENG3014 Course Map</title>
+<style>
+:root{
+  /* layout: slim header, full-width course map with four topic columns, detail panel below with notes left and a live demo right */
+  --bg:#f2f5f7; --panel:#ffffff; --ink:#11202b; --mute:#566573; --line:#d2dae1; --soft:#e7edf1;
+  --t1:#0a6b88; --t2:#b34f08; --t3:#3f7a1a; --t4:#74519f; --on:#ffffff;
+  --bad:#b3261e; --ok:#1d7a3b;
+  --font:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1a22; --panel:#16252f; --ink:#e6edf2; --mute:#9db0bd; --line:#2b3d49; --soft:#1d3039;
+    --t1:#52b8d6; --t2:#f2a05a; --t3:#92c957; --t4:#b99be4; --on:#0f1a22;
+    --bad:#ff7b72; --ok:#5fd28a; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1a22; --panel:#16252f; --ink:#e6edf2; --mute:#9db0bd; --line:#2b3d49; --soft:#1d3039;
+  --t1:#52b8d6; --t2:#f2a05a; --t3:#92c957; --t4:#b99be4; --on:#0f1a22;
+  --bad:#ff7b72; --ok:#5fd28a; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:400 15px/1.55 var(--font);padding:0 0 48px}
+h1,h2,h3{text-wrap:balance;margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding:0 18px}
+header{padding:22px 0 14px}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.04em;color:var(--mute);text-transform:uppercase}
+h1{font-size:28px;line-height:1.15;margin:8px 0 6px;font-weight:600}
+.sub{color:var(--mute);max-width:70ch;margin:0}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chip{font:500 12px/1 var(--mono);padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--ink)}
+.bar{display:flex;align-items:center;gap:12px;margin:14px 0 0}
+.bar .track{flex:1;height:8px;background:var(--soft);border-radius:99px;overflow:hidden;max-width:360px}
+.bar .fill{height:100%;background:var(--t1);width:0;transition:width .25s}
+.bar span{font:500 12px/1 var(--mono);color:var(--mute)}
+.tabs{display:flex;gap:6px;margin:16px 0 10px;align-items:center}
+.tabs button{font:500 13px var(--font);padding:7px 14px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tabs .hint{margin-left:auto;font-size:12.5px;color:var(--mute)}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,.nd:focus-visible{outline:3px solid var(--t1);outline-offset:2px}
+.mapbox{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px;overflow-x:auto}
+svg.map{display:block;width:100%;min-width:820px;height:auto}
+.colh{font:500 12px var(--mono);letter-spacing:.03em;text-transform:uppercase}
+.colh.tp1{fill:var(--t1)} .colh.tp2{fill:var(--t2)} .colh.tp3{fill:var(--t3)} .colh.tp4{fill:var(--t4)}
+.colsub{font:400 11.5px var(--font);fill:var(--mute)}
+.tp1{--tc:var(--t1)} .tp2{--tc:var(--t2)} .tp3{--tc:var(--t3)} .tp4{--tc:var(--t4)}
+.edge{fill:none;stroke:var(--line);stroke-width:1.4}
+.edge.on{stroke:var(--tc,var(--ink));stroke-width:2.2}
+.map.hl .edge:not(.on){opacity:.25}
+.nd{cursor:pointer}
+.nd rect{fill:var(--panel);stroke:var(--tc);stroke-width:1.6}
+.nd.ghost rect{stroke-dasharray:5 4}
+.nd .nt{font:600 13px var(--font);fill:var(--ink)}
+.nd .ns{font:400 11px var(--mono);fill:var(--mute)}
+.nd .tk{fill:none;stroke:var(--ok);stroke-width:2.2;opacity:0}
+.nd.done .tk{opacity:0}
+.nd:hover rect{fill:var(--soft)}
+.nd.sel rect{fill:var(--tc)}
+.nd.sel .nt,.nd.sel .ns{fill:var(--on)}
+.nd.sel .tk{stroke:var(--on)}
+.map.hl .nd:not(.rel){opacity:.4}
+.listv{display:none;gap:14px;grid-template-columns:1fr}
+.listv .grp{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px}
+.listv h3{font-size:12.5px;font:500 12px var(--mono);text-transform:uppercase;letter-spacing:.03em;margin-bottom:8px;color:var(--tc)}
+.listv button{display:flex;width:100%;justify-content:space-between;gap:10px;text-align:left;font:500 14px var(--font);padding:9px 10px;margin:0 0 6px;border:1px solid var(--line);border-left:4px solid var(--tc);border-radius:8px;background:var(--panel);color:var(--ink);cursor:pointer}
+.listv button small{font:400 11px var(--mono);color:var(--mute);white-space:nowrap}
+.listv button[aria-current="true"]{background:var(--tc);color:var(--on)}
+.listv button[aria-current="true"] small{color:var(--on)}
+body.list .mapbox{display:none}
+body.list .listv{display:grid}
+@media(min-width:760px){body.list .listv{grid-template-columns:repeat(2,1fr)}}
+#panel{margin-top:16px;background:var(--panel);border:1px solid var(--line);border-top:5px solid var(--tc);border-radius:12px;padding:20px;scroll-margin-top:10px}
+.phead{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:6px}
+.tag{font:500 11.5px/1 var(--mono);color:var(--on);background:var(--tc);padding:6px 9px;border-radius:6px}
+.lec{font:400 12.5px var(--mono);color:var(--mute)}
+#panel h2{font-size:24px;font-weight:600;margin:4px 0 14px}
+.cols{display:grid;grid-template-columns:minmax(0,1fr);gap:22px}
+@media(min-width:960px){.cols{grid-template-columns:minmax(0,1fr) minmax(0,1.05fr)}}
+h3.s{font:500 12px/1 var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--tc);margin:0 0 8px}
+.sec{margin-bottom:20px}
+.say{font-size:16px;margin:0;max-width:62ch}
+.fm{border:1px solid var(--line);border-left:4px solid var(--tc);border-radius:8px;padding:10px 12px;margin-bottom:10px;background:var(--bg)}
+.fm .eq{font:500 15px var(--mono);overflow-x:auto;padding-bottom:2px}
+.fm dl{display:grid;grid-template-columns:max-content 1fr;gap:3px 12px;margin:8px 0 0;font-size:13.5px}
+.fm dt{font:500 13px var(--mono);white-space:nowrap}
+.fm dd{margin:0;color:var(--mute)}
+ul.facts{margin:0;padding-left:18px}
+ul.facts li{margin:0 0 5px}
+.demo{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px}
+.ctl{display:grid;grid-template-columns:minmax(92px,150px) 1fr minmax(78px,auto);align-items:center;gap:10px;margin:0 0 8px;font-size:13.5px}
+.ctl .n{color:var(--mute)}
+.ctl output{font:500 13px var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--tc)}
+select,.btn{font:500 13px var(--font);padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);cursor:pointer}
+.btnrow{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 10px;align-items:center}
+canvas.cv{display:block;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;margin:6px 0 10px}
+.readout{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;font-size:13.5px}
+.readout .k{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:8px 10px}
+.readout .k b{display:block;font:500 17px var(--mono);font-variant-numeric:tabular-nums}
+.readout .k span{color:var(--mute);font-size:12px}
+.readout .wide{grid-column:1/-1}
+.good{color:var(--ok)} .warn{color:var(--bad)}
+.note{font-size:12.5px;color:var(--mute);margin:6px 0 0}
+details.q{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--bg)}
+details.q summary{cursor:pointer;font-weight:500}
+details.q p{margin:8px 0 0;color:var(--mute)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips span{font-size:12.5px;border:1px solid var(--line);border-radius:6px;padding:5px 8px;background:var(--bg)}
+.pfoot{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding-top:14px;margin-top:6px}
+.pfoot label{display:flex;gap:8px;align-items:center;cursor:pointer;font-weight:500}
+.pfoot input{width:18px;height:18px;accent-color:var(--ok)}
+.pre{font-size:13px;color:var(--mute)}
+.pre button{font:500 12.5px var(--font);border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:4px 8px;border-radius:6px;cursor:pointer;margin:0 4px 4px 0}
+footer{margin-top:22px;font-size:12.5px;color:var(--mute)}
+table.gray{border-collapse:collapse;font:500 13px var(--mono);width:100%;margin-bottom:8px}
+table.gray th,table.gray td{border:1px solid var(--line);padding:4px 8px;text-align:center;background:var(--panel)}
+table.gray th{color:var(--mute);font-weight:500}
+@media(max-width:560px){.ctl{grid-template-columns:1fr auto}.ctl input{grid-column:1/-1;order:3}#panel{padding:14px}h1{font-size:23px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+:root,:root:not([data-theme="light"]),:root[data-theme="dark"]{
+  --bg:#f2f5f7; --panel:#ffffff; --ink:#11202b; --mute:#566573; --line:#d2dae1; --soft:#e7edf1;
+  --t1:#0a6b88; --t2:#b34f08; --t3:#3f7a1a; --t4:#74519f; --on:#ffffff;
+  --bad:#b3261e; --ok:#1d7a3b;
+  --font:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+--bg:#ffffff;--panel:#ffffff;--ink:#111111;--mute:#5a5a55;--line:#d4d4ce;--soft:#f2f2f0;--font:"Helvetica Neue",Helvetica,Arial,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;color-scheme:light}
+.edge{opacity:0;transition:opacity .15s}.edge.on{opacity:1;stroke-width:2.4;marker-end:url(#arr)}
+.nbk-back{display:block;padding:14px 0 10px;border-bottom:2px solid #111;font:700 12px/16px "Helvetica Neue",Helvetica,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#111;text-decoration:none}
+.nbk-back:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="nbk-back" href="../eng3014.html#s02">← Communication Systems 3</a>
+<header>
+  <div class="eyebrow">Interactive notes · Course map</div>
+  <h1>ENG3014 Communication Systems 3</h1>
+  <p class="sub">The whole course as a map. Select a topic to read it in plain words, see each formula with its variables, try a live demo, and follow the arrows to what it builds on and what it leads to.</p>
+</header>
+
+<div class="tabs" role="group" aria-label="View">
+  <button id="vmap" aria-pressed="true">Map</button>
+  <button id="vlist" aria-pressed="false">List</button>
+</div>
+
+<div class="mapbox"><svg id="map" class="map" viewBox="0 0 1000 760" role="group" aria-label="Course map"></svg></div>
+<div class="listv" id="listv"></div>
+
+<section id="panel" aria-live="polite"></section>
+
+</div>
+
+<script>
+"use strict";
+/* ---------- helpers ---------- */
+const $=(s,r=document)=>r.querySelector(s);
+const TAU=Math.PI*2, log10=Math.log10;
+let uid=0;
+function mk(tag,attrs,html){const e=document.createElement(tag);if(attrs)for(const k in attrs){if(k==='class')e.className=attrs[k];else e.setAttribute(k,attrs[k]);}if(html!==undefined)e.innerHTML=html;return e;}
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function colors(){return{ink:css('--ink'),mute:css('--mute'),line:css('--line'),panel:css('--panel'),bg:css('--bg'),tc:css('--tc')||css('--t1'),t2:css('--t2'),bad:css('--bad'),ok:css('--ok'),soft:css('--soft')};}
+function eng(x,unit){
+  if(x===0||!isFinite(x))return '0 '+unit;
+  const a=Math.abs(x);
+  const P=[[1e12,'T'],[1e9,'G'],[1e6,'M'],[1e3,'k'],[1,''],[1e-3,'m'],[1e-6,'µ'],[1e-9,'n'],[1e-12,'p']];
+  for(const [s,l] of P){ if(a>=s*0.9995){ let t=(x/s).toPrecision(3); if(t.indexOf('.')>=0)t=t.replace(/\.?0+$/,''); return t+' '+l+unit; } }
+  return x.toExponential(2)+' '+unit;
+}
+function num(x,d){return (+x).toFixed(d===undefined?2:d);}
+function erfc(x){
+  const neg=x<0; const z=Math.abs(x); const t=1/(1+0.3275911*z);
+  const p=((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592;
+  const v=p*t*Math.exp(-z*z);
+  return neg?2-v:v;
+}
+function rng(seed){let a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function gauss(r){let u=0,v=0;while(u===0)u=r();v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(TAU*v);}
+
+/* demo builders */
+const state={draws:[]};
+function row(box,label,min,max,step,val,fmt,cb){
+  const id='c'+(++uid);
+  const w=mk('div',{class:'ctl'});
+  const lab=mk('label',{class:'n','for':id},label);
+  const inp=mk('input',{type:'range',id:id,min:min,max:max,step:step,value:val});
+  const out=mk('output',{'for':id});
+  const upd=()=>{out.textContent=fmt(+inp.value);};
+  inp.addEventListener('input',()=>{upd();cb();});
+  upd(); w.append(lab,inp,out); box.append(w);
+  return {get:()=>+inp.value,set:v=>{inp.value=v;upd();}};
+}
+function sel(box,label,opts,cb){
+  const id='c'+(++uid);
+  const w=mk('div',{class:'btnrow'});
+  w.append(mk('label',{'for':id,class:'note'},label));
+  const s=mk('select',{id:id});
+  opts.forEach((o,i)=>s.append(mk('option',{value:i},o)));
+  s.addEventListener('change',cb);
+  w.append(s); box.append(w);
+  return ()=>+s.value;
+}
+function btn(box,label,cb){const b=mk('button',{class:'btn',type:'button'},label);b.addEventListener('click',cb);let r=box.querySelector(':scope > .btnrow:last-child.bt');if(!r){r=mk('div',{class:'btnrow bt'});box.append(r);}r.append(b);return b;}
+function out(box){const o=mk('div',{class:'readout'});box.append(o);return o;}
+function kv(v,l){return '<div class="k"><b>'+v+'</b><span>'+l+'</span></div>';}
+function plot(box,h,fn){
+  const c=mk('canvas',{class:'cv','aria-hidden':'true'});c.style.height=h+'px';box.append(c);
+  const draw=()=>{const w=c.clientWidth||320;const r=window.devicePixelRatio||1;c.width=Math.round(w*r);c.height=Math.round(h*r);const x=c.getContext('2d');x.setTransform(r,0,0,r,0,0);x.clearRect(0,0,w,h);x.font='11px '+getComputedStyle(document.body).fontFamily;fn(x,w,h,colors());};
+  state.draws.push(draw);return draw;
+}
+function line(x,pts,color,width,dash){x.beginPath();pts.forEach((p,i)=>i?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1]));x.strokeStyle=color;x.lineWidth=width||1.6;x.setLineDash(dash||[]);x.stroke();x.setLineDash([]);}
+function text(x,s,px,py,color,align){x.fillStyle=color;x.textAlign=align||'left';x.fillText(s,px,py);}
+
+/* ---------- demos ---------- */
+const DEMOS={};
+
+DEMOS.rate=box=>{
+  const Rs=row(box,'Symbol rate',0.1,20,0.1,1,v=>num(v,1)+' Msym/s',upd);
+  const Mi=row(box,'Levels M',1,10,1,4,v=>'M = '+(2**v),upd);
+  const Sz=row(box,'File size',1,2000,1,100,v=>v+' MB',upd);
+  const o=out(box);
+  function upd(){
+    const bps=Mi.get(), R=Rs.get()*bps, t=Sz.get()*8/R;
+    o.innerHTML=kv(bps+' bit','per symbol = log₂ M')+kv(num(R,1)+' Mbit/s','R = Rs × log₂ M')+kv(eng(t,'s'),'time to send the file')
+      +'<div class="k wide"><span>1 byte = 8 bits, so '+Sz.get()+' MB is '+(Sz.get()*8)+' Mbit. Divide by R.</span></div>';
+  }
+  upd();
+};
+
+DEMOS.db=box=>{
+  const d=row(box,'Power level',-120,40,1,-70,v=>v+' dBm',upd);
+  const r=row(box,'Power ratio',-10,40,1,20,v=>v+' dB',upd);
+  const o=out(box);
+  function upd(){
+    const W=1e-3*Math.pow(10,d.get()/10), lin=Math.pow(10,r.get()/10);
+    o.innerHTML=kv(eng(W,'W'),'P = 1 mW × 10^(dBm/10)')+kv(num(lin,lin<10?2:0)+'×','linear ratio = 10^(dB/10)')
+      +'<div class="k wide"><span>Try −70 dBm, a 4G handset signal: 0.1 nW. Try 20 dB: 100×. Try 3 dB: about 2×.</span></div>';
+  }
+  upd();
+};
+
+DEMOS.fourier=box=>{
+  const kind=sel(box,'Wave',['Square','Triangle','Sawtooth'],upd);
+  const N=row(box,'Harmonics kept',1,31,1,5,v=>v+' (bandwidth ≈ '+v+' f₀)',upd);
+  const o=out(box);
+  const coef=(k,n)=>{
+    if(k===0)return n%2?{a:0,b:4/(n*Math.PI)}:{a:0,b:0};
+    if(k===1)return n%2?{a:8/(n*n*Math.PI*Math.PI),b:0}:{a:0,b:0};
+    return {a:0,b:((n%2)?1:-1)*2/(n*Math.PI)};
+  };
+  const target=(k,t)=>{const p=((t%1)+1)%1; if(k===0)return p<0.5?1:-1; if(k===1)return 1-4*Math.abs(((t+0.5)%1+1)%1-0.5); return 2*(((t+0.5)%1+1)%1)-1;};
+  const draw=plot(box,250,(x,w,h,C)=>{
+    const k=kind(), n=N.get(), top=h*0.55, pad=12;
+    x.strokeStyle=C.line;x.lineWidth=1;x.beginPath();x.moveTo(pad,top/2);x.lineTo(w-pad,top/2);x.stroke();
+    const tp=[],gp=[];
+    for(let i=0;i<=400;i++){
+      const t=i/400*2; let s=0;
+      for(let m=1;m<=n;m++){const c=coef(k,m);s+=c.a*Math.cos(TAU*m*t)+c.b*Math.sin(TAU*m*t);}
+      const X=pad+(w-2*pad)*i/400;
+      tp.push([X,top/2-s*top*0.36]); gp.push([X,top/2-target(k,t)*top*0.36]);
+    }
+    line(x,gp,C.mute,1.2,[4,4]); line(x,tp,C.tc,2);
+    text(x,'time, two periods (dashed: ideal wave)',pad,12,C.mute);
+    const y0=h-22,bh=h*0.36; let mx=1.3;
+    for(let m=1;m<=31;m++){const c=coef(k,m);const A=Math.hypot(c.a,c.b);const bw=(w-2*pad)/31;const bx=pad+(m-1)*bw;
+      x.fillStyle=m<=n?C.tc:C.line; x.fillRect(bx+2,y0-A/mx*bh,bw-4,A/mx*bh);}
+    x.strokeStyle=C.line;x.beginPath();x.moveTo(pad,y0);x.lineTo(w-pad,y0);x.stroke();
+    text(x,'amplitude spectrum, harmonics 1 to 31',pad,top+16,C.mute);
+    text(x,'n = 1',pad,h-6,C.mute);text(x,'n = 31',w-pad,h-6,C.mute,'right');
+  });
+  function upd(){
+    const k=kind();
+    const rule=['Jumps in the wave give amplitudes that fall as 1/n. Odd harmonics only, all sines.','No jumps, only kinks, so amplitudes fall as 1/n². Odd harmonics only, all cosines.','Jumps again, so 1/n, but both odd and even harmonics.'][k];
+    o.innerHTML=kv(N.get()+' × f₀','highest frequency kept')+'<div class="k wide"><span>'+rule+' Fewer harmonics means less bandwidth and rounder edges.</span></div>';
+    draw();
+  }
+  upd();
+};
+
+DEMOS.bandwidth=box=>{
+  const bits=[1,0,1,1,0,0,1,0], spb=16, N=bits.length*spb;
+  const xs=[];for(let n=0;n<N;n++)xs.push(bits[Math.floor(n/spb)]?1:-1);
+  const Xr=[],Xi=[];
+  for(let k=0;k<N;k++){let re=0,im=0;for(let n=0;n<N;n++){const a=-TAU*k*n/N;re+=xs[n]*Math.cos(a);im+=xs[n]*Math.sin(a);}Xr.push(re);Xi.push(im);}
+  const R=2; // kbit/s
+  const B=row(box,'Channel bandwidth B',0.2,4,0.1,1.5,v=>num(v,1)+' kHz',upd);
+  const o=out(box);
+  let ys=[],ok=0;
+  function filt(){
+    const kmax=Math.floor(8*B.get()/R+1e-9);
+    ys=[];
+    for(let n=0;n<N;n++){let s=0;for(let k=0;k<N;k++){const kk=Math.min(k,N-k);if(kk>kmax)continue;const a=TAU*k*n/N;s+=Xr[k]*Math.cos(a)-Xi[k]*Math.sin(a);}ys.push(s/N);}
+    ok=0;for(let i=0;i<bits.length;i++){const v=ys[i*spb+spb/2];if((v>0?1:0)===bits[i])ok++;}
+  }
+  const draw=plot(box,200,(x,w,h,C)=>{
+    const pad=12,mid=h/2,A=h*0.34;
+    x.strokeStyle=C.line;x.beginPath();x.moveTo(pad,mid);x.lineTo(w-pad,mid);x.stroke();
+    const X=n=>pad+(w-2*pad)*n/N;
+    line(x,xs.map((v,n)=>[X(n),mid-v*A]),C.mute,1.2,[4,3]);
+    line(x,ys.map((v,n)=>[X(n),mid-Math.max(-1.6,Math.min(1.6,v))*A]),C.tc,2.2);
+    for(let i=0;i<bits.length;i++){const n=i*spb+spb/2;const v=ys[n];const good=(v>0?1:0)===bits[i];
+      x.beginPath();x.arc(X(n),mid-Math.max(-1.6,Math.min(1.6,v))*A,4,0,TAU);x.fillStyle=good?C.ok:C.bad;x.fill();
+      text(x,String(bits[i]),X(n),14,C.mute,'center');}
+    text(x,'sent bits (top), grey dashed = input, line = channel output, dots = decisions',pad,h-6,C.mute);
+  });
+  function upd(){
+    filt();
+    const b=B.get(), nq=R/2;
+    const msg=b<nq?'Below R/2 the pulses overlap (inter-symbol interference).':(b<R?'Above R/2, so the bits survive. Edges are rounded.':'Edges stay sharp.');
+    o.innerHTML=kv(ok+' / '+bits.length,'bits recovered')+kv(nq+' kHz','Nyquist minimum, R/2 at R = '+R+' kbit/s')
+      +'<div class="k wide"><span class="'+(ok===bits.length?'good':'warn')+'">'+msg+'</span></div>';
+    draw();
+  }
+  upd();
+};
+
+DEMOS.conv=box=>{
+  const mode=sel(box,'Kernel',['Low-pass (moving average)','High-pass (difference)'],upd);
+  const L=row(box,'Averaging length',1,16,1,6,v=>v+' samples',upd);
+  const Nz=row(box,'Noise level',0,1.2,0.05,0.5,v=>num(v,2),upd);
+  btn(box,'New noise',()=>{seed=Math.floor(Math.random()*1e9);upd();});
+  const o=out(box);
+  const bits=[1,0,1,1,0,0,1,0,1,1], spb=10, N=bits.length*spb;
+  let seed=7;
+  const draw=plot(box,230,(x,w,h,C)=>{
+    const r=rng(seed);const nz=[];for(let n=0;n<N;n++)nz.push((bits[Math.floor(n/spb)]?1:-1)+Nz.get()*gauss(r));
+    const m=mode(), Lk=L.get(); const y=[];
+    for(let n=0;n<N;n++){
+      if(m===0){let s=0,c=0;for(let j=0;j<Lk;j++){const q=n-j;if(q>=0){s+=nz[q];c++;}}y.push(s/c);}
+      else y.push(n?nz[n]-nz[n-1]:0);
+    }
+    const pad=12,A=h*0.12,X=n=>pad+(w-2*pad)*n/N;
+    const m1=h*0.26,m2=h*0.74;
+    x.strokeStyle=C.line;[m1,m2].forEach(mm=>{x.beginPath();x.moveTo(pad,mm);x.lineTo(w-pad,mm);x.stroke();});
+    line(x,nz.map((v,n)=>[X(n),m1-v*A*1.5]),C.mute,1.3);
+    line(x,y.map((v,n)=>[X(n),m2-v*A*1.5]),C.tc,2.1);
+    text(x,'noisy bits in',pad,12,C.mute);text(x,m===0?'low-pass output: slow changes pass, noise smooths out':'high-pass output: only fast changes pass, edges and noise',pad,h*0.5+8,C.mute);
+  });
+  function upd(){
+    const m=mode();
+    o.innerHTML='<div class="k wide"><span>'+(m===0?'h(t) averages '+L.get()+' neighbours. Its transform H(f) keeps low frequencies. A longer kernel smooths more noise but also rounds the bit edges.':'h(t) = [1, −1] takes differences. H(f) keeps high frequencies, so only the transitions survive.')+'</span></div>';
+    draw();
+  }
+  upd();
+};
+
+DEMOS.adc=box=>{
+  const Nb=row(box,'ADC resolution',1,16,1,8,v=>v+' bit',upd);
+  const Vr=row(box,'Voltage range ΔV',1,10,0.5,5,v=>num(v,1)+' V',upd);
+  const Sg=row(box,'Signal RMS',0.1,3,0.05,1.2,v=>num(v,2)+' V',upd);
+  const Nz=row(box,'Noise RMS',1,500,1,50,v=>v+' mV',upd);
+  const o=out(box);
+  const draw=plot(box,170,(x,w,h,C)=>{
+    const n=Nb.get(),L=Math.pow(2,Math.min(n,6)),pad=12,mid=h/2,A=(h/2-14);
+    x.strokeStyle=C.line;x.beginPath();x.moveTo(pad,mid);x.lineTo(w-pad,mid);x.stroke();
+    const sg=[],qs=[];
+    for(let i=0;i<=240;i++){const t=i/240*2;const v=Math.sin(TAU*t)*0.92;const q=(Math.round((v+1)/2*(L-1))/(L-1))*2-1;const X=pad+(w-2*pad)*i/240;sg.push([X,mid-v*A]);qs.push([X,mid-q*A]);}
+    line(x,sg,C.mute,1.3,[4,3]);line(x,qs,C.tc,2);
+    text(x,'sine and its '+(n>6?'6-bit view (finer steps are too small to draw)':n+'-bit staircase'),pad,12,C.mute);
+  });
+  function upd(){
+    const n=Nb.get(),dv=Vr.get(),lsb=dv/Math.pow(2,n),dr=20*log10(Math.pow(2,n));
+    const snr=20*log10(Sg.get()/(Nz.get()/1000)),enob=(snr-1.76)/6.02;
+    const verdict=n<enob?'<span class="warn">The ADC steps are coarser than the noise. Add bits.</span>':'<span class="good">Noise sets the limit. Bits above '+num(enob,1)+' add cost, not detail.</span>';
+    o.innerHTML=kv(Math.pow(2,n).toLocaleString('en-GB'),'levels = 2^N')+kv(eng(lsb,'V'),'V_res = ΔV / 2^N')+kv(num(dr,1)+' dB','dynamic range')
+      +kv(num(snr,1)+' dB','S/N = 20 log₁₀(Vs / Vn)')+kv(num(enob,2)+' bit','ENOB = (S/N − 1.76) / 6.02')+'<div class="k wide"><span>'+verdict+' Tutorial 1 Q2 sets 1.2 V and 50 mV: pick between 4, 8 and 12 bit.</span></div>';
+    draw();
+  }
+  upd();
+};
+
+DEMOS.shannon=box=>{
+  const B=row(box,'Bandwidth B',1,100,1,45,v=>v+' MHz',upd);
+  const S=row(box,'SNR',-10,40,1,20,v=>v+' dB',upd);
+  const o=out(box);
+  const cap=(b,sdb)=>b*1e6*Math.log2(1+Math.pow(10,sdb/10));
+  const draw=plot(box,200,(x,w,h,C)=>{
+    const pl=44,pr=12,pt=14,pb=26,b=B.get();
+    const cmax=cap(b,40)/1e6, X=s=>pl+(w-pl-pr)*(s+10)/50, Y=c=>h-pb-(h-pt-pb)*c/cmax;
+    x.strokeStyle=C.line;x.lineWidth=1;
+    for(let g=0;g<=4;g++){const c=cmax*g/4;x.beginPath();x.moveTo(pl,Y(c));x.lineTo(w-pr,Y(c));x.stroke();text(x,Math.round(c)+'',pl-6,Y(c)+4,C.mute,'right');}
+    for(let s=-10;s<=40;s+=10){text(x,s+'',X(s),h-10,C.mute,'center');}
+    const pts=[];for(let s=-10;s<=40;s+=0.5)pts.push([X(s),Y(cap(b,s)/1e6)]);
+    line(x,pts,C.tc,2.2);
+    const cs=cap(b,S.get())/1e6;x.beginPath();x.arc(X(S.get()),Y(cs),5.5,0,TAU);x.fillStyle=C.t2;x.fill();
+    text(x,'C (Mbit/s)',pl+4,pt+4,C.mute);text(x,'SNR (dB)',w-pr,h-10,C.mute,'right');
+  });
+  function upd(){
+    const c=cap(B.get(),S.get()),snr=Math.pow(10,S.get()/10);
+    const c3=cap(B.get(),S.get()+3),c2=cap(2*B.get(),S.get());
+    o.innerHTML=kv(eng(c,'bit/s'),'C = B log₂(1 + S/N)')+kv(num(c/(B.get()*1e6),2),'bit/s/Hz, spectral efficiency')
+      +kv('+'+eng(c3-c,'bit/s'),'gain from +3 dB (2× power)')+kv('+'+eng(c2-c,'bit/s'),'gain from 2× bandwidth')
+      +'<div class="k wide"><span>S/N = '+num(snr,snr<10?2:1)+' as a linear ratio. Doubling B doubles C. Doubling power adds only about B bit/s at high SNR. The lecture example, 45 MHz at 20 dB, gives 299 Mbit/s.</span></div>';
+    draw();
+  }
+  upd();
+};
+
+DEMOS.mod=box=>{
+  const kind=sel(box,'Scheme',['ASK (on-off keying)','FSK','BPSK'],upd);
+  const K=row(box,'Carrier cycles per bit',2,8,1,3,v=>v+' cycles',upd);
+  let bits=[1,0,1,1,0,1,0,0];
+  btn(box,'Random bits',()=>{bits=bits.map(()=>Math.random()<0.5?1:0);upd();});
+  const o=out(box);
+  const draw=plot(box,200,(x,w,h,C)=>{
+    const pad=12,n=bits.length,bw=(w-2*pad)/n,m1=h*0.17,m2=h*0.62,k=K.get(),s=kind();
+    x.strokeStyle=C.line;x.beginPath();x.moveTo(pad,m2);x.lineTo(w-pad,m2);x.stroke();
+    const mp=[];bits.forEach((b,i)=>{mp.push([pad+i*bw,m1-(b?1:0)*18+9]);mp.push([pad+(i+1)*bw,m1-(b?1:0)*18+9]);text(x,String(b),pad+i*bw+bw/2,m1+26,C.mute,'center');});
+    line(x,mp,C.mute,1.8);
+    const wp=[];const S=40;
+    for(let i=0;i<n;i++){for(let j=0;j<=S;j++){
+      const f=j/S;let v;
+      if(s===0)v=bits[i]?Math.sin(TAU*k*f):0;
+      else if(s===1)v=Math.sin(TAU*(bits[i]?2*k:k)*f);
+      else v=Math.sin(TAU*k*f+(bits[i]?0:Math.PI));
+      wp.push([pad+(i+f)*bw,m2-v*h*0.2]);}}
+    line(x,wp,C.tc,1.8);
+    x.strokeStyle=C.line;x.setLineDash([2,4]);for(let i=1;i<n;i++){x.beginPath();x.moveTo(pad+i*bw,0);x.lineTo(pad+i*bw,h);x.stroke();}x.setLineDash([]);
+    text(x,'message',pad,10,C.mute);
+  });
+  function upd(){
+    const s=kind();
+    o.innerHTML='<div class="k wide"><span>'+['ASK: a 1 sends the carrier, a 0 sends nothing. Simple, but fades look like zeros. TV remotes and NFC use it.','FSK: a 0 sends one frequency and a 1 sends another. The decision uses frequency, so amplitude fading hurts less. Bluetooth uses it.','BPSK: the carrier phase flips by π on one bit value. One bit per symbol, and the demodulator mixes with I and Q oscillators.'][s]+'</span></div>';
+    draw();
+  }
+  upd();
+};
+
+DEMOS.super=box=>{
+  const RF=row(box,'Radio frequency f_RF',500,1700,10,1000,v=>v+' kHz',upd);
+  const LO=row(box,'Local oscillator f_LO',600,2200,10,1100,v=>v+' kHz',upd);
+  btn(box,'Tune LO to f_RF + 100 kHz',()=>{LO.set(Math.min(2200,RF.get()+100));upd();});
+  const o=out(box);
+  const draw=plot(box,170,(x,w,h,C)=>{
+    const pad=14,fmax=3800,X=f=>pad+(w-2*pad)*f/fmax,y0=h-30;
+    x.fillStyle=C.soft;x.fillRect(X(90),14,X(110)-X(90)+2,y0-14);
+    text(x,'IF filter 100 kHz',X(100)+10,24,C.mute);
+    x.strokeStyle=C.line;x.beginPath();x.moveTo(pad,y0);x.lineTo(w-pad,y0);x.stroke();
+    const rf=RF.get(),lo=LO.get(),df=Math.abs(lo-rf),sm=lo+rf;
+    const mark=(f,col,lab,hh)=>{x.strokeStyle=col;x.lineWidth=3;x.beginPath();x.moveTo(X(f),y0);x.lineTo(X(f),y0-hh);x.stroke();x.lineWidth=1;text(x,lab,X(f),y0+13,col,'center');};
+    mark(rf,C.tc,'RF',90);mark(lo,C.t2,'LO',90);mark(df,C.ok,'diff',60);if(sm<fmax)mark(sm,C.mute,'sum',60);
+    for(let f=0;f<=3500;f+=500){text(x,f+'',X(f),h-4,C.mute,'center');}
+  });
+  function upd(){
+    const rf=RF.get(),lo=LO.get(),df=Math.abs(lo-rf),tuned=Math.abs(df-100)<5;
+    o.innerHTML=kv(df+' kHz','f_IF = |f_LO − f_RF|')+kv((lo+rf)+' kHz','sum f_LO + f_RF')
+      +'<div class="k wide"><span class="'+(tuned?'good':'warn')+'">'+(tuned?'The difference lands in the fixed IF filter. This channel is received.':'The difference misses the IF filter. This channel is rejected.')+'</span> '+(lo>rf?'High-side injection.':'Low-side injection.')+' Moving only the oscillator selects the station.</span></div>';
+    draw();
+  }
+  upd();
+};
+
+DEMOS.const=box=>{
+  const kind=sel(box,'Format',['BPSK','QPSK','16-QAM'],upd);
+  const S=row(box,'Symbol SNR (Es/N0)',0,30,1,14,v=>v+' dB',upd);
+  let seed=3;
+  btn(box,'New noise',()=>{seed=Math.floor(Math.random()*1e9);upd();});
+  const o=out(box);
+  let errs=0,NS=800;
+  function pts(k){
+    if(k===0)return[[-1,0],[1,0]];
+    if(k===1){const a=Math.SQRT1_2;return[[a,a],[-a,a],[-a,-a],[a,-a]];}
+    const l=[-3,-1,1,3],p=[];l.forEach(i=>l.forEach(q=>p.push([i/Math.sqrt(10),q/Math.sqrt(10)])));return p;
+  }
+  const draw=plot(box,300,(x,w,h,C)=>{
+    const k=kind(),P=pts(k),r=rng(seed),sig=Math.sqrt(1/(2*Math.pow(10,S.get()/10)));
+    const side=Math.min(w,h)-24,cx=w/2,cy=h/2,sc=side/3.4,X=v=>cx+v*sc,Y=v=>cy-v*sc;
+    x.strokeStyle=C.line;x.lineWidth=1;x.beginPath();x.moveTo(cx-side/2,cy);x.lineTo(cx+side/2,cy);x.moveTo(cx,cy-side/2);x.lineTo(cx,cy+side/2);x.stroke();
+    x.strokeStyle=C.mute;x.setLineDash([4,4]);
+    const dl=k===2?[-2/Math.sqrt(10),0,2/Math.sqrt(10)]:[0];
+    dl.forEach(v=>{if(k>=1||v===0){x.beginPath();x.moveTo(X(v),Y(-1.7));x.lineTo(X(v),Y(1.7));x.stroke();}});
+    if(k>=1)dl.forEach(v=>{x.beginPath();x.moveTo(X(-1.7),Y(v));x.lineTo(X(1.7),Y(v));x.stroke();});
+    x.setLineDash([]);
+    errs=0;
+    for(let i=0;i<NS;i++){
+      const s=Math.floor(r()*P.length),a=P[s][0]+sig*gauss(r),b=P[s][1]+sig*gauss(r);
+      let best=0,bd=1e9;P.forEach((p,j)=>{const d=(p[0]-a)**2+(p[1]-b)**2;if(d<bd){bd=d;best=j;}});
+      const bad=best!==s;if(bad)errs++;
+      x.fillStyle=bad?C.bad:C.tc;x.globalAlpha=bad?0.95:0.45;x.beginPath();x.arc(X(a),Y(b),2.2,0,TAU);x.fill();
+    }
+    x.globalAlpha=1;
+    P.forEach(p=>{x.strokeStyle=C.ink;x.lineWidth=2;x.beginPath();x.moveTo(X(p[0])-5,Y(p[1])-5);x.lineTo(X(p[0])+5,Y(p[1])+5);x.moveTo(X(p[0])+5,Y(p[1])-5);x.lineTo(X(p[0])-5,Y(p[1])+5);x.stroke();});
+    text(x,'I',cx+side/2-4,cy-6,C.mute,'right');text(x,'Q',cx+6,cy-side/2+10,C.mute);
+  });
+  function upd(){
+    const k=kind();draw();
+    o.innerHTML=kv([1,2,4][k]+' bit','per symbol')+kv(errs+' / '+NS,'wrong symbols (red)')
+      +'<div class="k wide"><span>Dashed lines are decision boundaries. Lower the SNR and the clouds spread across them. The 16 points of 16-QAM sit close together, so they fail first. Higher order carries more bits but needs more SNR.</span></div>';
+  }
+  upd();
+};
+
+DEMOS.ber=box=>{
+  const Sg=row(box,'Level spread σ (σ₁ = σ₀)',0.05,0.5,0.01,0.14,v=>num(v,2)+' V',upd);
+  const Eb=row(box,'BPSK e_b / n₀',0,14,0.5,8,v=>num(v,1)+' dB',upd);
+  const o=out(box);
+  const draw=plot(box,180,(x,w,h,C)=>{
+    const s=Sg.get(),pad=14,xmin=-0.5,xmax=1.5,X=v=>pad+(w-2*pad)*(v-xmin)/(xmax-xmin),y0=h-24,pk=1/(s*Math.sqrt(TAU));
+    const Y=g=>y0-(y0-16)*g/Math.max(pk,2.9)*0.95;
+    const g=(v,m)=>Math.exp(-((v-m)**2)/(2*s*s))/(s*Math.sqrt(TAU));
+    x.fillStyle=C.bad;x.globalAlpha=0.45;
+    x.beginPath();x.moveTo(X(0.5),y0);for(let v=0.5;v<=1.5;v+=0.01)x.lineTo(X(v),Y(g(v,0)));x.lineTo(X(1.5),y0);x.fill();
+    x.beginPath();x.moveTo(X(-0.5),y0);for(let v=-0.5;v<=0.5;v+=0.01)x.lineTo(X(v),Y(g(v,1)));x.lineTo(X(0.5),y0);x.fill();x.globalAlpha=1;
+    const a=[],b=[];for(let v=xmin;v<=xmax;v+=0.01){a.push([X(v),Y(g(v,0))]);b.push([X(v),Y(g(v,1))]);}
+    line(x,a,C.mute,2);line(x,b,C.tc,2);
+    x.strokeStyle=C.ink;x.setLineDash([4,3]);x.beginPath();x.moveTo(X(0.5),12);x.lineTo(X(0.5),y0);x.stroke();x.setLineDash([]);
+    text(x,'0 level',X(0),h-8,C.mute,'center');text(x,'1 level',X(1),h-8,C.mute,'center');text(x,'decision threshold',X(0.5)+6,22,C.ink);
+  });
+  function upd(){
+    const s=Sg.get(),Q=1/(2*s),ber=0.5*erfc(Q/Math.SQRT2),e=Math.pow(10,Eb.get()/10),b2=0.5*erfc(Math.sqrt(e));
+    o.innerHTML=kv(num(Q,2),'Q = H / (σ₁ + σ₀), with H = 1 V')+kv(ber.toExponential(1),'BER ≈ 0.5 erfc(Q/√2)')
+      +kv(b2.toExponential(1),'BPSK BER = 0.5 erfc(√(e_b/n₀))')
+      +'<div class="k wide"><span>The red tails are the bits that cross the threshold. At σ = 0.14 this gives Q ≈ 3.6 and BER ≈ 2×10⁻⁴, the lecture example.</span></div>';
+    draw();
+  }
+  upd();
+};
+
+DEMOS.path=box=>{
+  const F=row(box,'Carrier frequency',150,3000,10,900,v=>v+' MHz',upd);
+  const Ht=row(box,'Transmit height h_t',5,100,1,30,v=>v+' m',upd);
+  const Hr=row(box,'Receive height h_r',1,10,0.5,1.5,v=>num(v,1)+' m',upd);
+  const D=row(box,'Distance for readout',0.1,20,0.1,2,v=>num(v,1)+' km',upd);
+  const o=out(box);
+  const fspl=(f,dk)=>32.44+20*log10(f)+20*log10(dk);
+  const two=(f,dk,ht,hr)=>{const lam=300/f,dm=dk*1000,dc=4*Math.PI*ht*hr/lam;return dm<dc?fspl(f,dk):40*log10(dm)-20*log10(ht*hr);};
+  const hata=(f,dk,hb,hm)=>{const a=(1.1*log10(f)-0.7)*hm-(1.56*log10(f)-0.8);return 69.55+26.16*log10(f)-13.82*log10(hb)-a+(44.9-6.55*log10(hb))*log10(dk);};
+  const draw=plot(box,240,(x,w,h,C)=>{
+    const f=F.get(),ht=Ht.get(),hr=Hr.get(),pl=44,pr=12,pt=16,pb=28,x0=Math.log10(0.05),x1=Math.log10(20);
+    const useH=f>=150&&f<=1500;
+    const X=dk=>pl+(w-pl-pr)*(Math.log10(dk)-x0)/(x1-x0);
+    const ymin=40,ymax=200,Y=L=>h-pb-(h-pt-pb)*(L-ymin)/(ymax-ymin);
+    x.strokeStyle=C.line;x.lineWidth=1;
+    for(let L=ymin;L<=ymax;L+=40){x.beginPath();x.moveTo(pl,Y(L));x.lineTo(w-pr,Y(L));x.stroke();text(x,L+'',pl-6,Y(L)+4,C.mute,'right');}
+    [0.1,1,10].forEach(d=>{text(x,d+' km',X(d),h-10,C.mute,'center');x.beginPath();x.moveTo(X(d),pt);x.lineTo(X(d),h-pb);x.stroke();});
+    const A=[],Bp=[],H=[];
+    for(let i=0;i<=120;i++){const dk=Math.pow(10,x0+(x1-x0)*i/120);A.push([X(dk),Y(fspl(f,dk))]);Bp.push([X(dk),Y(two(f,dk,ht,hr))]);if(useH)H.push([X(dk),Y(hata(f,dk,ht,1.5))]);}
+    line(x,A,C.mute,1.6,[5,4]);line(x,Bp,C.tc,2.4);if(useH)line(x,H,C.t2,2);
+    const dc=4*Math.PI*ht*hr/(300/f)/1000;
+    if(dc>0.05&&dc<20){x.strokeStyle=C.ink;x.setLineDash([2,3]);x.beginPath();x.moveTo(X(dc),pt);x.lineTo(X(dc),h-pb);x.stroke();x.setLineDash([]);text(x,'d_c',X(dc)+4,pt+10,C.ink);}
+    text(x,'path loss (dB)',pl+4,pt+2,C.mute);
+    let lx=w-pr;text(x,'free space',lx,pt+12,C.mute,'right');text(x,'two-ray',lx,pt+26,C.tc,'right');if(useH)text(x,'Hata, small city',lx,pt+40,C.t2,'right');
+  });
+  function upd(){
+    const f=F.get(),ht=Ht.get(),hr=Hr.get(),d=D.get(),dc=4*Math.PI*ht*hr/(300/f);
+    const useH=f>=150&&f<=1500;
+    o.innerHTML=kv(num(fspl(f,d),1)+' dB','free space at '+num(d,1)+' km')+kv(num(two(f,d,ht,hr),1)+' dB','two-ray at '+num(d,1)+' km')
+      +kv(eng(dc,'m'),'crossover d_c = 4π h_t h_r / λ')+kv(useH?num(hata(f,d,ht,1.5),1)+' dB':'n/a','Hata (h_M = 1.5 m, 150 to 1500 MHz)')
+      +'<div class="k wide"><span>Beyond d_c the two-ray loss climbs at 40 dB per decade of distance, twice the free-space rate. Free space at 900 MHz over 1 km loses 91.5 dB.</span></div>';
+    draw();
+  }
+  upd();
+};
+
+DEMOS.doppler=box=>{
+  const V=row(box,'Speed v',0,350,1,100,v=>v+' km/h',upd);
+  const F=row(box,'Carrier ν₀',0.5,6,0.1,1.8,v=>num(v,1)+' GHz',upd);
+  const T=row(box,'Angle θ to the path',0,180,5,0,v=>v+'°',upd);
+  const Ds=row(box,'Delay spread σ_τ',0.05,2,0.05,1,v=>num(v,2)+' µs',upd);
+  const Bw=row(box,'Signal bandwidth',0.01,20,0.01,0.1,v=>num(v,2)+' MHz',upd);
+  const o=out(box);
+  const fd=()=>V.get()/3.6/3e8*F.get()*1e9;
+  const draw=plot(box,170,(x,w,h,C)=>{
+    const m=fd(),pad=16,y0=h-28;
+    x.strokeStyle=C.line;x.beginPath();x.moveTo(pad,y0);x.lineTo(w-pad,y0);x.stroke();
+    if(m<0.5){text(x,'Standing still, no Doppler spread',w/2,h/2,C.mute,'center');return;}
+    const X=v=>pad+(w-2*pad)*(v+m*1.2)/(2.4*m);
+    const pts=[];for(let i=-299;i<=299;i++){const v=i/300*m;const s=Math.min(5,1/Math.sqrt(1-(v/m)**2));pts.push([X(v),y0-s*(y0-20)/5]);}
+    line(x,pts,C.tc,2.2);
+    text(x,'−ν_d',X(-m),h-10,C.mute,'center');text(x,'0',X(0),h-10,C.mute,'center');text(x,'+ν_d',X(m),h-10,C.mute,'center');
+    text(x,'Doppler power spectrum S(ν), horizontal axis in Hz: ±'+num(m,0)+' Hz',pad,12,C.mute);
+  });
+  function upd(){
+    const m=fd(),sh=V.get()/3.6/3e8*F.get()*1e9*Math.cos(T.get()*Math.PI/180),Tc=m>0?1/m:Infinity,Bc=1/(5*Ds.get()*1e-6),flat=Bw.get()*1e6<Bc;
+    o.innerHTML=kv((sh>=0?'+':'')+num(sh,0)+' Hz','shift Δν = (v/c) ν₀ cos θ')+kv('±'+num(m,0)+' Hz','maximum spread ν_d')
+      +kv(m>0?eng(Tc,'s'):'infinite','coherence time T_C = 1/ν_d')+kv(eng(Bc,'Hz'),'coherence bandwidth B_c ≈ 1/(5σ_τ)')
+      +'<div class="k wide"><span class="'+(flat?'good':'warn')+'">'+(flat?'Signal narrower than B_c: flat fading. One gain for the whole signal.':'Signal wider than B_c: frequency-selective fading. Echoes spill into the next symbol (ISI). Use an equaliser or OFDM.')+'</span> Tutorial 2 Q2b: 30 mph is about 48 km/h at 1.2 GHz.</div>';
+    draw();
+  }
+  upd();
+};
+
+DEMOS.encode=box=>{
+  const rows=[];
+  for(let n=0;n<8;n++){const g=n^(n>>1);const pb=n?(n-1):0,pg=n?((n-1)^((n-1)>>1)):0;const pc=v=>{let c=0;while(v){c+=v&1;v>>=1;}return c;};
+    rows.push('<tr><td>'+n+'</td><td>'+n.toString(2).padStart(3,'0')+'</td><td>'+(n?pc(pb^n):'')+'</td><td>'+g.toString(2).padStart(3,'0')+'</td><td>'+(n?pc(pg^g):'')+'</td></tr>');}
+  box.append(mk('div',{},'<table class="gray"><tr><th>n</th><th>binary</th><th>bits flipped</th><th>Gray</th><th>bits flipped</th></tr>'+rows.join('')+'</table><p class="note">Binary 3 to 4 flips all three bits. Gray code flips one bit at every step.</p>'));
+  const bits=[1,0,1,1,0,0,1,0];
+  plot(box,170,(x,w,h,C)=>{
+    const pad=12,n=bits.length,bw=(w-2*pad)/n,m1=h*0.28,m2=h*0.78,A=14;
+    x.strokeStyle=C.line;x.setLineDash([2,4]);for(let i=0;i<=n;i++){x.beginPath();x.moveTo(pad+i*bw,0);x.lineTo(pad+i*bw,h);x.stroke();}x.setLineDash([]);
+    const a=[],b=[];
+    bits.forEach((v,i)=>{const x0=pad+i*bw,xm=x0+bw/2,x1=x0+bw;a.push([x0,m1-(v?1:-1)*A],[x1,m1-(v?1:-1)*A]);
+      const first=v?1:-1;b.push([x0,m2-first*A],[xm,m2-first*A],[xm,m2+first*A],[x1,m2+first*A]);text(x,String(v),xm,10,C.mute,'center');});
+    line(x,a,C.mute,2);line(x,b,C.tc,2);
+    text(x,'NRZ: level = bit',pad+2,m1+30,C.mute);text(x,'Manchester: 0 → 01, 1 → 10, two half-bits per bit',pad+2,h-6,C.tc);
+  })();
+};
+
+DEMOS.mimo=box=>{
+  const Nt=row(box,'Transmit antennas N_t',1,8,1,4,v=>v,upd);
+  const Nr=row(box,'Receive antennas N_r',1,8,1,4,v=>v,upd);
+  const B=row(box,'Bandwidth',5,160,5,20,v=>v+' MHz',upd);
+  const S=row(box,'SNR',0,40,1,20,v=>v+' dB',upd);
+  const o=out(box);
+  const base=()=>B.get()*1e6*Math.log2(1+Math.pow(10,S.get()/10));
+  const draw=plot(box,150,(x,w,h,C)=>{
+    const pad=14,bw=(w-2*pad)/8,mx=8*base(),k=Math.min(Nt.get(),Nr.get());
+    for(let i=1;i<=8;i++){const c=i*base(),bh=(h-40)*c/mx;x.fillStyle=i===k?C.tc:C.line;x.fillRect(pad+(i-1)*bw+4,h-22-bh,bw-8,bh);text(x,i+'',pad+(i-1)*bw+bw/2,h-8,C.mute,'center');}
+    text(x,'capacity against number of parallel streams',pad,12,C.mute);
+  });
+  function upd(){
+    const k=Math.min(Nt.get(),Nr.get());
+    o.innerHTML=kv(k+' stream'+(k>1?'s':''),'min(N_t, N_r)')+kv(eng(k*base(),'bit/s'),'C ≈ min(N_t, N_r) B log₂(1 + SNR)')+kv(k+'×','versus one antenna pair')
+      +'<div class="k wide"><span>Extra antennas beyond the smaller side add nothing. Each stream needs its own path through the channel matrix H. Wi-Fi 6 sends up to 8 streams. 5G base stations use up to 64 antennas.</span></div>';
+    draw();
+  }
+  upd();
+};
+
+DEMOS.coax=box=>{
+  const D=row(box,'Shield diameter D',1,12,0.05,2.95,v=>num(v,2)+' mm',upd);
+  const d=row(box,'Centre conductor d',0.2,5,0.05,0.9,v=>num(v,2)+' mm',upd);
+  const E=row(box,'Dielectric ε_r',1,4,0.1,2.3,v=>num(v,1),upd);
+  const Z=row(box,'Load Z_L',5,200,1,75,v=>v+' Ω',upd);
+  btn(box,'RG58',()=>{D.set(2.95);d.set(0.9);E.set(2.3);upd();});
+  btn(box,'RG8',()=>{D.set(7.2);d.set(2.17);E.set(2.3);upd();});
+  const o=out(box);
+  function upd(){
+    const ok=D.get()>d.get(),z0=ok?60/Math.sqrt(E.get())*Math.log(D.get()/d.get()):NaN,g=(Z.get()-z0)/(Z.get()+z0),sw=(1+Math.abs(g))/(1-Math.abs(g));
+    if(!ok){o.innerHTML='<div class="k wide"><span class="warn">The shield must be wider than the centre conductor.</span></div>';return;}
+    o.innerHTML=kv(num(z0,1)+' Ω','Z₀ ≈ (60/√ε_r) ln(D/d)')+kv(num(1/Math.sqrt(E.get()),2)+' c','signal speed, 1/√ε_r')
+      +kv(num(g,3),'Γ = (Z_L − Z₀)/(Z_L + Z₀)')+kv(num(sw,2),'SWR = (1 + |Γ|)/(1 − |Γ|)')+kv(num(g*g*100,1)+' %','power reflected, Γ²')
+      +'<div class="k wide"><span>RG58 comes out near 50 Ω with the standard coax formula. Match the load to Z₀ and the reflection falls to zero.</span></div>';
+  }
+  upd();
+};
+
+DEMOS.mux=box=>{
+  const Nf=row(box,'FDM calls',1,5000,1,100,v=>v,upd);
+  const Nt=row(box,'TDM calls',1,120,1,30,v=>v,upd);
+  const o=out(box);
+  function upd(){
+    const bf=Nf.get()*7e3,rt=Nt.get()*64e3;
+    o.innerHTML=kv(eng(bf,'Hz'),'FDM: N × 7 kHz')+kv('3 + 3 + 1 kHz','voice + second sideband + guard')+kv(eng(rt,'bit/s'),'TDM: N × 8000 × 8 bit/s')+kv(eng(125e-6/Nt.get(),'s'),'time slot per call in one 125 µs frame')
+      +'<div class="k wide"><span>The wired lecture quotes 5000 calls in 35 MHz for FDM. Real digital trunks add framing bits, so a 30 call line runs slightly above 1.92 Mbit/s.</span></div>';
+  }
+  upd();
+};
+
+DEMOS.twisted=box=>{
+  const Nz=row(box,'Interference amplitude',0,2,0.05,0.9,v=>num(v,2),upd);
+  const Hop=row(box,'SNR per hop',10,50,1,30,v=>v+' dB',upd);
+  const Rp=row(box,'Repeaters N',1,100,1,20,v=>v,upd);
+  const o=out(box);
+  const bits=[1,0,1,1,0,1,0,0];
+  const draw=plot(box,230,(x,w,h,C)=>{
+    const pad=12,n=bits.length,s=t=>bits[Math.min(n-1,Math.floor(t*n))]?1:-1,nz=t=>Nz.get()*(Math.sin(TAU*5.3*t)+0.5*Math.sin(TAU*13.1*t+1));
+    const mids=[h*0.17,h*0.5,h*0.83],A=h*0.11,X=t=>pad+(w-2*pad)*t;
+    const f=[t=>s(t)+nz(t),t=>-s(t)+nz(t),t=>(s(t)+nz(t)-(-s(t)+nz(t)))/2];
+    const cols=[C.mute,C.mute,C.tc],labs=['wire A: +signal + noise','wire B: −signal + same noise','A − B: noise cancels'];
+    f.forEach((fn,i)=>{const p=[];for(let k=0;k<=400;k++){const t=k/400;p.push([X(t),mids[i]-fn(t)*A]);}
+      x.strokeStyle=C.line;x.beginPath();x.moveTo(pad,mids[i]);x.lineTo(w-pad,mids[i]);x.stroke();line(x,p,cols[i],i===2?2.2:1.4);text(x,labs[i],pad+2,mids[i]-h*0.14+10,C.mute);});
+  });
+  function upd(){
+    const sh=Hop.get(),N=Rp.get(),an=sh-10*log10(N);
+    o.innerHTML=kv(num(an,1)+' dB','analogue chain: SNR_hop − 10 log₁₀ N')+kv(sh+' dB','digital chain: each hop regenerates a clean copy')
+      +'<div class="k wide"><span>Equal and opposite signals ride the pair, so the difference doubles the signal and removes noise that hits both wires alike. The analogue chain figure is a simple model where each amplifier adds equal noise. Gigabit Ethernet: 4 pairs × 250 Mbit/s.</span></div>';
+    draw();
+  }
+  upd();
+};
+
+DEMOS.fibre=box=>{
+  const Nc=row(box,'Core index n_co',1.44,1.5,0.001,1.468,v=>num(v,3),upd);
+  const Nl=row(box,'Cladding index n_cl',1.43,1.499,0.001,1.463,v=>num(v,3),upd);
+  const A=row(box,'Core radius a',2,30,0.5,4.5,v=>num(v,1)+' µm',upd);
+  const W=row(box,'Wavelength λ',800,1650,10,1550,v=>v+' nm',upd);
+  const An=row(box,'Launch angle in air',0,20,0.5,4,v=>num(v,1)+'°',upd);
+  const L=row(box,'Fibre length',1,100,1,1,v=>v+' km',upd);
+  const o=out(box);
+  const draw=plot(box,150,(x,w,h,C)=>{
+    const nco=Nc.get(),ncl=Nl.get(),pad=10,cy=h/2,H=34,cl=26;
+    x.fillStyle=C.soft;x.fillRect(pad,cy-H-cl,w-2*pad,2*(H+cl));x.fillStyle=C.panel;x.fillRect(pad,cy-H,w-2*pad,2*H);
+    x.strokeStyle=C.line;x.strokeRect(pad,cy-H-cl,w-2*pad,2*(H+cl));x.strokeRect(pad,cy-H,w-2*pad,2*H);
+    text(x,'cladding',pad+6,cy-H-8,C.mute);text(x,'core',pad+6,cy-H+14,C.mute);
+    if(ncl>=nco){text(x,'Cladding index must be lower than core index',w/2,cy,C.bad,'center');return;}
+    const s=Math.sin(An.get()*Math.PI/180)/nco,th=Math.asin(s),guided=Math.cos(th)>=ncl/nco;
+    const m=Math.tan(th)*6;let px=pad,py=cy+H*0.0,dir=-1;const pts=[[px,py]];
+    if(m<1e-4){pts.push([w-pad,py]);}
+    else{
+      for(let i=0;i<40&&px<w-pad;i++){const wall=dir<0?cy-H:cy+H,dx=(wall-py)/(m*dir);if(px+Math.abs(dx)>=w-pad){const rem=w-pad-px;py+=m*dir*rem;px=w-pad;pts.push([px,py]);break;}
+        px+=Math.abs(dx);py=wall;pts.push([px,py]);if(!guided){px+=60;py+=dir*60*1.6;pts.push([Math.min(px,w-pad),py]);break;}dir*=-1;}}
+    line(x,pts,guided?C.tc:C.bad,2.4);
+    text(x,guided?'guided by total internal reflection (angles exaggerated)':'beyond the acceptance angle: light leaks into the cladding',w-pad-4,h-6,guided?C.tc:C.bad,'right');
+  });
+  function upd(){
+    const nco=Nc.get(),ncl=Nl.get();
+    if(ncl>=nco){o.innerHTML='<div class="k wide"><span class="warn">Set the cladding index below the core index.</span></div>';draw();return;}
+    const na=Math.sqrt(nco*nco-ncl*ncl),tm=Math.asin(Math.min(1,na))*180/Math.PI,tc=Math.asin(ncl/nco)*180/Math.PI,V=TAU*(A.get()/1000)*na/(W.get()/1000),single=V<2.405,dt=(nco-ncl)*L.get()*1000/3e8;
+    o.innerHTML=kv(num(na,3),'NA = √(n_co² − n_cl²)')+kv(num(tm,1)+'°','acceptance angle θ_max')+kv(num(tc,1)+'°','critical angle θ_c = sin⁻¹(n_cl/n_co)')
+      +kv(num(V,2),'V = 2π a NA / λ')+'<div class="k wide"><span class="'+(single?'good':'warn')+'">'+(single?'V < 2.405: single mode. Only LP01 propagates, so no modal dispersion.':'V ≥ 2.405: multimode. Paths take different times, so pulses spread by about '+eng(dt,'s')+' over '+L.get()+' km. Bits must sit further apart than this.')+'</span></div>';
+    draw();
+  }
+  upd();
+};
+
+DEMOS.wdm=box=>{
+  const Sp=row(box,'Channel spacing Δν',25,200,25,100,v=>v+' GHz',upd);
+  const Bd=row(box,'Optical band used',1,6,0.1,4,v=>num(v,1)+' THz',upd);
+  const L=row(box,'Fibre length',1,200,1,80,v=>v+' km',upd);
+  const Al=row(box,'Loss α',0.15,0.5,0.01,0.2,v=>num(v,2)+' dB/km',upd);
+  const o=out(box);
+  function upd(){
+    const lam=1550e-9,dl=lam*lam*Sp.get()*1e9/3e8*1e9,ch=Math.floor(Bd.get()*1e3/Sp.get()),loss=Al.get()*L.get();
+    o.innerHTML=kv(num(dl,2)+' nm','Δλ = λ² Δν / c at 1550 nm')+kv(ch+' colours','channels in the band')+kv(num(loss,1)+' dB','fibre loss = α L')+kv(num(100*Math.pow(10,-loss/10),loss>20?4:2)+' %','power left at the end')
+      +'<div class="k wide"><span>Narrower spacing packs more lasers into one fibre but demands more precise wavelengths. An optical amplifier restores the power without converting to electrical. At 0.2 dB/km, 100 km loses 20 dB.</span></div>';
+  }
+  upd();
+};
+
+/* ---------- content ---------- */
+const TOPICS={
+ 1:{name:'Topic 1 · Fundamentals',sub:'Maths tools, bits, information'},
+ 2:{name:'Topic 2 · Wireless',sub:'Modulation, channels, capacity'},
+ 3:{name:'Topic 3 · Wired',sub:'Electrical and optical'},
+ 4:{name:'Topic 4 · Networks',sub:'Protocols, signal processing'}
+};
+const NODES=[
+{id:'n1',t:1,col:0,row:0,title:'Link, bits, symbols',lec:'Lectures 1 and 2',pre:[],demo:'rate',
+ say:'Every link has the same chain. A source makes information. The transmitter compresses it, protects it and writes it onto a carrier. The channel adds noise. The receiver undoes each step. Digital data resists noise because the receiver only decides between a few symbols. One symbol carries log₂ M bits.',
+ f:[{eq:'R = R<sub>s</sub> log<sub>2</sub> M',v:[['R','bit-rate, bit/s'],['R<sub>s</sub>','symbol (baud) rate, symbols/s'],['M','number of distinct symbol levels']]},
+    {eq:'t = bits ÷ R',v:[['t','time to send, s'],['bits','data size in bits (1 byte = 8 bits)'],['R','bit-rate, bit/s']]}],
+ facts:['Text message: 1,120 bits. Phone call: 64 kbit/s. CD audio: 1.41 Mbit/s. 1080p30 video: 1.49 Gbit/s.','Digital wins on noise immunity and regeneration. It costs bandwidth unless the data is compressed.','Simplex is one way. Half-duplex alternates. Full-duplex is both at once.'],
+ q:['A link sends 16 levels at 1 Msymbol/s. What is the bit-rate?','log₂ 16 = 4 bits per symbol, so 4 Mbit/s.'],tut:[]},
+{id:'n2',t:1,col:0,row:1,title:'Decibels and dBm',lec:'Lectures 1 and 2',pre:['n1'],demo:'db',
+ say:'Powers span many orders of magnitude, so engineers use a log scale. A decibel compares two powers. dBm compares one power with 1 mW. Every +10 dB multiplies power by 10. Every +3 dB roughly doubles it.',
+ f:[{eq:'P<sub>dBm</sub> = 10 log<sub>10</sub>(P / 1 mW)',v:[['P','power, in mW inside the ratio'],['1 mW','the reference level']]},
+    {eq:'ratio<sub>dB</sub> = 10 log<sub>10</sub>(S / N)',v:[['S/N','linear power ratio, signal over noise']]}],
+ facts:['20 dB is a power ratio of 100. 6 dB is 3.98.'],
+ q:['A 4G handset receives −70 dBm. How many watts?','P = 1 mW × 10^(−70/10) = 10⁻¹⁰ W = 0.1 nW.'],tut:[]},
+{id:'n3',t:1,col:0,row:2,title:'Fourier series',lec:'Lecture 3',pre:['n1'],demo:'fourier',
+ say:'Any repeating signal is a sum of sine waves at multiples of one base frequency. The time view shows the signal on an oscilloscope. The frequency view lists how much of each sine you have. Nothing is lost between the two views. Sharp edges need many harmonics.',
+ f:[{eq:'x(t) = a<sub>0</sub>/2 + Σ a<sub>n</sub> cos(2πnt/T) + Σ b<sub>n</sub> sin(2πnt/T)',v:[['T','period, s'],['f<sub>0</sub> = 1/T','fundamental frequency, Hz'],['n','harmonic number, at frequency n f<sub>0</sub>'],['a<sub>0</sub>/2','DC offset, the mean value']]},
+    {eq:'C<sub>n</sub> = √(a<sub>n</sub>² + b<sub>n</sub>²), φ<sub>n</sub> = −arctan(b<sub>n</sub>/a<sub>n</sub>)',v:[['C<sub>n</sub>','amplitude of harmonic n'],['φ<sub>n</sub>','phase of harmonic n']]},
+    {eq:'square wave: b<sub>n</sub> = 4 / (nπ), n odd',v:[['b<sub>n</sub>','sine coefficient, others are zero']]}],
+ facts:['Jumps give amplitudes that fall as 1/n. Kinks give 1/n². Impulses stay flat.','Odd signals have sines only. Even signals have cosines only. Half-wave symmetry gives odd harmonics only.','A time shift changes only the phases. A DC offset adds a line at 0 Hz.'],
+ q:['A signal has tones at 100, 150 and 250 Hz. What is its period?','All three are multiples of 50 Hz, so f₀ = 50 Hz and T = 20 ms.'],
+ tut:['Tutorial 1 Q1a, Q1b: time and frequency views, and an alternating bit pattern as a square wave']},
+{id:'n4',t:1,col:0,row:3,title:'Fourier transform, bandwidth',lec:'Lectures 1 to 3',pre:['n3'],demo:'bandwidth',
+ say:'The series needs a repeating signal. The Fourier transform removes that rule and finds the spectrum of any signal. A short pulse needs a wide band. A long pulse needs a narrow one. Faster bits are shorter pulses, so they need more bandwidth. A channel acts as a low-pass filter. Below half the bit-rate of bandwidth, pulses smear into their neighbours and bits are lost.',
+ f:[{eq:'X(f) = ∫ x(t) e<sup>−j2πft</sup> dt',v:[['x(t)','signal in time'],['X(f)','spectrum, complex: magnitude and phase'],['f','frequency, Hz']]},
+    {eq:'rectangular pulse of width τ: bandwidth ≈ 1/τ',v:[['τ','pulse width, s'],['sinc','spectrum shape, first null at 1/τ']]},
+    {eq:'R<sub>s</sub> ≤ 2B',v:[['R<sub>s</sub>','symbol rate'],['B','channel bandwidth, Hz, the Nyquist limit']]}],
+ facts:['A cosine of amplitude A gives two lines of height A/2, at +f₀ and −f₀.','The bandwidth of a baseband signal is its highest significant frequency.'],
+ q:['Bits at 2 kbit/s pass an ideal low-pass channel of 1.5 kHz. Can you recover them?','Yes. The Nyquist minimum is R/2 = 1 kHz and 1.5 kHz is above it. The alternating pattern has its fundamental at 1 kHz, which passes. The edges round off but the decisions hold.'],
+ tut:['Tutorial 1 Q1c: ideal low-pass at 1.5 kHz and the Nyquist limit']},
+{id:'n5',t:1,col:0,row:4,title:'Convolution and filters',lec:'Lecture 3',pre:['n4'],demo:'conv',
+ say:'A channel or filter reshapes a signal. Its impulse response h(t) records how it answers one very short pulse. Any input is a string of scaled, delayed pulses, so the output adds scaled, delayed copies of h(t). That sum is the convolution. In frequency the sum becomes a plain product, which makes filters easy to design.',
+ f:[{eq:'y(t) = x(t) ∗ h(t) = ∫ x(τ) h(t − τ) dτ',v:[['x(t)','input signal'],['h(t)','impulse response of the channel or filter'],['y(t)','output signal'],['τ','dummy time variable for the slide-and-multiply']]},
+    {eq:'Y(f) = H(f) X(f)',v:[['H(f)','frequency response, the transform of h(t)']]}],
+ facts:['Low-pass kernel: average neighbours. High-pass kernel: difference of neighbours.','A digital radio filters each channel as a convolution with a few dozen taps, an FIR filter.','The same idea blurs and sharpens images in two dimensions.'],
+ q:['What does convolution in time become in frequency?','Multiplication. Y(f) = H(f) X(f).'],
+ tut:['Tutorial 2 Q1b: time-varying filter output for f(t) = A(t) sin ωt']},
+{id:'n6',t:1,col:0,row:5,title:'ADC, noise, DFT',lec:'Lecture 3',pre:['n3'],demo:'adc',
+ say:'An ADC samples in time, then rounds each sample to one of 2^N voltage levels. More bits give finer steps. Noise hides the smallest steps, so only some bits carry real information. Those are the effective bits. A computer holds N samples, so it finds the spectrum with the DFT. The FFT does this fast. A longer record resolves closer frequencies.',
+ f:[{eq:'levels = 2<sup>N</sup>,  V<sub>res</sub> = ΔV / 2<sup>N</sup>',v:[['N','ADC resolution, bits'],['ΔV','range between maximum and minimum voltage'],['V<sub>res</sub>','least significant bit, V']]},
+    {eq:'DR = 20 log<sub>10</sub>(V<sub>max</sub> / V<sub>res</sub>)',v:[['DR','dynamic range, dB']]},
+    {eq:'ENOB = (S/N<sub>dB</sub> − 1.76) / 6.02',v:[['S/N<sub>dB</sub>','signal over noise in dB'],['1.76 dB','quantisation error'],['6.02 dB','one bit, 20 log<sub>10</sub> 2']]},
+    {eq:'f<sub>N</sub> = f<sub>s</sub>/2,  Δf = f<sub>s</sub>/N = 1/T',v:[['f<sub>s</sub>','sample rate, Hz'],['f<sub>N</sub>','Nyquist frequency, highest frequency the samples hold'],['T','record length, s']]}],
+ facts:['An 8-bit ADC on 0 to 5 V has 256 levels, 0.02 V steps and 47.96 dB dynamic range.','Leakage appears when a tone sits between bins. A window such as Hann reduces it.'],
+ q:['A signal reaches 1.1 V over 0.2 V of noise. Find S/N and ENOB.','S/N = 20 log₁₀(1.1/0.2) = 14.8 dB. ENOB = (14.8 − 1.76)/6.02 = 2.17 bits.'],
+ tut:['Tutorial 1 Q2: SNR in dB, ENOB, choose a 4, 8 or 12 bit ADC']},
+{id:'n7',t:1,col:0,row:6,title:'Shannon capacity',lec:'Lectures 1 to 2, capacity',pre:['n2','n4'],demo:'shannon',
+ say:'Shannon gives the ceiling for error-free bit-rate on a noisy channel. Capacity grows in step with bandwidth. It grows only with the logarithm of signal power. A link budget sets the SNR, so path loss and noise set the capacity.',
+ f:[{eq:'C = B log<sub>2</sub>(1 + S/N)',v:[['C','maximum error-free bit-rate, bit/s'],['B','bandwidth, Hz'],['S/N','signal-to-noise power ratio, linear, not dB']]},
+    {eq:'spectral efficiency = C / B',v:[['C/B','bit/s per Hz, set by SNR alone']]}],
+ facts:['At high SNR, +3 dB adds about 1 bit/s/Hz.','Claude Shannon derived the limit at Bell Labs in 1948.'],
+ q:['B = 45 MHz and S/N = 20 dB. Find C.','S/N = 100. C = 45×10⁶ × log₂(101) = 299 Mbit/s. At 6 dB (3.98) it drops to 104 Mbit/s.'],
+ tut:['Tutorial 1 Q3a: 500 kHz at 10 dB, is 100 kbit/s achievable?','Wired lecture Q1: 10 MHz cable with SNR 31, then SNR 62']},
+
+{id:'w1',t:2,col:1,row:0,title:'ASK, FSK, carriers',lec:'Modulation lecture',pre:['n4'],demo:'mod',
+ say:'Modulation writes the message on a carrier wave. ASK changes the amplitude. FSK changes the frequency. Fading and noise attack amplitude first, so FSK holds up better. AM and FM are the analogue versions. A crystal sets the carrier frequency and a phase-locked loop multiplies it up to GHz.',
+ f:[{eq:'AM: y(t) = [DC + m sin 2πf<sub>m</sub>t] · A sin 2πf<sub>c</sub>t',v:[['m','message amplitude'],['f<sub>m</sub>','message frequency'],['f<sub>c</sub>','carrier frequency'],['A','carrier amplitude']]},
+    {eq:'FM: y(t) = A<sub>c</sub> cos(2πν<sub>c</sub>t + (ν<sub>Δ</sub>/ν<sub>m</sub>) sin 2πν<sub>m</sub>t)',v:[['A<sub>c</sub>','carrier amplitude'],['ν<sub>c</sub>','carrier frequency'],['ν<sub>m</sub>','modulating frequency'],['ν<sub>Δ</sub>','frequency deviation']]}],
+ facts:['Band-pass filters trim the spectrum so a channel does not spill into its neighbours.','A transmitter chain: encoder, carrier, modulator, filter, amplifier, output filter, antenna.','Multi-level ASK needs low noise, because the levels sit close together.'],
+ q:['A 868 MHz sensor link suffers amplitude fading. OOK or FSK?','FSK. The information sits in frequency, so amplitude swings do not flip the decision. OOK reads amplitude, so deep fades look like zeros.'],
+ tut:['Tutorial 1 Q3b to Q3d: choose ASK or FSK, bandwidth of each, transmitter and receiver diagram']},
+{id:'w2',t:2,col:1,row:1,title:'Filters and demodulators',lec:'Modulation lecture',pre:['w1','n5'],demo:null,
+ say:'A demodulator recovers the bits from the carrier. For ASK, a diode and an RC load make an envelope detector. The capacitor charges to each peak and leaks slowly, so the output follows the outline. For FSK, two band-pass filters each sit on one tone, and an envelope detector follows each one. The larger envelope decides the bit. FM uses a phase-locked loop. An RC low-pass has its corner at ω = 1/RC and higher filter order gives a steeper edge.',
+ f:[{eq:'H(ω) = 1 / (1 + jωRC)',v:[['H','transfer function, V<sub>out</sub>/V<sub>in</sub>'],['R, C','resistance and capacitance of the filter'],['ω<sub>0</sub> = 1/RC','corner frequency, rad/s']]},
+    {eq:'|H(ω)|² = 1 / (1 + (ω/ω<sub>0</sub>)<sup>2Δ</sup>)',v:[['Δ','filter order, higher is steeper (Butterworth shape)']]},
+    {eq:'decide 1 if A<sub>2</sub> > A<sub>1</sub>, else 0',v:[['A<sub>1</sub>, A<sub>2</sub>','envelope amplitudes of the two FSK branches']]}],
+ facts:['The tones need spacing wide enough for the filters to separate them. The lecture uses f₁ − f₀ = 2R.','Synchronous detection uses a local oscillator and a mixer. Asynchronous detection needs no carrier knowledge and is simpler.','The crystal radio is a fully passive AM receiver: tuning coil, diode, no battery.'],
+ q:['Why does the FSK receiver use two band-pass filters?','Each filter passes one tone and blocks the other. The envelope detectors then compare the two branch amplitudes mid-bit and the larger one decides.'],
+ tut:['Tutorial 2 Q1a, Q1c: filters in a superheterodyne receiver, synchronous against asynchronous FSK']},
+{id:'w3',t:2,col:1,row:2,title:'Heterodyne receivers',lec:'Modulation lectures',pre:['w2'],demo:'super',
+ say:'A mixer multiplies two signals. Two sine waves multiplied give a sum and a difference frequency. A receiver mixes the incoming radio frequency with a local oscillator. The difference lands on a fixed intermediate frequency. Narrow filters are hard to tune, so the receiver tunes the oscillator and keeps one narrow filter fixed at the IF. Most phones now mix straight to baseband, called zero-IF.',
+ f:[{eq:'sin θ<sub>1</sub> sin θ<sub>2</sub> = ½ cos(θ<sub>1</sub> − θ<sub>2</sub>) − ½ cos(θ<sub>1</sub> + θ<sub>2</sub>)',v:[['θ<sub>1</sub>, θ<sub>2</sub>','phases of the two inputs, 2πf t'],['f<sub>1</sub> − f<sub>2</sub>','the beat or difference term'],['f<sub>1</sub> + f<sub>2</sub>','the sum term']]},
+    {eq:'ν<sub>IF</sub> = ν<sub>RF</sub> − ν<sub>LO</sub> (low side)   ν<sub>IF</sub> = ν<sub>LO</sub> − ν<sub>RF</sub> (high side)',v:[['ν<sub>RF</sub>','received carrier'],['ν<sub>LO</sub>','local oscillator'],['ν<sub>IF</sub>','intermediate frequency']]}],
+ facts:['FM radios use a 10.7 MHz IF.','Fessenden showed the beat receiver in 1901. Stable local oscillators arrived in 1918.','On-chip receivers move filtering into software, so filter quality follows the sample rate.'],
+ q:['LO = 1100 kHz and the carrier is at 1000 kHz. What leaves the mixer?','The difference, 100 kHz, and the sum, 2100 kHz. The IF filter keeps the 100 kHz tone.'],
+ tut:['Tutorial 2 Q1a, Q1c: superheterodyne filters, and how synchronous FSK compares']},
+{id:'w4',t:2,col:1,row:3,title:'PSK, QPSK, QAM, IQ',lec:'Advanced modulation',pre:['w1','w3'],demo:'const',
+ say:'Phase and amplitude carry bits too. BPSK flips the carrier phase by π, so one symbol carries one bit. The receiver mixes with a cosine and a sine oscillator. The two arms are I and Q. Plot I + jQ and each symbol is a point on the constellation. QPSK uses four points for two bits per symbol. QAM sets both amplitude and phase, so 16-QAM carries four bits. Closer points need more SNR.',
+ f:[{eq:'f(t) = cos(2πν<sub>c</sub>t) A<sub>I</sub>(t) − sin(2πν<sub>c</sub>t) A<sub>Q</sub>(t)',v:[['A<sub>I</sub>, A<sub>Q</sub>','amplitudes on the in-phase and quadrature arms'],['ν<sub>c</sub>','carrier frequency']]},
+    {eq:'z = I + jQ,   R = R<sub>s</sub> log<sub>2</sub> M',v:[['z','complex point on the constellation'],['M','2 for BPSK, 4 for QPSK, 16 for 16-QAM']]}],
+ facts:['QPSK carries satellite TV (DVB-S) and the control channels of 4G and 5G.','Wi-Fi 6 uses up to 1024-QAM. 4G and 5G commonly reach 256-QAM when the signal is strong.','A QPSK transmitter splits the bits into odd and even streams for I and Q.'],
+ q:['How many bits does one 16-QAM symbol carry? And 1024-QAM?','4 bits and 10 bits.'],
+ tut:['Tutorial 2 Q1e, Q1f: constellations for PSK, QPSK and QAM, and a transmitter and receiver architecture']},
+{id:'w5',t:2,col:1,row:4,title:'Noise, BER, eye diagram',lec:'Wireless channels, capacity',pre:['w4','n7'],demo:'ber',
+ say:'Noise adds to the signal. AWGN is additive, white (flat in frequency) and Gaussian (the sum of many small sources). The noise floor is kT per hertz. A bit error happens when noise pushes a point past the decision boundary. The eye diagram stacks every bit period. Eye height shows the noise margin. Eye width shows the timing margin. From the eye you get Q, and from Q the bit error rate.',
+ f:[{eq:'r(t) = s(t) + n(t)',v:[['s','transmitted signal'],['n','noise'],['r','received signal']]},
+    {eq:'N<sub>0</sub> = kT ≈ −174 dBm/Hz',v:[['k','Boltzmann constant'],['T','temperature, K'],['N<sub>0</sub>','noise power per hertz']]},
+    {eq:'Q = H / (σ<sub>1</sub> + σ<sub>0</sub>),   BER ≈ 0.5 erfc(Q/√2)',v:[['H','eye height, distance between the 1 and 0 levels'],['σ<sub>1</sub>, σ<sub>0</sub>','spread of each level'],['erfc','complementary error function']]},
+    {eq:'BPSK, QPSK: BER = 0.5 erfc(√(e<sub>b</sub>/n<sub>0</sub>))',v:[['e<sub>b</sub>','energy per bit'],['n<sub>0</sub>','noise power per hertz']]}],
+ facts:['A 20 MHz Wi-Fi channel collects about −101 dBm of noise.','Links aim for BER near 10⁻³ before error correction.','Jitter is timing error. Total jitter = deterministic part + u × 2 × RMS random part.'],
+ q:['An eye has H = 1 and σ₁ = σ₀ = 0.14. Find Q and BER.','Q = 1/0.28 ≈ 3.6. BER ≈ 0.5 erfc(2.5) ≈ 2×10⁻⁴.'],tut:[]},
+{id:'w8',t:2,col:1,row:5,title:'Gray, Manchester, jitter',lec:'Capacity lecture',pre:['w5'],demo:'encode',
+ say:'Encoding fixes physical problems before they reach the channel. Counting in plain binary flips many bits at once, such as 0111 to 1000. A noisy flip of the top bit is a large error. Gray code changes one bit per step, so a near miss costs one wrong bit. QAM uses Gray mapping for the same reason. Manchester encoding puts a transition in every bit, so AC-coupled cables pass long runs of ones. The price is two clock cycles per bit.',
+ f:[{eq:'Gray: g = n XOR (n >> 1)',v:[['n','binary count'],['g','Gray code word']]},
+    {eq:'Manchester: 0 → 01, 1 → 10',v:[['bit-rate','half the baud rate']]},
+    {eq:'J<sub>total</sub> = J<sub>Det</sub> + u · 2J<sub>RMS</sub>',v:[['J<sub>Det</sub>','deterministic jitter, predictable'],['J<sub>RMS</sub>','random jitter, Gaussian, RMS value'],['u','factor set by the allowed error rate']]}],
+ facts:['Interleaving shuffles bits before sending, so a burst of fading errors becomes scattered single errors that a code can fix.','Diversity (several antennas or frequencies) fights fading better than more power.'],
+ q:['Why does QAM use Gray mapping?','Neighbouring points differ by one bit. The likeliest noise error lands on a neighbour, so it costs one bit instead of several.'],tut:[]},
+{id:'w6',t:2,col:1,row:6,title:'Path loss models',lec:'Wireless channels',pre:['n2'],demo:'path',
+ say:'A radio wave spreads over a sphere, so power falls with the square of distance. A shorter wavelength loses more for the same antenna type. Near the ground, a reflected wave interferes with the direct wave. Beyond the crossover distance they nearly cancel and power falls as 1/d⁴. Cities add more loss, so engineers use measured models such as Hata.',
+ f:[{eq:'FSPL = (4πd / λ)²,   P<sub>r</sub> = P<sub>t</sub> G<sub>t</sub> G<sub>r</sub> (λ / 4πd)²',v:[['d','distance, m'],['λ','wavelength, c/f'],['P<sub>t</sub>, P<sub>r</sub>','transmit and receive power'],['G<sub>t</sub>, G<sub>r</sub>','antenna directionality']]},
+    {eq:'d<sub>c</sub> = 4π h<sub>t</sub> h<sub>r</sub> / λ,   P<sub>r</sub> ≈ P<sub>t</sub> G<sub>t</sub> G<sub>r</sub> h<sub>t</sub>² h<sub>r</sub>² / d⁴',v:[['h<sub>t</sub>, h<sub>r</sub>','transmit and receive antenna heights'],['d<sub>c</sub>','crossover distance']]},
+    {eq:'L<sub>U</sub> = 69.55 + 26.16 log ν − 13.82 log h<sub>b</sub> − C<sub>H</sub> + (44.9 − 6.55 log h<sub>b</sub>) log d',v:[['ν','frequency, MHz, 150 to 1500'],['h<sub>b</sub>','base station height, m'],['d','distance, km'],['C<sub>H</sub>','receiver height correction, depends on h<sub>M</sub> and city size']]}],
+ facts:['Base stations sit 20 to 50 m up, which pushes d_c to 1 to 3 km at 900 MHz.','Hata comes from measurements in Tokyo. COST Hata adapts it to European cities.','Link budget: transmit power − losses + gains must stay above the receiver sensitivity.'],
+ q:['Find the free-space loss at 900 MHz over 1 km.','λ = 0.333 m. 20 log₁₀(4π × 1000 / 0.333) = 20 log₁₀(37 700) = 91.5 dB.'],
+ tut:['Tutorial 2 Q2a, Q2c, Q2d: channel losses, Hata loss at 2 km, amplifier gain from a link budget','Tutorial 2 Q3b: channel loss for a 50 km radio link']},
+{id:'w7',t:2,col:1,row:7,title:'Fading and Doppler',lec:'Wireless channels',pre:['w6'],demo:'doppler',
+ say:'Reflections add and cancel, so received power swings. Slow fading comes from large obstacles and changes over many metres. Fast fading comes from many echoes and moving objects and changes within centimetres. Motion shifts the frequency, like an ambulance siren. Many paths spread the shift into a band. Coherence time says how long the channel stays the same. Coherence bandwidth says how wide a band fades together.',
+ f:[{eq:'Δν = (v / c) ν<sub>0</sub> cos θ',v:[['v','receiver speed, m/s'],['c','3×10⁸ m/s'],['ν<sub>0</sub>','carrier frequency'],['θ','angle between motion and the path']]},
+    {eq:'T<sub>C</sub> = 1 / ν<sub>D</sub>,   B<sub>c</sub> ≈ 1 / (5σ<sub>τ</sub>)',v:[['ν<sub>D</sub>','Doppler spread, Hz'],['T<sub>C</sub>','coherence time'],['σ<sub>τ</sub>','delay spread of the echoes'],['B<sub>c</sub>','coherence bandwidth']]},
+    {eq:'S(ν) = 1 / (π ν<sub>d</sub> √(1 − (ν/ν<sub>d</sub>)²))',v:[['S','Rayleigh Doppler power spectrum'],['ν','frequency offset from the carrier'],['ν<sub>d</sub>','maximum Doppler shift']]}],
+ facts:['Fast fading costs over 30 dB against plain noise. BPSK needs about 44 dB for 10⁻⁵ instead of 10 dB.','Errors bunch into bursts inside deep fades. Interleaving and coding repair them.','City macrocell: σ_τ ≈ 1 µs, B_c ≈ 200 kHz. Indoors: σ_τ ≈ 50 ns, B_c ≈ 4 MHz.'],
+ q:['A car at 100 km/h uses a 1.8 GHz carrier. What is the maximum Doppler shift?','v = 27.8 m/s. Δν = 27.8 × 1.8×10⁹ / 3×10⁸ = ±167 Hz.'],
+ tut:['Tutorial 2 Q2b: spectral broadening at 30 mph on a 1200 MHz carrier','Tutorial 2 Q3c: channel issues that cause errors']},
+{id:'w9',t:2,col:1,row:8,title:'MIMO',lec:'Capacity lecture',pre:['n7'],demo:'mimo',
+ say:'Several antennas send different streams on the same frequency at the same time. Every receive antenna hears every transmit antenna. The paths have different lengths, so the receiver separates the streams if it knows the channel matrix H. Pilot tones measure H. The receiver then inverts it. Capacity scales with the smaller antenna count.',
+ f:[{eq:'y = H x + n',v:[['x','transmitted streams, one per antenna'],['H','channel matrix, one entry per antenna pair'],['n','noise'],['y','received signals']]},
+    {eq:'x = H<sup>−1</sup> y  (no noise)',v:[['H<sup>−1</sup>','inverse of the channel matrix']]},
+    {eq:'C ≈ min(N<sub>t</sub>, N<sub>r</sub>) · B log<sub>2</sub>(1 + SNR)',v:[['N<sub>t</sub>, N<sub>r</sub>','transmit and receive antenna counts']]}],
+ facts:['Massive MIMO with hundreds of antennas uses neural networks to estimate the channel.','More antennas cost space, money and power.'],
+ q:['A 4×4 link and a 1×1 link share B and SNR. How do capacities compare?','About four times higher for 4×4, since capacity scales with min(N_t, N_r).'],tut:[]},
+
+{id:'c1',t:3,col:2,row:0,title:'Cables as filters',lec:'Wired introduction',pre:['n5','n7'],demo:'coax',
+ say:'A cable is not a plain wire. Resistance, inductance, capacitance and leakage spread along its whole length. Together they act as a low-pass filter. Geometry and insulation set the cut-off. The characteristic impedance Z₀ is the load the cable wants. A load that differs from Z₀ reflects part of the signal. Above the TEM cut-off, extra modes appear and add loss. Digital edges slow down on long cables, and Lord Kelvin showed the delay grows with the square of the length.',
+ f:[{eq:'Z<sub>0</sub> = √((R + jωL) / (G + jωC))',v:[['R','series resistance per metre'],['L','series inductance per metre'],['G','shunt conductance per metre'],['C','shunt capacitance per metre'],['ω','2πf']]},
+    {eq:'Γ = (Z<sub>L</sub> − Z<sub>0</sub>) / (Z<sub>L</sub> + Z<sub>0</sub>),   SWR = (1 + |Γ|) / (1 − |Γ|)',v:[['Z<sub>L</sub>','load impedance'],['Γ','reflection coefficient'],['SWR','standing wave ratio']]},
+    {eq:'coax: Z<sub>0</sub> ≈ (60 / √ε<sub>r</sub>) ln(D / d)',v:[['D','inside diameter of the shield'],['d','diameter of the centre conductor'],['ε<sub>r</sub>','relative dielectric constant of the insulation']]}],
+ facts:['Coax layers: centre conductor, dielectric, metal shield, outer jacket.','About 90% of the TEM cut-off frequency gives the usable bandwidth bound.','Rise time grows with the square of cable length (law of squares).'],
+ q:['Why might an engineer pick the thicker RG8 even though its TEM cut-off is lower than RG58?','A thicker cable loses less per metre, so signals travel further. The lower cut-off still leaves plenty of bandwidth for most uses.'],
+ tut:['Wired lecture Q2 to Q5: RG58 impedance, TEM cut-off, rise time length, why operate below cut-off']},
+{id:'c2',t:3,col:2,row:1,title:'FDM and TDM',lec:'Wired introduction',pre:['c1'],demo:'mux',
+ say:'A cable is expensive, so many calls share one. FDM gives each call its own frequency band, like radio stations. Filters at the far end separate them. Each call needs 3 kHz of voice band. Modulation doubles this to 6 kHz because of two sidebands. A 1 kHz guard brings it to 7 kHz. TDM digitises each call and takes turns. A voice sample is 8 bits taken 8,000 times a second, so 64 kbit/s per call.',
+ f:[{eq:'B<sub>FDM</sub> = N × 7 kHz',v:[['N','number of calls'],['7 kHz','3 kHz voice × 2 sidebands + 1 kHz guard']]},
+    {eq:'R<sub>TDM</sub> = N × 8000 samples/s × 8 bit',v:[['8000','sample rate, twice the 4 kHz voice bandwidth (Nyquist)'],['8 bit','bits per sample, 256 levels']]}],
+ facts:['TAT-1 (1956): 36 calls, 51 repeaters. TAT-7 (1983): 4,000 calls by better multiplexing.','One sample every 125 µs at 8 kHz.'],
+ q:['100 calls by FDM need what bandwidth? 30 calls by TDM need what bit-rate?','100 × 7 kHz = 0.7 MHz. 30 × 64 kbit/s = 1.92 Mbit/s.'],
+ tut:['Wired lecture Q6, Q7: FDM bandwidth for 100 calls, TDM bit-rate for 30 calls']},
+{id:'c3',t:3,col:2,row:2,title:'Repeaters, twisted pairs',lec:'Wired introduction',pre:['c2'],demo:'twisted',
+ say:'Long cables lose signal, so repeaters boost it. An analogue amplifier boosts noise with the signal, and noise piles up stage after stage. A digital regenerator decides which symbol arrived and sends a fresh clean copy, so errors do not pile up. Twisted pairs fight interference. Both wires pick up the same noise. The receiver subtracts one wire from the other, which cancels the noise and keeps the signal sent with opposite signs.',
+ f:[{eq:'V<sub>diff</sub> = V<sub>A</sub> − V<sub>B</sub> = 2s',v:[['V<sub>A</sub>, V<sub>B</sub>','voltages on the two wires, ±s plus common noise n'],['s','signal amplitude']]},
+    {eq:'Gigabit Ethernet: 4 pairs × 250 Mbit/s = 1 Gbit/s',v:[['PAM','multi-level pulses, 4 or more levels, drawn as an eye diagram']]}],
+ facts:['Bell invented the twisted pair in 1881.','Higher Ethernet categories (Cat6, Cat7) bring more shielding and bandwidth.','L-carrier coax repeaters sat every 8 miles at 4 MHz and every mile at 65 MHz.'],
+ q:['Why does a twisted pair cancel noise?','Twisting makes both wires see the same interference. The receiver takes the difference of the equal and opposite signals, so common noise drops out.'],tut:[]},
+{id:'c4',t:3,col:2,row:3,title:'Optical fibre modes',lec:'Capacity and optical',pre:['n7'],demo:'fibre',
+ say:'Light stays inside the glass core by total internal reflection. At a shallow angle onto a lower-index cladding, all of the light bounces back. The index difference sets the acceptance cone. A thin core carries one mode, a single clean light pattern. A thick core carries many modes. Paths of different lengths arrive at different times, so pulses spread. This is modal dispersion, the optical twin of multipath fading.',
+ f:[{eq:'n<sub>1</sub> sin θ<sub>1</sub> = n<sub>2</sub> sin θ<sub>2</sub>,   sin θ<sub>c</sub> = n<sub>2</sub> / n<sub>1</sub>',v:[['n<sub>1</sub>, n<sub>2</sub>','higher and lower refractive index'],['θ<sub>c</sub>','critical angle, light reflects fully above it']]},
+    {eq:'NA = sin θ<sub>max</sub> = √(n<sub>co</sub>² − n<sub>cl</sub>²)',v:[['NA','numerical aperture'],['n<sub>co</sub>, n<sub>cl</sub>','core and cladding index'],['θ<sub>max</sub>','acceptance angle']]},
+    {eq:'V = (2πa / λ) NA,   single mode if V < 2.405',v:[['a','core radius'],['λ','wavelength'],['V','normalised frequency']]},
+    {eq:'Δt = k n<sub>1</sub> Δ L / c',v:[['n<sub>1</sub>','core index'],['Δ','relative index difference'],['L','fibre length'],['k','set by the fibre, 1 in the example']]}],
+ facts:['Single mode: 9 µm core, long distance, high capacity. Multimode: 50 µm core, cheap parts, buildings and data centres. Both have 125 µm cladding.','Graded index refocuses the paths and cuts modal dispersion.','Fibre loses about 0.2 dB per km at 1550 nm. Cat5 loses 26 dB in 100 m.'],
+ q:['n_co = 1.468 and n_cl = 1.463. Find NA and the acceptance angle.','NA = √(1.468² − 1.463²) = 0.12. θ_max = sin⁻¹(0.12) ≈ 7°.'],tut:[]},
+{id:'c5',t:3,col:2,row:4,title:'Lasers, WDM, amplifiers',lec:'Capacity and optical',pre:['c4','w4'],demo:'wdm',
+ say:'A laser diode makes the light. Direct modulation varies the drive current. It is simple but slow to switch. External modulation holds the laser steady and uses a lithium niobate crystal to set amplitude and phase, so QPSK and QAM work as in radio. WDM puts many colours on one fibre. A mux combines them and a demux splits them. Optical amplifiers replace repeaters without converting to electrical. At high power the glass turns nonlinear, so capacity peaks at a best launch power.',
+ f:[{eq:'Δλ = λ² Δν / c',v:[['Δλ','wavelength spacing between channels'],['λ','centre wavelength, 1550 nm'],['Δν','frequency spacing, 50 or 100 GHz'],['c','speed of light']]},
+    {eq:'loss<sub>dB</sub> = α L',v:[['α','fibre loss per km, about 0.2 dB/km'],['L','length, km']]}],
+ facts:['Carriers near 194 THz leave room for many THz of signal.','Transceivers: SFP 1 Gbit/s, SFP+ 10 Gbit/s, QSFP 100 Gbit/s.','Amplifier types: erbium-doped (EDFA), semiconductor, Raman. The newest subsea cables hold over 3000 fibres.'],
+ q:['A 100 GHz channel grid sits at 1550 nm. What is the spacing in nanometres?','Δλ = (1550 nm)² × 100 GHz / c ≈ 0.8 nm.'],tut:[]},
+
+{id:'g1',t:4,col:3,row:2,title:'Networks, error correction',lec:'Final lectures',pre:['c2','w5'],demo:null,ghost:true,
+ say:'Topic 4 covers practical wireless networks, protocols and signal processing. The final lecture on error correction is named in the slides, along with interleaving and coding. Slides for these lectures are not in this project yet. Add them and this node can get formulas and a demo like the others.',
+ f:[],facts:['Needs multiplexing (FDM, TDM) from the wired topic.','Needs bit error rate from the wireless topic.','Error correcting codes fix scattered errors. Interleaving turns bursts into scattered errors.'],
+ q:['Why do error correcting codes struggle with burst errors?','Codes repair a few errors spread out. A fade wipes out a run of bits at once. Interleaving shuffles the bits so the run becomes single errors.'],tut:[]}
+];
+const BYID={};NODES.forEach(n=>BYID[n.id]=n);
+
+/* ---------- map ---------- */
+const NS='http://www.w3.org/2000/svg';
+const svg=$('#map');
+const W=214,H=54,PX=250,PX0=18,PY0=66,PY=76;
+const pos=n=>({x:PX0+n.col*PX,y:PY0+n.row*PY});
+function se(tag,attrs){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);return e;}
+let done=new Set();
+try{const s=localStorage.getItem('eng3014-done');if(s)done=new Set(JSON.parse(s));}catch(e){}
+function saveDone(){try{localStorage.setItem('eng3014-done',JSON.stringify([...done]));}catch(e){}}
+let current=null;
+const edgeEls=[];
+function buildMap(){
+  const df=se('defs',{}),mk_=se('marker',{id:'arr',viewBox:'0 0 10 10',refX:'9',refY:'5',markerWidth:'7',markerHeight:'7',orient:'auto-start-reverse'});mk_.append(se('path',{d:'M0 0L10 5L0 10z',fill:'#111111'}));df.append(mk_);svg.append(df);
+  Object.keys(TOPICS).forEach(k=>{
+    const x=PX0+(k-1)*PX;
+    const h=se('text',{x:x,y:28,class:'colh tp'+k});h.textContent=TOPICS[k].name;svg.append(h);
+    const s=se('text',{x:x,y:46,class:'colsub'});s.textContent=TOPICS[k].sub;svg.append(s);
+  });
+  NODES.forEach(n=>{
+    n.pre.forEach(p=>{
+      const a=BYID[p],A=pos(a),Bp=pos(n);
+      let d;
+      if(a.col===n.col){const x=A.x+W,y1=A.y+H/2,y2=Bp.y+H/2,b=Math.min(30,10+Math.abs(n.row-a.row)*4);d='M'+x+' '+y1+' C'+(x+b)+' '+y1+' '+(x+b)+' '+y2+' '+x+' '+y2;}
+      else{const x1=A.x+W,y1=A.y+H/2,x2=Bp.x,y2=Bp.y+H/2,dx=(x2-x1)*0.5;d='M'+x1+' '+y1+' C'+(x1+dx)+' '+y1+' '+(x2-dx)+' '+y2+' '+x2+' '+y2;}
+      const e=se('path',{d:d,class:'edge tp'+n.t});svg.append(e);edgeEls.push({el:e,from:p,to:n.id});
+    });
+  });
+  NODES.forEach(n=>{
+    const P=pos(n);
+    const g=se('g',{class:'nd tp'+n.t+(n.ghost?' ghost':''),tabindex:'0',role:'button','aria-label':n.title,'data-id':n.id,transform:'translate('+P.x+','+P.y+')'});
+    g.append(se('rect',{width:W,height:H,rx:9}));
+    const t=se('text',{x:12,y:23,class:'nt'});t.textContent=n.title;g.append(t);
+    const s=se('text',{x:12,y:41,class:'ns'});s.textContent=n.lec;g.append(s);
+    g.append(se('path',{d:'M'+(W-26)+' 17 l5 5 l9 -11',class:'tk'}));
+    g.addEventListener('click',()=>select(n.id,true));
+    g.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();select(n.id,true);}});
+    g.addEventListener('mouseenter',()=>hl(n.id,true));g.addEventListener('mouseleave',()=>hl(current));
+    svg.append(g);
+  });
+}
+function hl(id,dim){
+  const nodes=svg.querySelectorAll('.nd');
+  if(!id){svg.classList.remove('hl');nodes.forEach(g=>g.classList.remove('rel'));edgeEls.forEach(e=>e.el.classList.remove('on'));return;}
+  const rel=new Set([id]);
+  edgeEls.forEach(e=>{const on=e.from===id||e.to===id;e.el.classList.toggle('on',on);if(on){rel.add(e.from);rel.add(e.to);}});
+  svg.classList.toggle('hl',!!dim);
+  nodes.forEach(g=>g.classList.toggle('rel',rel.has(g.dataset.id)));
+}
+function buildList(){
+  const L=$('#listv');
+  Object.keys(TOPICS).forEach(k=>{
+    const g=mk('div',{class:'grp tp'+k});g.append(mk('h3',{},TOPICS[k].name));
+    NODES.filter(n=>n.t==k).forEach(n=>{const b=mk('button',{type:'button','data-id':n.id},'<span>'+n.title+'</span><small>'+n.lec+'</small>');b.addEventListener('click',()=>select(n.id,true));g.append(b);});
+    L.append(g);
+  });
+}
+function refreshMarks(){
+  svg.querySelectorAll('.nd').forEach(g=>{g.classList.toggle('done',done.has(g.dataset.id));g.classList.toggle('sel',g.dataset.id===current);});
+  document.querySelectorAll('#listv button').forEach(b=>{if(b.dataset.id===current)b.setAttribute('aria-current','true');else b.removeAttribute('aria-current');b.style.opacity=done.has(b.dataset.id)?'.7':'1';});
+  const real=NODES.filter(n=>!n.ghost),c=real.filter(n=>done.has(n.id)).length;
+}
+
+/* ---------- panel ---------- */
+const panel=$('#panel');
+function select(id,scroll){
+  current=id;const n=BYID[id];state.draws=[];
+  panel.className='tp'+n.t;
+  const fm=n.f.map(f=>'<div class="fm"><div class="eq">'+f.eq+'</div><dl>'+f.v.map(v=>'<dt>'+v[0]+'</dt><dd>'+v[1]+'</dd>').join('')+'</dl></div>').join('');
+  const pre=n.pre.length?'<div class="pre">Builds on: '+n.pre.map(p=>'<button type="button" data-go="'+p+'">'+BYID[p].title+'</button>').join('')+'</div>':'';
+  const post=NODES.filter(m=>m.pre.indexOf(id)>=0);
+  const nxt=post.length?'<div class="pre">Leads to: '+post.map(p=>'<button type="button" data-go="'+p.id+'">'+p.title+'</button>').join('')+'</div>':'';
+  panel.innerHTML=
+   '<div class="phead"><span class="tag">'+TOPICS[n.t].name+'</span><span class="lec">'+n.lec+'</span></div>'+
+   '<h2>'+n.title+'</h2>'+
+   '<div class="cols"><div>'+
+     '<div class="sec"><h3 class="s">Say it simply</h3><p class="say">'+n.say+'</p></div>'+
+     (fm?'<div class="sec"><h3 class="s">Formulas and variables</h3>'+fm+'</div>':'')+
+     (n.facts.length?'<div class="sec"><h3 class="s">Keep in mind</h3><ul class="facts">'+n.facts.map(f=>'<li>'+f+'</li>').join('')+'</ul></div>':'')+
+   '</div><div>'+
+     (n.demo?'<div class="sec"><h3 class="s">Try it</h3><div class="demo" id="demo"></div></div>':'')+
+   '</div></div>'+
+   '<div class="pfoot"><div></div><div>'+pre+nxt+'</div></div>';
+  if(n.demo){DEMOS[n.demo]($('#demo'));}
+  panel.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>select(b.dataset.go,true)));
+  hl(id);refreshMarks();
+  state.draws.forEach(d=>d());
+  if(scroll){try{panel.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});}catch(e){}}
+}
+window.addEventListener('resize',()=>state.draws.forEach(d=>d()));
+try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>current&&select(current,false));}catch(e){}
+try{new MutationObserver(()=>current&&select(current,false)).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});}catch(e){}
+
+/* view toggle */
+function setView(list){document.body.classList.toggle('list',list);$('#vmap').setAttribute('aria-pressed',String(!list));$('#vlist').setAttribute('aria-pressed',String(list));}
+$('#vmap').addEventListener('click',()=>setView(false));$('#vlist').addEventListener('click',()=>setView(true));
+
+buildMap();buildList();
+setView(window.innerWidth<860);
+select('n1',false);
+</script>
+</body>
+</html>

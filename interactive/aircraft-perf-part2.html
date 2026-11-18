@@ -1,0 +1,742 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Flight Performance Walkthrough</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: a single "bench" panel, one step at a time, with a step rail on top and an instrument area per step */
+:root{
+  --bg:#f3f5f8; --panel:#ffffff; --ink:#152033; --muted:#5a6578; --line:#d7dde7;
+  --accent:#1f5fd1; --accent-soft:#e3ecfb; --signal:#d9480f; --good:#1d8a5b; --warn:#b7791f;
+  --grid:#e7ebf2;
+  --f-display:"Space Grotesk",system-ui,sans-serif;
+  --f-body:"Inter",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1420; --panel:#151d2c; --ink:#e6ebf4; --muted:#97a3b8; --line:#2a3548;
+  --accent:#6ea0ff; --accent-soft:#1c2a45; --signal:#ff8a4c; --good:#4cc38a; --warn:#e5b454; --grid:#1f2a3c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1420; --panel:#151d2c; --ink:#e6ebf4; --muted:#97a3b8; --line:#2a3548;
+  --accent:#6ea0ff; --accent-soft:#1c2a45; --signal:#ff8a4c; --good:#4cc38a; --warn:#e5b454; --grid:#1f2a3c; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-direction:column;gap:6px}
+.course{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-size:clamp(24px,4vw,34px);line-height:1.15;margin:0;text-wrap:balance}
+.rail{display:flex;gap:6px;flex-wrap:wrap}
+.rail button{font-family:var(--f-mono);font-size:12px;min-width:34px;height:30px;border-radius:6px;border:1px solid var(--line);
+  background:var(--panel);color:var(--muted);cursor:pointer}
+.rail button.done{color:var(--accent);border-color:var(--accent)}
+.rail button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.rail button:focus-visible,.btn:focus-visible,.opt:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.progress{height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:clamp(16px,3vw,28px);display:flex;flex-direction:column;gap:18px;min-width:0}
+.tag{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--signal)}
+h2{font-family:var(--f-display);font-size:clamp(21px,3vw,27px);line-height:1.2;margin:0;text-wrap:balance}
+h4{margin:0;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:760px){.trio{grid-template-columns:1fr}}
+.cell{border-top:3px solid var(--line);padding-top:10px;min-width:0}
+.cell h3{margin:0 0 4px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.cell.what{border-color:var(--accent)} .cell.mean{border-color:var(--good)} .cell.aim{border-color:var(--signal)}
+.cell p{margin:0;max-width:65ch}
+.eq{font-family:var(--f-mono);font-size:clamp(14px,2.2vw,17px);background:var(--accent-soft);border-radius:8px;padding:14px 16px;overflow-x:auto;line-height:2.1;white-space:nowrap}
+.eq .row{display:block}
+.eq .note{font-family:var(--f-body);font-size:13px;color:var(--muted);margin-left:12px;white-space:normal}
+.fr{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;margin:0 .15em;line-height:1.35}
+.fr>span:first-child{border-bottom:1.5px solid currentColor;padding:0 .25em}
+.fr>span:last-child{padding:0 .25em}
+.hl{color:var(--signal);font-weight:600}
+.hb{color:var(--accent);font-weight:600}
+table.vars{border-collapse:collapse;width:100%;font-size:14px}
+.tablebox{overflow-x:auto}
+table.vars td,table.vars th{border-bottom:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+table.vars th{font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:400}
+table.vars td:first-child{font-family:var(--f-mono);font-weight:600;white-space:nowrap}
+.nav{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.btn{font-family:var(--f-body);font-weight:600;font-size:15px;padding:10px 18px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn:disabled{opacity:.4;cursor:default}
+.hint{font-size:13px;color:var(--muted)}
+canvas{display:block;width:100%;border-radius:8px;background:var(--bg)}
+.lab{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:14px}
+@media (max-width:760px){.lab{grid-template-columns:1fr}}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+@media (max-width:760px){.two{grid-template-columns:1fr}}
+.ctrls{display:flex;flex-wrap:wrap;gap:18px;align-items:center}
+.ctrl{display:flex;flex-direction:column;gap:4px;min-width:200px;flex:1}
+.ctrl label{font-family:var(--f-mono);font-size:13px;display:flex;justify-content:space-between;gap:8px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.badge{font-family:var(--f-mono);font-size:13px;font-weight:600;padding:6px 12px;border-radius:999px;border:1.5px solid currentColor;display:inline-block}
+.cap{font-size:13px;color:var(--muted);margin-top:4px}
+.flow{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap}
+.box{flex:1;min-width:150px;border:1.5px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:4px}
+.box small{font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.box.s{border-color:var(--accent);background:var(--accent-soft)}
+.arrow{align-self:center;font-family:var(--f-mono);color:var(--signal);font-weight:600;font-size:14px;text-align:center}
+.reveal{white-space:normal} .reveal .line{display:none} .reveal .line.show{display:block}
+.reveal .line .why{font-family:var(--f-body);font-size:13px;color:var(--good);display:block;line-height:1.4;white-space:normal;margin-bottom:6px}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{font-family:var(--f-body);font-size:14px;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;text-align:left}
+.opt.right{border-color:var(--accent);color:var(--accent);font-weight:600}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
+.stats{display:flex;flex-wrap:wrap;gap:8px}
+.stat{border:1.5px solid var(--line);border-radius:8px;padding:6px 10px;font-family:var(--f-mono);font-size:12px;color:var(--muted);min-width:120px;flex:1}
+.stat b{display:block;font-size:16px;color:var(--accent);font-weight:600}
+.stat.key{border-color:var(--signal)} .stat.key b{color:var(--signal)}
+.exh{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:0}
+@media (prefers-reduced-motion: reduce){.progress i{transition:none}}
+</style>
+
+<style>/* Aerosystems Notebook: site look, light only */
+:root,:root:not([data-theme="light"]),:root[data-theme="dark"]{
+  --bg:#f3f5f8; --panel:#ffffff; --ink:#152033; --muted:#5a6578; --line:#d7dde7;
+  --accent:#1f5fd1; --accent-soft:#e3ecfb; --signal:#d9480f; --good:#1d8a5b; --warn:#b7791f;
+  --grid:#e7ebf2;
+  --f-display:"Space Grotesk",system-ui,sans-serif;
+  --f-body:"Inter",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+--bg:#ffffff;--panel:#ffffff;--ink:#111111;--muted:#5a5a55;--line:#d4d4ce;--grid:#ececea;--f-display:"Helvetica Neue",Helvetica,Arial,sans-serif;--f-body:"Helvetica Neue",Helvetica,Arial,sans-serif;--f-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;color-scheme:light;}
+.nbk-back{display:block;max-width:980px;margin:0 auto 8px;padding:0 0 10px;border-bottom:2px solid #111;font:700 12px/16px "Helvetica Neue",Helvetica,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#111;text-decoration:none}
+.nbk-back:hover{text-decoration:underline}
+</style>
+<a class="nbk-back" href="../eng3059.html#s02">← Aircraft Perf Des. Analysis 3</a>
+<div class="wrap">
+  <header>
+    <div class="course">ENG3059 Aircraft Perf Des. Analysis 3 · Part 2 · Flight performance</div>
+    <h1>Flight Performance: Level Flight, Descent, Landing and Take-off</h1>
+  </header>
+  <div class="rail" id="rail" aria-label="Steps"></div>
+  <div class="progress"><i id="bar"></i></div>
+  <main class="panel" id="stage" aria-live="polite"></main>
+  <div class="nav">
+    <button class="btn ghost" id="prev">← Back</button>
+    <span class="hint">Use ← → keys to move between steps</span>
+    <button class="btn" id="next">Next →</button>
+  </div>
+</div>
+
+<script>
+const F=(n,d)=>`<span class="fr"><span>${n}</span><span>${d}</span></span>`;
+const cD='C<sub>D</sub>', cL='C<sub>L</sub>', cD0='C<sub>D0</sub>', ga='γ', rho='ρ', sq=x=>`√(${x})`, q4=x=>`(${x})<sup>1/4</sup>`;
+const vt=rows=>`<div class="tablebox"><table class="vars"><tr><th>Symbol</th><th>Meaning</th><th>Units</th></tr>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</table></div>`;
+const sl=(id,label,min,max,step,val)=>`<div class="ctrl"><label for="${id}"><span>${label}</span><span id="${id}v"></span></label><input id="${id}" type="range" min="${min}" max="${max}" step="${step}" value="${val}"></div>`;
+const rev=(id,lines)=>`<div class="eq reveal" id="${id}">${lines.map(l=>`<span class="line"><span class="why">${l[0]}</span>${l[1]}</span>`).join('')}</div>
+ <div class="nav"><button class="btn revBtn" data-r="${id}">Reveal next line</button><button class="btn ghost revReset" data-r="${id}">Start again</button></div>`;
+
+/* ---------- data from the slides ---------- */
+const G=9.81, RHO0=1.225;
+const ISA=[[0,1.225],[500,1.1673],[1000,1.1117],[1500,1.0581],[2000,1.0065],[2500,0.9569],[3000,0.9091],[3500,0.8632],[4000,0.8191],[4500,0.7768],[5000,0.7361],[5500,0.6971],[6000,0.6597],[6500,0.6238],[7000,0.5895],[7500,0.5566],[8000,0.5252],[8500,0.4951],[9000,0.4663],[9500,0.4389],[10000,0.4127],[10500,0.3877],[11000,0.3639],[12000,0.3108],[13000,0.2655],[14000,0.2268],[15000,0.1937],[16000,0.1654],[17000,0.1413],[18000,0.1207],[19000,0.1031],[20000,0.0880]];
+function rhoAt(h){for(let i=1;i<ISA.length;i++){if(h<=ISA[i][0]){const[a,ra]=ISA[i-1],[b,rb]=ISA[i];return ra+(rb-ra)*(h-a)/(b-a);}}return ISA[ISA.length-1][1];}
+const AC={
+ sr22:{name:'Cirrus SR22',S:13.46,A:10.12,e:0.7566,W:15123,CD0:0.0251,CLmax:1.41},
+ lj:{name:'Learjet 45XR',S:28.95,A:7.33,e:0.825,W:95632,CD0:0.020,CLmax:1.30,T:31136}};
+const kOf=a=>1/(Math.PI*a.A*a.e);
+const vmd=(W,r,S,k,CD0)=>Math.sqrt(2*W/(r*S))*Math.pow(k/CD0,0.25);
+const fmt=(v,d=0)=>(+v).toLocaleString('en-GB',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+const LJ_TABLE=`<div class="tablebox"><table class="vars"><tr><th>Learjet 45XR item</th><th>Value (SI)</th><th>Imperial</th></tr>
+<tr><td>Wingspan b</td><td>14.56 m</td><td>47.78 ft</td></tr><tr><td>Wing area S</td><td>28.95 m²</td><td>311.6 ft²</td></tr>
+<tr><td>Aspect ratio A</td><td>7.33</td><td></td></tr><tr><td>Gross weight W</td><td>95,632 N</td><td>21,500 lbf</td></tr>
+<tr><td>Sea-level thrust T</td><td>31,136 N</td><td>2 × 3500 lbf</td></tr><tr><td>C<sub>D0</sub> clean / take-off</td><td>0.020 / 0.035</td><td></td></tr>
+<tr><td>C<sub>L,max</sub> flaps up / take-off</td><td>1.30 / 1.60</td><td></td></tr><tr><td>Oswald factor e</td><td>0.825</td><td></td></tr></table></div>`;
+
+const steps=[
+/* 1 */
+{tag:"Step 1 · Steady level flight",title:"Four forces, and four kinds of airspeed",
+ what:"Drag D acts opposite to the velocity V. Lift L acts perpendicular to V. Thrust T acts almost along V. Weight W = m g acts straight down.",
+ mean:"Steady level flight has no acceleration, so L ≈ W and T ≈ D. Lift and drag coefficients say more about the aircraft than the raw forces do.",
+ aim:"Set up the force balance that every later step builds on, and know which airspeed each formula uses.",
+ eq:`<span class="row">D = ½ ${rho} V² S ${cD}</span>
+ <span class="row">L = ½ ${rho} V² S ${cL} ≈ W <span class="note">steady level flight</span></span>
+ <span class="row">D = ${F(cD,cL)} L ≈ ${F(cD,cL)} W <span class="note">drag follows from weight and the ratio ${cD}/${cL}</span></span>`,
+ extra:vt([['D, L','Drag and lift forces','N'],['W','Weight, W = m g','N'],['T','Thrust','N'],[rho,'Air density','kg/m³'],['V','True airspeed (TAS)','m/s'],['S','Wing reference area','m²'],[`${cD}, ${cL}`,'Drag and lift coefficients','none']])+
+ `<div><canvas id="fLevel" height="230"></canvas><div class="cap">Force diagram in steady level flight. Arrow lengths are schematic.</div></div>
+ <div class="tablebox"><table class="vars"><tr><th>Speed</th><th>Definition</th></tr>
+ <tr><td>IAS</td><td>Indicated airspeed. Read from the pitot-static pressure difference, using sea-level ISA density.</td></tr>
+ <tr><td>CAS</td><td>Calibrated airspeed. IAS corrected for instrument and position error.</td></tr>
+ <tr><td>EAS</td><td>Equivalent airspeed. CAS corrected for compressibility.</td></tr>
+ <tr><td>TAS</td><td>True airspeed. The real speed through the air.</td></tr>
+ <tr><td>Mach</td><td>TAS divided by the local speed of sound.</td></tr></table></div>`,
+ init:()=>drawForces(document.getElementById('fLevel'),{gamma:0,T:true})},
+
+/* 2 */
+{tag:"Step 2 · Drag polar",title:"Drag coefficient = profile drag + induced drag",
+ what:"The drag polar models the aircraft drag coefficient. C<sub>D0</sub> is profile drag: pressure drag plus skin friction. The kC<sub>L</sub>² term is induced (lift-dependent) drag.",
+ mean:"Induced drag comes from the energy lost in the trailing wake vortices. A slender wing (large A) has less of it. Airliners sit around 7 &lt; A &lt; 11.",
+ aim:"Find k from A and e. Move the sliders: the tangent from the origin touches the polar at the best lift-to-drag ratio.",
+ eq:`<span class="row">${cD} = ${cD0} + k ${cL}² <span class="note">drag polar</span></span>
+ <span class="row">k = ${F('1','π A e')} , &nbsp; A = ${F('b²','S')}</span>
+ <span class="row">D<sub>p</sub> = ½ ${rho} V² S ${cD0} , &nbsp; D<sub>i</sub> = ½ ${rho} V² S k ${cL}² <span class="note">profile and induced drag</span></span>`,
+ extra:vt([[cD0,'Profile (zero-lift) drag coefficient','none'],['k','Induced drag factor','none'],['A','Wing aspect ratio','none'],['e','Oswald efficiency factor (e = 1 for an ideal elliptic loading)','none'],['b','Wingspan','m'],['S','Wing area','m²'],['D<sub>p</sub>, D<sub>i</sub>','Profile drag, induced drag','N']])+
+ `<div class="ctrls"><div class="opts"><button class="opt" id="pSR">Cirrus SR22</button><button class="opt" id="pLJ">Learjet 45XR</button></div>
+ ${sl('pA','Aspect ratio A',4,14,0.01,10.12)}${sl('pE','Oswald factor e',0.6,1,0.001,0.7566)}${sl('pC','C<sub>D0</sub>',0.012,0.04,0.0001,0.0251)}</div>
+ <div class="lab"><div class="stats" id="pStats" style="align-content:flex-start"></div><div><canvas id="polar" height="260"></canvas><div class="cap">Drag polar C<sub>L</sub> against C<sub>D</sub>. The dashed tangent from the origin marks maximum C<sub>L</sub>/C<sub>D</sub>.</div></div></div>
+ <div class="tablebox"><table class="vars"><tr><th>Aircraft</th><th>Range (miles)</th><th>A</th></tr>
+ <tr><td>Embraer ERJ145LR</td><td>1900</td><td>7.86</td></tr><tr><td>Fokker F70</td><td>2072</td><td>8.43</td></tr>
+ <tr><td>Boeing B737-800</td><td>3587</td><td>9.35</td></tr><tr><td>Airbus A320-200</td><td>3455</td><td>10.30</td></tr>
+ <tr><td>Boeing B787-9</td><td>9788</td><td>10.40</td></tr><tr><td>Airbus A380-800</td><td>9212</td><td>7.53</td></tr></table></div>
+ <p class="cap">Longer-range aircraft tend to have larger A, because cruise efficiency matters more. The A380 is the exception: its span is limited by the 80 m × 80 m airport footprint.</p>`,
+ init:initPolar},
+
+/* 3 */
+{tag:"Step 3 · Drag against speed",title:"Profile drag rises with V², induced drag falls with 1/V²",
+ what:"Put C<sub>L</sub> = 2W/(ρV²S) into the drag polar. Total drag is the sum of a term that grows with speed and a term that shrinks with speed.",
+ mean:"The total drag curve has a minimum. At that speed the two parts are equal. Plotted against EAS, the curve does not depend on altitude.",
+ aim:"See where minimum drag sits for a light propeller aircraft and for a business jet, and how weight moves it.",
+ eq:`<span class="row">D = ½ ${rho} V² S ${cD0} + ${F('k W²','½ '+rho+' V² S')} <span class="note">profile part + induced part</span></span>
+ <span class="row">½ ${rho} V² = ½ ${rho}<sub>0</sub> V<sub>E</sub>² <span class="note">so in EAS the curve is the same at every altitude</span></span>`,
+ extra:vt([['V','True airspeed','m/s'],['V<sub>E</sub>','Equivalent airspeed','m/s'],[`${rho}<sub>0</sub>`,'Sea-level ISA density, 1.225','kg/m³'],['W','Weight','N'],['k, '+cD0,'Drag polar constants','none']])+
+ `<div class="ctrls"><div class="opts"><button class="opt" id="dSR">Cirrus SR22</button><button class="opt" id="dLJ">Learjet 45XR</button></div>${sl('dW','Weight (% of gross)',50,100,1,100)}</div>
+ <div><canvas id="dragCv" height="300"></canvas>
+ <div class="legend"><span><i style="background:var(--signal)"></i>D<sub>p</sub> profile</span><span><i style="background:var(--good)"></i>D<sub>i</sub> induced</span><span><i style="background:var(--accent)"></i>D total</span></div>
+ <div class="cap" id="dCap"></div></div><div class="stats" id="dStats"></div>`,
+ init:initDrag},
+
+/* 4 */
+{tag:"Step 4 · Minimum-drag speed",title:"Minimise C<sub>D</sub>/C<sub>L</sub> to find V<sub>MD</sub>",
+ what:"Since D ≈ (C<sub>D</sub>/C<sub>L</sub>) W, minimum drag needs minimum C<sub>D</sub>/C<sub>L</sub>. Divide the polar by C<sub>L</sub>, differentiate, set to zero.",
+ mean:"At the optimum, C<sub>D</sub> = 2C<sub>D0</sub>: induced drag equals profile drag. The lift equation then turns the optimum C<sub>L</sub> into a speed.",
+ aim:"Derive V<sub>MD</sub> and use it on the two aircraft from the slides.",
+ eq:`<span class="row">${F(cD,cL)} = ${F(cD0,cL)} + k${cL} &nbsp;⇒&nbsp; ${F('∂','∂'+cL)}(${F(cD,cL)}) = −${F(cD0,cL+'²')} + k = 0</span>
+ <span class="row">${cL} = ${sq(F(cD0,'k'))} , &nbsp; ${cD} = 2${cD0} , &nbsp; ${F(cD,cL)} = 2${sq('k '+cD0)}</span>
+ <span class="row">W = ½ ${rho} V² S ${sq(cD0+'/k')} &nbsp;⇒&nbsp; <span class="hl">V<sub>MD</sub> = ${sq(F('2W',rho+' S'))} · ${q4(F('k',cD0))}</span></span>`,
+ extra:vt([['V<sub>MD</sub>','Minimum-drag speed (TAS for the chosen ρ)','m/s'],[cL+', '+cD,'Lift and drag coefficients at the optimum','none'],['W','Weight','N'],[rho,'Air density','kg/m³'],['S','Wing area','m²'],['k, '+cD0,'Drag polar constants','none']])+
+ `<p class="exh">Worked example: Cirrus SR22 and Learjet 45XR at gross weight, sea level ISA, flaps up</p>`+
+ rev('rv4',[
+  ['SR22 data: A = 10.12, e = 0.7566, W = 15,123 N, S = 13.46 m², C<sub>D0</sub> = 0.0251, ρ = 1.225 kg/m³','k = 1 / (π × 10.12 × 0.7566) = 0.04157'],
+  ['Best C<sub>L</sub>/C<sub>D</sub>',`${cL} = ${sq('0.0251 / 0.04157')} = 0.777`],
+  ['Minimum-drag speed',`V<sub>MD</sub> = ${sq(F('2 × 15,123','1.225 × 13.46'))} × ${q4('0.04157 / 0.0251')} = <span class="hl">48.6 m/s</span>`],
+  ['Learjet data: A = 7.33, e = 0.825, W = 95,632 N, S = 28.95 m², C<sub>D0</sub> = 0.020','k = 1 / (π × 7.33 × 0.825) = 0.0526'],
+  ['Best C<sub>L</sub>/C<sub>D</sub>',`${cL} = ${sq('0.020 / 0.0526')} = 0.616`],
+  ['Minimum-drag speed',`V<sub>MD</sub> = ${sq(F('2 × 95,632','1.225 × 28.95'))} × ${q4('0.0526 / 0.020')} = <span class="hl">93.5 m/s</span>`],
+  ['Compare','The jet has a higher stall speed and a higher minimum-drag speed than the propeller aircraft.']])},
+
+/* 5 */
+{tag:"Step 5 · Power required",title:"Power required P = D V, and the minimum-power speed",
+ what:"Power required is drag times true airspeed. Write it with the polar and C<sub>L</sub> = W/(½ρV²S), then differentiate with respect to V.",
+ mean:"Minimum power comes at a lower speed than minimum drag: V<sub>MP</sub> = 0.7598 V<sub>MD</sub>. Plotted against EAS, the power curve still depends on altitude, because P uses TAS.",
+ aim:"Derive V<sub>MP</sub>. Raise the altitude and watch the whole curve lift and the TAS values grow.",
+ eq:`<span class="row">P<sub>required</sub> = D V = ½ ${rho} V³ S ${cD0} + ${F('k W²','½ '+rho+' V S')}</span>
+ <span class="row">${F('∂P','∂V')} = ${F('3','2')} ${rho} V² S ${cD0} − ${F('k W²','½ '+rho+' V² S')} = 0 &nbsp;⇒&nbsp; V⁴ = ${F('4 k W²','3 '+rho+'² S² '+cD0)} = ${F('1','3')} V<sub>MD</sub>⁴</span>
+ <span class="row"><span class="hl">V<sub>MP</sub> = ${q4('1/3')} V<sub>MD</sub> = 0.7598 V<sub>MD</sub></span></span>`,
+ extra:vt([['P<sub>required</sub>','Power required in steady level flight','W'],['V','True airspeed','m/s'],['V<sub>MP</sub>','Minimum-power speed','m/s'],['V<sub>MD</sub>','Minimum-drag speed','m/s'],[rho,'Air density at altitude (ISA table)','kg/m³']])+
+ `<div class="ctrls"><div class="opts"><button class="opt" id="wSR">Cirrus SR22</button><button class="opt" id="wLJ">Learjet 45XR</button></div>${sl('wH','Altitude (m, ISA)',0,10000,500,0)}${sl('wW','Weight (% of gross)',50,100,1,100)}</div>
+ <div><canvas id="powCv" height="300"></canvas>
+ <div class="legend"><span><i style="background:var(--accent)"></i>P at chosen altitude</span><span><i style="background:var(--muted)"></i>P at sea level</span></div></div><div class="stats" id="wStats"></div>
+ <p class="cap">For a jet, V<sub>max</sub> comes from T = D, so the altitude dependence of power required matters less there. For a propeller aircraft, power required against power available is the key match.</p>`,
+ init:initPower},
+
+/* 6 */
+{tag:"Step 6 · Level flight summary",title:"Which speed gives best range and best endurance",
+ what:"Two speeds come out of steady level flight: V<sub>MD</sub> and V<sub>MP</sub> = V<sub>MD</sub>/1.316. A third, 1.316 V<sub>MD</sub>, gives best range for a jet.",
+ mean:"A jet burns fuel roughly in line with thrust, so it stays up longest at minimum drag. A propeller aircraft burns fuel roughly in line with power, so it stays up longest at minimum power.",
+ aim:"Know the four results in the table, and use the ISA table for density at altitude.",
+ eq:`<span class="row">V<sub>MD</sub> = ${sq(F('2W',rho+' S'))} · ${q4(F('k',cD0))}</span>
+ <span class="row">V<sub>MP</sub> = 0.7598 V<sub>MD</sub> = V<sub>MD</sub> / 1.316</span>`,
+ extra:vt([['V<sub>MD</sub>','Minimum-drag speed','m/s'],['V<sub>MP</sub>','Minimum-power speed','m/s']])+
+ `<div class="tablebox"><table class="vars"><tr><th>Aircraft</th><th>Maximum range</th><th>Maximum endurance</th></tr>
+ <tr><td>Jet</td><td>V = 1.316 V<sub>MD</sub></td><td>V = V<sub>MD</sub></td></tr>
+ <tr><td>Propeller</td><td>V = V<sub>MD</sub></td><td>V = 0.7598 V<sub>MD</sub> (minimum power)</td></tr></table></div>
+ <div class="tablebox"><table class="vars"><tr><th>Altitude (m)</th><th>T (K)</th><th>P (Pa)</th><th>ρ (kg/m³)</th></tr>
+ <tr><td>0</td><td>288.15</td><td>101,325</td><td>1.225</td></tr><tr><td>1,000</td><td>281.65</td><td>89,874</td><td>1.1117</td></tr>
+ <tr><td>2,000</td><td>275.15</td><td>79,495</td><td>1.0065</td></tr><tr><td>3,000</td><td>268.65</td><td>70,108</td><td>0.9091</td></tr>
+ <tr><td>5,000</td><td>255.65</td><td>54,020</td><td>0.7361</td></tr><tr><td>8,000</td><td>236.15</td><td>35,599</td><td>0.5252</td></tr>
+ <tr><td>10,000</td><td>223.15</td><td>26,436</td><td>0.4127</td></tr><tr><td>11,000</td><td>216.65</td><td>22,632</td><td>0.3639</td></tr>
+ <tr><td>15,000</td><td>216.65</td><td>12,044</td><td>0.1937</td></tr><tr><td>20,000</td><td>216.65</td><td>5,475</td><td>0.0880</td></tr></table></div>
+ <p class="cap">ISA excerpt. The full table in 500 m steps up to 11 km drives the altitude sliders on this page.</p>`},
+
+/* 7 */
+{tag:"Step 7 · Gliding flight",title:"No thrust: the weight component along the path balances drag",
+ what:"In a steady glide at angle γ below the horizon, W cos γ = L and W sin γ = D. For small γ, tan γ ≈ γ = D/L = C<sub>D</sub>/C<sub>L</sub>.",
+ mean:"The glide angle depends only on the drag-to-lift ratio. The rate of descent is V γ. Real case: Air Transat Flight 236 (A330, 2001) ran out of fuel over the Atlantic, glided 19 minutes and about 120 km, and landed in the Azores.",
+ aim:"Two goals in a glide: maximum range (travel furthest) and maximum endurance (stay up longest). Each needs a different speed.",
+ eq:`<span class="row">W cos ${ga} = L , &nbsp; W sin ${ga} = D</span>
+ <span class="row">tan ${ga} ≈ ${ga} = ${F('D','L')} = ${F(cD,cL)} <span class="note">small flight-path angle</span></span>
+ <span class="row">Rate of descent = V ${ga}</span>`,
+ extra:vt([[ga,'Flight-path angle (descent)','rad'],['L, D, W','Lift, drag, weight','N'],['V','Flight speed along the path','m/s'],['V γ','Rate of descent (sink rate)','m/s']])+
+ `<div class="ctrls">${sl('gG','Glide angle γ (drawn)',1,20,0.5,8)}</div>
+ <div><canvas id="fGlide" height="250"></canvas><div class="cap" id="gCap"></div></div>`,
+ init:()=>{const s=document.getElementById('gG'),u=()=>{const g=+s.value;document.getElementById('gGv').textContent=g.toFixed(1)+'°';
+  document.getElementById('gCap').textContent=`At γ = ${g.toFixed(1)}° the aircraft needs L/D = 1/tan γ = ${(1/Math.tan(g*Math.PI/180)).toFixed(1)}. No thrust: W sin γ alone balances D.`;
+  drawForces(document.getElementById('fGlide'),{gamma:-g*Math.PI/180,T:false});};s.oninput=u;u();}},
+
+/* 8 */
+{tag:"Step 8 · Best glide speeds",title:"Best range at V<sub>MD</sub>, best endurance at minimum sink",
+ what:"Best range needs the smallest glide angle, so minimum C<sub>D</sub>/C<sub>L</sub>: fly at V<sub>MD</sub>. Best endurance needs the smallest rate of descent V γ.",
+ mean:"Minimum sink needs C<sub>L</sub> = √(3C<sub>D0</sub>/k). That is the minimum-power speed from level flight. The endurance glide is 1.155 times steeper, but slower, so the aircraft sinks more slowly.",
+ aim:"Read both speeds off the hodograph. The tangent from the origin gives best range. The top of the curve gives minimum sink.",
+ eq:`<span class="row">V${ga} = ${sq(F('2W',rho+' S'))} × ${F(cD,cL+'<sup>3/2</sup>')} = ${sq(F('2W',rho+' S'))} × ${F(cD0+' + k'+cL+'²',cL+'<sup>3/2</sup>')}</span>
+ <span class="row">${F('d','d'+cL)}(…) = −${F('3','2')}${F(cD0,cL+'<sup>5/2</sup>')} + ${F('k','2 '+cL+'<sup>1/2</sup>')} = 0 &nbsp;⇒&nbsp; ${cL} = ${sq(F('3 '+cD0,'k'))} , &nbsp; <span class="hl">V<sub>end</sub> = ${sq(F('2W',rho+' S'))} · ${q4(F('k','3 '+cD0))}</span></span>
+ <span class="row">${ga}<sub>range</sub> = ${F('2 '+cD0, sq(cD0+'/k'))} = 2${sq('k '+cD0)} , &nbsp; ${ga}<sub>end</sub> = ${F('4','√3')}${sq('k '+cD0)} = 1.155 ${ga}<sub>range</sub></span>`,
+ extra:vt([['V<sub>end</sub>','Best-endurance (minimum sink) glide speed','m/s'],[`${ga}<sub>range</sub>, ${ga}<sub>end</sub>`,'Glide angle at best range and best endurance','rad'],['V γ','Rate of descent','m/s'],[cL,'Lift coefficient','none']])+
+ `<div class="ctrls">${sl('hW','Weight (% of gross)',60,100,1,100)}${sl('hH','Altitude (m, ISA)',0,10000,500,0)}</div>
+ <div><canvas id="hodo" height="300"></canvas>
+ <div class="legend"><span><i style="background:var(--accent)"></i>Sink rate V γ</span><span><i style="background:var(--signal)"></i>Best range (tangent from origin)</span><span><i style="background:var(--good)"></i>Best endurance (minimum sink)</span></div>
+ <div class="cap">Learjet 45XR, clean, gliding. Weight and altitude move both points along the same lines: γ at each optimum stays the same.</div></div><div class="stats" id="hStats"></div>
+ <p class="cap">Gliding at best-range speed carries the aircraft about 15% further than gliding at best-endurance speed.</p>`,
+ init:initHodo},
+
+/* 9 */
+{tag:"Step 9 · Worked example",title:"Learjet 45XR loses both engines at 1000 m",
+ what:"Shortly after take-off, total loss of thrust. Clean configuration, gross weight, glide from 1000 m. Assume sea-level ISA density all the way down.",
+ mean:"Find the best-range speed, the distance to the ground and the flight time. Then repeat at the best-endurance speed.",
+ aim:"Use the glide results from Step 8 in order: V, then γ, then range h/γ, then time h/(Vγ).",
+ extra:LJ_TABLE+rev('rv9',[
+  ['From Step 4: k = 0.0526, C<sub>L</sub> = 0.616. Best range is at minimum-drag speed','V<sub>range</sub> = V<sub>MD</sub> = 93.5 m/s'],
+  ['Glide angle at best range',`${ga}<sub>range</sub> = 2${sq('0.0526 × 0.020')} = 0.0649 rad ≅ 3.72°`],
+  ['Range from 1000 m: tan γ = 1000 / R','R = 1000 / 0.0649 = <span class="hl">15.4 km</span>'],
+  ['Rate of descent at best-range speed','V γ = 93.5 × 0.0649 = 6.1 m/s'],
+  ['Flight time','t = 1000 / 6.1 = <span class="hl">164 s</span>'],
+  ['Now fly at the best-endurance glide speed instead',`V<sub>end</sub> = ${sq(F('2 × 95,632','1.225 × 28.95'))} × ${q4(F('0.0526','3 × 0.020'))} = 71.0 m/s`],
+  ['Glide angle','γ<sub>end</sub> = 1.155 × γ<sub>range</sub> = 0.0749 rad'],
+  ['Rate of descent and flight time','V γ = 71.0 × 0.0749 = 5.32 m/s &nbsp;⇒&nbsp; t = 1000 / 5.32 = <span class="hl">188 s</span>'],
+  ['Compare','Endurance speed: 24 s longer in the air, but a steeper path and a shorter range.']])},
+
+/* 10 */
+{tag:"Step 10 · Powered descent",title:"Approach to landing: thrust needed to hold a 3° glide slope",
+ what:"Add thrust T along the path. Balance: W cos γ = L and W sin γ + T = D, so tan γ = (D − T)/L. With small γ and L ≈ W: γ ≈ C<sub>D</sub>/C<sub>L</sub> − T/W.",
+ mean:"The reference approach uses γ = 3° = 0.05236 rad. Gliding at 3° with zero thrust needs L/D = 19.1. Most aircraft cannot reach that even clean. With flaps down L/D is much lower, so real approaches need a substantial T/W.",
+ aim:"Pick an L/D and a glide slope. Read the T/W the engines must give to hold it.",
+ eq:`<span class="row">W cos ${ga} = L , &nbsp; W sin ${ga} + T = D &nbsp;⇒&nbsp; tan ${ga} = ${F('D − T','L')}</span>
+ <span class="row">${ga} ≅ ${F(cD,cL)} − ${F('T','W')} <span class="note">small γ, L ≅ W</span></span>
+ <span class="row">${ga} = 3° = 0.05236 &nbsp;⇒&nbsp; T = 0 needs ${F(cL,cD)} = 19.1</span>`,
+ extra:vt([[ga,'Flight-path angle below the horizon','rad'],['T','Thrust along the flight path','N'],['T/W','Thrust-to-weight ratio','none'],['L/D = '+cL+'/'+cD,'Lift-to-drag ratio','none']])+
+ `<div class="ctrls">${sl('aLD','Lift-to-drag ratio L/D',4,22,0.1,8)}${sl('aG','Glide slope γ (deg)',1,6,0.1,3)}</div>
+ <div class="lab"><div class="stats" id="aStats" style="align-content:flex-start"></div><div><canvas id="fApp" height="240"></canvas><div class="cap">Path angle drawn four times steeper than real so the arrows are visible. Thrust shown for a Learjet 45XR at 95,632 N.</div></div></div>`,
+ init:initApproach},
+
+/* 11 */
+{tag:"Step 11 · Not enough thrust",title:"Partial thrust: fly V<sub>MD</sub> for range, a new speed for endurance",
+ what:"If thrust cannot hold level flight, the aircraft must descend. For fixed T/W, γ ≈ C<sub>D</sub>/C<sub>L</sub> − T/W is smallest at minimum C<sub>D</sub>/C<sub>L</sub>: fly V<sub>MD</sub> for range.",
+ mean:"For endurance, minimise Vγ with the thrust term included. That gives a quadratic in C<sub>L</sub>. The best speed differs from the glide case, and even a small T/W lengthens the flight a lot.",
+ aim:"Leave engines running if they still give thrust and the damage is contained. Move the slider and watch range and time grow.",
+ eq:`<span class="row">V${ga} ≅ ${sq(F('2W',rho+' S'))} [ ${F(cD0,cL+'<sup>3/2</sup>')} + k ${cL}<sup>1/2</sup> − ${F('1',cL+'<sup>1/2</sup>')}${F('T','W')} ]</span>
+ <span class="row">d/d${cL} = 0 &nbsp;⇒&nbsp; k ${cL}² + ${F('T','W')} ${cL} − 3${cD0} = 0</span>
+ <span class="row"><span class="hl">${cL} = −${F('1','2k')}${F('T','W')} + ${sq(F('1','4k²')+'('+F('T','W')+')² + '+F('3 '+cD0,'k'))}</span> <span class="note">maximum endurance with thrust</span></span>`,
+ extra:vt([['T/W','Thrust-to-weight ratio remaining','none'],[cL,'Lift coefficient for maximum endurance','none'],['V γ','Rate of descent','m/s'],['R','Ground distance to touchdown, R = h / γ','m'],['h','Starting height','m']])+
+ `<div class="ctrls">${sl('iT','Thrust left (% of sea-level 31,136 N)',0,25,0.5,10)}${sl('iH','Start height h (m)',500,3000,100,1000)}</div>
+ <div class="two"><div><canvas id="iR" height="230"></canvas><div class="cap">Height against ground distance at V<sub>MD</sub> (best range).</div></div>
+ <div><canvas id="iE" height="230"></canvas><div class="cap">Height against time at the best-endurance speed.</div></div></div>
+ <div class="legend"><span><i style="background:var(--accent)"></i>With thrust</span><span><i style="background:var(--muted)"></i>Pure glide</span></div>
+ <div class="stats" id="iStats"></div>
+ <p class="exh">Worked example: Learjet 45XR, T/W cut to 10% of take-off value, from 1000 m, sea-level density</p>`+
+ rev('rv11',[
+  ['Remaining thrust-to-weight ratio','T/W = 0.1 × 31,136 / 95,632 = 0.03259'],
+  ['At V<sub>MD</sub>: C<sub>D</sub>/C<sub>L</sub> = 2√(k C<sub>D0</sub>) = 0.06487 &gt; T/W','Level flight is not possible. A descent cannot be avoided.'],
+  ['Best range: still fly V<sub>MD</sub> = 93.5 m/s',`${ga}<sub>range</sub> = 2${sq('0.0526 × 0.020')} − 0.03259 = 0.03228 ≅ 1.85°`],
+  ['Range from 1000 m (glide gave 15.4 km)','R = 1000 / 0.0323 = <span class="hl">30.98 km</span> &nbsp;<span class="note">about double</span>'],
+  ['Best endurance: optimum C<sub>L</sub>',`${cL} = −${F('0.03259','2 × 0.0526')} + ${sq(F('0.03259²','4 × 0.0526²')+' + '+F('0.060','0.0526'))} = −0.3098 + 1.112 = 0.8022`],
+  ['Matching speed',`V<sub>end</sub> = ${sq(F('2 × 95,632','1.225 × 28.95 × 0.8022'))} = 82.0 m/s`],
+  ['Path angle',`${ga}<sub>end</sub> = ${F('0.02 + 0.0526 × 0.8022²','0.8022')} − 0.03259 = 0.03454 ≅ 1.98°`],
+  ['Rate of descent and time (glide gave 188 s)','V γ = 82.0 × 0.03454 = 2.83 m/s &nbsp;⇒&nbsp; t = 1000 / 2.83 = <span class="hl">353 s</span>'],
+  ['Conclusion','Flight time grows by a factor of 1.88 with only 10% thrust.']]),
+ init:initThrust},
+
+/* 12 */
+{tag:"Step 12 · Landing segments",title:"Reference landing: approach, flare, free roll, braking",
+ what:"The reference landing starts over a 50 ft screen at V<sub>REF</sub>. The aircraft descends at θ<sub>app</sub> (typically 3°), flares, touches down at V<sub>TD</sub>, rolls freely, then brakes to a stop.",
+ mean:"S<sub>LDG</sub> = S<sub>A</sub> + S<sub>F</sub> + S<sub>FR</sub> + S<sub>BR</sub>. Unless stated, assume sea-level ISA and a horizontal runway. The flare distance is not analysed further. Free roll and braking matter most.",
+ aim:"Know each segment, its speed, and the simple formulas for approach distance and free roll.",
+ eq:`<span class="row">S<sub>A</sub> = ${F('h<sub>OBST</sub> − h<sub>F</sub>','tan(θ<sub>app</sub>)')} <span class="note">approach distance</span></span>
+ <span class="row">h<sub>F</sub> ≈ 0.496 × V<sub>stall</sub>² (1 − cos θ<sub>app</sub>) <span class="note">flare height, derivation omitted on the slides</span></span>
+ <span class="row">S<sub>FR</sub> = 1.0 × V<sub>TD</sub> (small aircraft) , &nbsp; S<sub>FR</sub> = 3.0 × V<sub>TD</sub> (larger aircraft) <span class="note">1 to 3 s of free roll</span></span>`,
+ extra:vt([['S<sub>A</sub>, S<sub>F</sub>','Approach distance, flare distance','m'],['S<sub>FR</sub>, S<sub>BR</sub>','Free-roll distance, braking distance','m'],['h<sub>OBST</sub>','Obstacle (screen) height, 50 ft = 15.24 m','m'],['h<sub>F</sub>','Flare height','as on slide (units not stated)'],['θ<sub>app</sub>','Approach angle, typically 3°','deg'],['V<sub>stall</sub>, V<sub>TD</sub>','Stall speed, touchdown speed','m/s']])+
+ `<div><canvas id="ldgCv" height="240"></canvas><div class="cap">Segments of a reference landing (schematic, heights exaggerated).</div></div>
+ <div class="tablebox"><table class="vars"><tr><th>Speed</th><th>GA (FAR 23)</th><th>Commercial (FAR 25)</th><th>Military</th></tr>
+ <tr><td>V<sub>REF</sub> reference</td><td>1.3 V<sub>S</sub></td><td>&lt; 1.23 V<sub>S</sub></td><td>1.2 V<sub>S</sub></td></tr>
+ <tr><td>V<sub>FLR</sub> flare</td><td>1.3 V<sub>S</sub></td><td>&lt; 1.23 V<sub>S</sub></td><td>1.2 V<sub>S</sub></td></tr>
+ <tr><td>V<sub>TD</sub> touchdown</td><td>1.1 V<sub>S</sub></td><td>1.1 V<sub>S</sub></td><td>1.1 V<sub>S</sub></td></tr>
+ <tr><td>V<sub>BR</sub> braking</td><td>1.1 V<sub>S</sub></td><td>1.1 V<sub>S</sub></td><td>1.1 V<sub>S</sub></td></tr></table></div>
+ <p class="cap">V<sub>REF</sub> is usually 1.3 × power-off stall speed in landing configuration (or 1.23 × V<sub>ISG</sub>, the stall-warning speed). You do not need to memorise the category table.</p>`,
+ init:()=>drawLanding(document.getElementById('ldgCv'))},
+
+/* 13 */
+{tag:"Step 13 · Landing ground run",title:"Retardation force R, split into a V² part and a constant part",
+ what:"On the ground the wheels carry R<sub>M</sub> + R<sub>N</sub> = W − L. Four terms slow the aircraft: drag D, friction and braking μ(W − L), minus any forward thrust T, plus W γ<sub>R</sub> on an upward slope.",
+ mean:"Divide by W and collect terms. B multiplies V² (aerodynamics). A is constant (friction, thrust, slope). Then integrate V dV / a from touchdown to stop.",
+ aim:"Get the braking-distance formula. It is the one equation behind every landing example.",
+ eq:`<span class="row">R = D + μ(W − L) − T + W γ<sub>R</sub> &nbsp;⇒&nbsp; ${F('R','W')} = ${F('D','W')} + μ(1 − ${F('L','W')}) − ${F('T','W')} + γ<sub>R</sub></span>
+ <span class="row">${F('R','W')} = ${F(rho+' S '+cL+' ('+cD+'/'+cL+' − μ)','2W')} V² + μ − ${F('T','W')} + γ<sub>R</sub> = B V² + A</span>
+ <span class="row">B = ${F(rho+' S '+cL+' ('+cD+'/'+cL+' − μ)','2W')} , &nbsp; A = μ − ${F('T','W')} + γ<sub>R</sub></span>
+ <span class="row">S<sub>G</sub> = ∫ ${F('V dV','a')} = ∫<sub>0</sub><sup>V<sub>TD</sub></sup> ${F('1','g')}${F('V dV','B V² + A')} &nbsp;⇒&nbsp; <span class="hl">S<sub>G</sub> = ${F('1','2gB')} [ ln(B V<sub>TD</sub>² + A) − ln A ]</span></span>`,
+ extra:vt([['R','Retardation force, positive against the direction of travel','N'],['μ','Friction (braking) coefficient','none'],['R<sub>M</sub>, R<sub>N</sub>','Main and nose wheel reactions','N'],['γ<sub>R</sub>','Runway slope, positive uphill','rad'],[cL+', '+cD,'Ground-run lift and drag coefficients','none'],['A, B','Constant and V² coefficients','none, s²/m²'],['g','Gravity, 9.81','m/s²'],['S<sub>G</sub>','Braking ground-run distance','m'],['V<sub>TD</sub>','Touchdown speed','m/s'],['a','Acceleration dV/dt = −R/m (negative when braking)','m/s²']])+
+ `<div class="tablebox"><table class="vars"><tr><th>Surface</th><th>μ brakes off</th><th>μ braking</th></tr>
+ <tr><td>Dry asphalt or concrete</td><td>0.03 to 0.05</td><td>0.3 to 0.5</td></tr><tr><td>Wet asphalt or concrete</td><td>0.05</td><td>0.15 to 0.3</td></tr>
+ <tr><td>Icy asphalt or concrete</td><td>0.02</td><td>0.06 to 0.10</td></tr><tr><td>Hard turf</td><td>0.05</td><td>0.4</td></tr>
+ <tr><td>Firm dirt</td><td>0.04</td><td>0.3</td></tr><tr><td>Soft turf</td><td>0.07</td><td>0.2</td></tr><tr><td>Wet grass</td><td>0.08</td><td>0.2</td></tr></table></div>
+ <p class="cap">Exam questions state the friction coefficient to use. Jets use thrust reversers to reduce brake and tyre load, and to shorten the ground run.</p>`},
+
+/* 14 */
+{tag:"Step 14 · Landing examples 1 to 3",title:"Learjet 45XR braking distance: dry, wet, and high altitude",
+ what:"Data: W = 95,632 N, S = 28.95 m², C<sub>L,max</sub> = 2.50 (landing), ground run C<sub>L</sub> = 0.1, C<sub>D</sub> = 0.04, T = 3 kN residual thrust, V<sub>TD</sub> = 1.1 V<sub>stall</sub>, flat runway.",
+ mean:"Wet runway: μ falls from 0.3 to 0.15 and the distance more than doubles. High altitude: density falls, V<sub>TD</sub> rises, and the distance grows even though B V<sub>TD</sub>² is unchanged.",
+ aim:"Run the three cases with the presets, then try your own runway, density and thrust.",
+ extra:`<div class="ctrls"><div class="opts"><button class="opt" id="lE1">Ex 1 · dry, sea level</button><button class="opt" id="lE2">Ex 2 · wet</button><button class="opt" id="lE3">Ex 3 · 2300 m, ρ = 1.0</button></div></div>
+ <div class="ctrls">${sl('lMu','Braking friction μ',0.05,0.5,0.01,0.3)}${sl('lR','Density ρ (kg/m³)',0.7,1.225,0.005,1.225)}${sl('lT','Thrust T (kN, negative = reverse)',-20,5,0.1,3)}${sl('lS','Runway slope γ<sub>R</sub> (rad, + uphill)',-0.02,0.02,0.001,0)}</div>
+ <div><canvas id="lCv" height="280"></canvas>
+ <div class="legend"><span><i style="background:var(--accent)"></i>Your case</span><span><i style="background:var(--muted)"></i>Example 1 reference (491 m)</span></div></div>
+ <div class="stats" id="lStats"></div>`+
+ rev('rv14',[
+  ['Ex 1. Stall speed in landing configuration at sea level',`V<sub>stall</sub> = ${sq(F('2 × 95,632','1.225 × 28.95 × 2.5'))} = 46.45 m/s`],
+  ['Touchdown speed','V<sub>TD</sub> = 1.1 × 46.45 = 51.1 m/s'],
+  ['Coefficient B, with C<sub>D</sub>/C<sub>L</sub> = 0.04/0.1 = 0.4',`B = ${F('1.225 × 28.95 × 0.1 × (0.4 − 0.3)','2 × 95,632')} = 1.8542 × 10⁻⁶`],
+  ['Coefficient A, flat runway','A = 0.3 − 3,000/95,632 + 0 = 0.2686'],
+  ['Braking distance',`S<sub>G</sub> = ${F('ln(1.8542×10⁻⁶ × 51.1² + 0.2686) − ln 0.2686','2 × 9.81 × 1.8542×10⁻⁶')} = ${F('0.0178652','3.6379×10⁻⁵')} = <span class="hl">491 m</span>`],
+  ['Ex 2. Heavy rain: μ = 0.15. Both A and B change. Same V<sub>TD</sub>',`B = ${F('1.225 × 28.95 × 0.1 × (0.4 − 0.15)','2 × 95,632')} = 4.6354 × 10⁻⁶ , &nbsp; A = 0.15 − 3,000/95,632 = 0.1186`],
+  ['Braking distance on the wet runway',`S<sub>G</sub> = ${F('0.09717876','9.0946548×10⁻⁵')} = <span class="hl">1069 m</span> &nbsp;<span class="note">more than double the dry case</span>`],
+  ['Ex 3. Mexico City, 2300 m, dry, ρ = 1.0 kg/m³. Touchdown speed rises',`V<sub>TD</sub> = 1.1 × ${sq(F('2 × 95,632','1.0 × 28.95 × 2.5'))} = 56.55 m/s &nbsp;<span class="note">more than 5 m/s faster</span>`],
+  ['A has no density in it, so it stays 0.2686. B scales with density',`B = (ρ<sub>2300</sub>/ρ<sub>0</sub>) × B<sub>SL</sub> = 1.51361 × 10⁻⁶ , and V<sub>TD</sub>² scales with ρ<sub>0</sub>/ρ<sub>2300</sub>, so B V<sub>TD</sub>² is unchanged`],
+  ['Braking distance at altitude',`S<sub>G</sub> = ${F('0.0178652','2.96970282×10⁻⁵')} = <span class="hl">601 m</span> &nbsp;<span class="note">the 1/(2gB) factor grows</span>`],
+  ['High altitude also adds','A higher V<sub>REF</sub> (longer approach), a longer transition, and a longer free roll. Together a large effect.']]),
+ init:initLanding},
+
+/* 15 */
+{tag:"Step 15 · Landing examples 4 and 5",title:"Thrust reversing: how much reverse thrust for a shorter stop?",
+ what:"Dry runway, sea level, V<sub>TD</sub> = 51.1 m/s as before (491 m with T = +3 kN). Target braking distances: 400 m, then 300 m.",
+ mean:"B does not change. Only A = μ − T/W is unknown. Solve the braking-distance equation for A, then for T. A negative T means reverse thrust.",
+ aim:"Invert the formula. Drag the target distance and see the reverse thrust needed, against the 31 kN maximum forward thrust.",
+ eq:`<span class="row">ln${F('B V<sub>TD</sub>² + A','A')} = 2gB S<sub>G</sub> &nbsp;⇒&nbsp; A = ${F('B V<sub>TD</sub>²','e<sup>2gB S<sub>G</sub></sup> − 1')} , &nbsp; T = (μ − A) W</span>`,
+ extra:vt([['A','Constant term, μ − T/W + γ<sub>R</sub>','none'],['B','V² term, 1.8542 × 10⁻⁶ here','s²/m²'],['S<sub>G</sub>','Target braking distance','m'],['T','Engine thrust, negative = reverse','N']])+
+ `<div class="ctrls">${sl('rS','Target braking distance S<sub>G</sub> (m)',150,600,5,400)}</div>
+ <div class="lab"><div class="stats" id="rStats" style="align-content:flex-start"></div><div><canvas id="rCv" height="260"></canvas><div class="cap">Thrust needed against target distance. Below zero is reverse thrust.</div></div></div>`+
+ rev('rv15',[
+  ['Ex 4. B is unchanged; A is now unknown','B = 1.8542 × 10⁻⁶ , &nbsp; A = 0.3 − T / 95,632'],
+  ['Set S<sub>G</sub> = 400 m',`400 = ${F('ln(1.8542×10⁻⁶ × 51.1² + A) − ln A','2 × 9.81 × 1.8542×10⁻⁶')} &nbsp;⇒&nbsp; ln(…) − ln A = 0.0145518`],
+  ['Take the exponential',`${F('1.8542×10⁻⁶ × 51.1² + A','A')} = 1.014658 &nbsp;⇒&nbsp; A = 0.3303`],
+  ['Thrust','0.3 − T/95,632 = 0.3303 &nbsp;⇒&nbsp; <span class="hl">T = −2.90 kN</span>'],
+  ['Check','About 10% of the 31 kN maximum forward thrust. Achievable.'],
+  ['Ex 5. Set S<sub>G</sub> = 300 m','ln(…) − ln A = 0.0109138212'],
+  ['Solve for A',`${F('1.8542×10⁻⁶ × 51.1² + A','A')} = 1.010974 &nbsp;⇒&nbsp; A = 0.4412`],
+  ['Thrust','0.3 − T/95,632 = 0.4412 &nbsp;⇒&nbsp; <span class="hl">T = −13.5 kN</span>']]),
+ init:initReverse},
+
+/* 16 */
+{tag:"Step 16 · Take-off",title:"Take-off segments and the ground-run force balance",
+ what:"Ground roll S<sub>G</sub> from brake release to rotation at V<sub>R</sub> ≈ 1.1 V<sub>S</sub>. Rotation S<sub>ROT</sub> for 1 to 3 s, to lift-off at V<sub>LOF</sub> ≈ 1.2 V<sub>S</sub>. Then transition and climb to the 35 ft obstacle at V<sub>2</sub>.",
+ mean:"The force balance mirrors landing, but now thrust drives the aircraft and friction works against it. Write the net force as D V² + C, with D negative.",
+ aim:"Get the ground-roll formula. It has the same shape as the landing one, with C and D in place of A and B.",
+ eq:`<span class="row">R = T − D − μ(W − L) − W γ<sub>R</sub> &nbsp;⇒&nbsp; ${F('R','W')} = −${F(rho+' S '+cL+' ('+cD+'/'+cL+' − μ)','2W')} V² + ${F('T','W')} − μ − γ<sub>R</sub> = D V² + C</span>
+ <span class="row">D = −${F(rho+' S '+cL+' ('+cD+'/'+cL+' − μ)','2W')} , &nbsp; C = ${F('T','W')} − μ − γ<sub>R</sub></span>
+ <span class="row"><span class="hl">S<sub>G</sub> = ${F('1','2gD')} [ ln(D V<sub>R</sub>² + C) − ln C ]</span> <span class="note">distance to reach rotation speed</span></span>
+ <span class="row">S<sub>ROT</sub> = 1.0 × V<sub>R</sub> (small aircraft) , &nbsp; S<sub>ROT</sub> = 3.0 × V<sub>R</sub> (F27, BAe 146 and larger)</span>`,
+ extra:vt([['R','Net force, positive in the direction of travel','N'],['C','Constant term, T/W − μ − γ<sub>R</sub>','none'],['D','V² coefficient (negative: drag grows with speed)','s²/m²'],['μ','Rolling friction coefficient, brakes off','none'],['γ<sub>R</sub>','Runway slope, positive uphill','rad'],['V<sub>S</sub>, V<sub>R</sub>, V<sub>LOF</sub>, V<sub>2</sub>','Stall, rotation, lift-off, and obstacle speeds','m/s'],['S<sub>G</sub>, S<sub>ROT</sub>, S<sub>TR</sub>, S<sub>C</sub>','Ground roll, rotation, transition, climb distances','m']])+
+ `<div><canvas id="toCv" height="240"></canvas><div class="cap">Segments of a reference take-off: 35 ft obstacle (landing uses 50 ft). Sea-level ISA and no runway slope unless stated.</div></div>`,
+ init:()=>drawTakeoff(document.getElementById('toCv'))},
+
+/* 17 */
+{tag:"Step 17 · Take-off examples",title:"Learjet 45XR ground roll: gross weight, lighter, and hot-and-high",
+ what:"Data: T = 31,136 N, W = 95,632 N, S = 28.95 m², C<sub>L,max</sub> = 1.60 (take-off flaps). Ground run C<sub>L</sub> = 0.8, C<sub>D</sub>/C<sub>L</sub> = 0.085, μ = 0.03, V<sub>R</sub> = 1.1 V<sub>stall</sub>.",
+ mean:"D V<sub>R</sub>² = −1.21 (C<sub>L</sub>/C<sub>L,max</sub>)(C<sub>D</sub>/C<sub>L</sub> − μ) does not depend on weight or density. So only C and the 1/(2gD) factor change between cases.",
+ aim:"Run the three examples with the presets. At altitude, thrust falls with density and V<sub>R</sub> rises: two effects that both lengthen the roll.",
+ extra:`<div class="ctrls"><div class="opts"><button class="opt" id="tE1">Ex 1 · gross, sea level</button><button class="opt" id="tE2">Ex 2 · 500 kg lighter</button><button class="opt" id="tE3">Ex 3 · 2300 m, ρ = 1.0</button></div></div>
+ <div class="ctrls">${sl('tM','Mass removed (kg)',0,2000,50,0)}${sl('tR','Density ρ (kg/m³, thrust ∝ ρ)',0.7,1.225,0.005,1.225)}${sl('tMu','Rolling friction μ',0.02,0.1,0.005,0.03)}${sl('tS','Runway slope γ<sub>R</sub> (rad, + uphill)',-0.02,0.02,0.001,0)}</div>
+ <div><canvas id="tCv" height="280"></canvas>
+ <div class="legend"><span><i style="background:var(--accent)"></i>Your case</span><span><i style="background:var(--muted)"></i>Example 1 reference (745 m)</span></div></div>
+ <div class="stats" id="tStats"></div>`+
+ rev('rv17',[
+  ['Ex 1. Stall speed, take-off flaps, sea level',`V<sub>stall</sub> = ${sq(F('2 × 95,632','1.225 × 28.95 × 1.6'))} = 58.06 m/s &nbsp;⇒&nbsp; V<sub>R</sub> = 1.1 × 58.06 = 63.86 m/s`],
+  ['Coefficients C and D',`D = −${F('1.225 × 28.95 × 0.8 × (0.085 − 0.03)','2 × 95,632')} = −8.1584 × 10⁻⁶ , &nbsp; C = 31,136/95,632 − 0.03 − 0 = 0.296`],
+  ['V² term at rotation','D × V<sub>R</sub>² = −0.033275'],
+  ['Ground roll to rotation',`S<sub>G</sub> = ${F('ln(−0.033275 + 0.296) − ln 0.296','−2 × 9.81 × 8.1584×10⁻⁶')} = ${F('−0.11924','−1.6007×10⁻⁴')} = <span class="hl">745 m</span>`],
+  ['Ex 2. Mass 500 kg lower: W = 95,632 − 500 × 9.81 = 90,727 N',`V<sub>stall</sub> = ${sq(F('2 × 90,727','1.225 × 28.95 × 1.6'))} = 56.55 m/s &nbsp;⇒&nbsp; V<sub>R</sub> = 62.2 m/s`],
+  ['D changes, but D V<sub>R</sub>² does not','D = −8.599 × 10⁻⁶ , &nbsp; D V<sub>R</sub>² = −1.21 × (0.8/1.6) × (0.085 − 0.03) = −0.033275'],
+  ['T/W rises, so C rises. (The slide prints C = 0.2358 here; 0.313 is the value that gives 666 m.)','C = 31,136/90,727 − 0.03 − 0 = 0.313'],
+  ['Ground roll',`S<sub>G</sub> = ${F('ln(−0.033275 + 0.313) − ln 0.313','−2 × 9.81 × 8.599×10⁻⁶')} = <span class="hl">666 m</span> &nbsp;<span class="note">80 m less</span>`],
+  ['Ex 3. 2300 m, ρ = 1.0 kg/m³. Thrust falls in proportion to density','T = (1.0/1.225) × 31,136 = 25,417 N'],
+  ['Stall and rotation speeds rise',`V<sub>stall</sub> = ${sq(F('2 × 95,632','1.0 × 28.95 × 1.6'))} = 64.26 m/s &nbsp;⇒&nbsp; V<sub>R</sub> = 70.68 m/s`],
+  ['Coefficients','C = 25,417/95,632 − 0.03 = 0.2358 , &nbsp; D = −6.660 × 10⁻⁶ , &nbsp; D V<sub>R</sub>² = −0.033275 (unchanged)'],
+  ['Ground roll',`S<sub>G</sub> = ${F('−1','2 × 9.81 × 6.660×10⁻⁶')} [ ln 0.2025 − ln 0.2358 ] = <span class="hl">1164 m</span> &nbsp;<span class="note">over 400 m longer</span>`],
+  ['Conclusion','Less thrust and a higher rotation speed. Hot days make it worse: "hot and high" is a key design point for airliners.']]),
+ init:initTakeoff},
+
+/* 18 */
+{tag:"Step 18 · Climbing flight",title:"Climb angle from excess thrust, rate of climb from V γ",
+ what:"Use the powered-descent balance with γ positive upward: tan γ = (T − D)/L. With small γ and L ≈ W: γ = T/W − C<sub>D</sub>/C<sub>L</sub>.",
+ mean:"For a given T/W the steepest climb is at minimum C<sub>D</sub>/C<sub>L</sub>, so at V<sub>MD</sub>. The best rate of climb (height per second) is a different, higher speed: best angle and best rate are not the same condition.",
+ aim:"Find the steepest climb angle. Then see on the plots that V γ peaks at a different speed from γ.",
+ eq:`<span class="row">tan ${ga} = ${F('T − D','L')} ≅ ${F('T','W')} − ${F('D','W')} = ${F('T','W')} − ${F(cD,cL)} <span class="note">γ positive up</span></span>
+ <span class="row">At V<sub>MD</sub>: ${cL} = ${sq(cD0+'/k')} , ${cD} = 2${cD0}</span>
+ <span class="row"><span class="hl">${ga}<sub>max</sub> = ${F('T','W')} − 2${sq('k '+cD0)}</span> <span class="note">steepest climb, best for obstacle clearance</span></span>
+ <span class="row">Rate of climb = V ${ga} <span class="note">same small-angle relation as the rate of descent</span></span>`,
+ extra:vt([[ga,'Climb angle, positive up','rad'],['T/W','Thrust-to-weight ratio','none'],['T − D','Excess thrust','N'],['V γ','Rate of climb','m/s'],['V<sub>MD</sub>','Minimum-drag speed, steepest climb','m/s']])+
+ `<div class="ctrls">${sl('cH','Altitude (m, ISA)',0,10000,500,0)}${sl('cW','Weight (% of gross)',60,100,1,100)}</div>
+ <div class="two"><div><canvas id="cG" height="240"></canvas><div class="cap">Climb angle γ against TAS.</div></div><div><canvas id="cV" height="240"></canvas><div class="cap">Rate of climb V γ against TAS.</div></div></div>
+ <div class="stats" id="cStats"></div>
+ <p class="cap">Learjet 45XR, clean. Thrust taken as constant with speed and proportional to density (the slides' assumption for jet thrust). Near sea level γ is large, so the small-angle result is only approximate there.</p>`,
+ init:initClimb}
+];
+
+const stage=document.getElementById('stage'), rail=document.getElementById('rail');
+let cur=0, visited=new Set([0]), anim=null;
+try{const s=parseInt(localStorage.getItem('aa3p2step'));if(s>=0&&s<steps.length)cur=s;}catch(e){}
+
+steps.forEach((s,i)=>{const b=document.createElement('button');b.textContent=i+1;b.title=s.tag;b.onclick=()=>go(i);rail.appendChild(b);});
+
+function go(i){cur=Math.max(0,Math.min(steps.length-1,i));visited.add(cur);try{localStorage.setItem('aa3p2step',cur)}catch(e){}render();}
+document.getElementById('prev').onclick=()=>go(cur-1);
+document.getElementById('next').onclick=()=>go(cur+1);
+document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='ArrowRight')go(cur+1);if(e.key==='ArrowLeft')go(cur-1);});
+
+function render(){
+ if(anim){cancelAnimationFrame(anim);anim=null;}
+ const s=steps[cur];
+ stage.innerHTML=`<div class="tag">${s.tag}</div><h2>${s.title}</h2>
+ <div class="trio"><div class="cell what"><h3>What it is</h3><p>${s.what}</p></div>
+ <div class="cell mean"><h3>What it means</h3><p>${s.mean}</p></div>
+ <div class="cell aim"><h3>The aim</h3><p>${s.aim}</p></div></div>
+ ${s.eq?`<div class="eq">${s.eq}</div>`:''}${s.extra||''}
+`;
+ [...rail.children].forEach((b,i)=>{b.className=(i===cur?'on':visited.has(i)?'done':'');});
+ document.getElementById('bar').style.width=((cur+1)/steps.length*100)+'%';
+ document.getElementById('prev').disabled=cur===0;
+ document.getElementById('next').disabled=cur===steps.length-1;
+ setup();
+}
+
+/* ---------- drawing helpers ---------- */
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function prep(cv){const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.height/(cv._dpr||1);cv._dpr=dpr;cv._h=cv._h||h;
+ cv.width=w*dpr;cv.height=cv._h*dpr;cv.style.height=cv._h+'px';const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,cv._h);return[c,w,cv._h];}
+const MONO='11px ui-monospace, Menlo, monospace';
+function niceStep(span,n){const raw=span/n,p=Math.pow(10,Math.floor(Math.log10(raw))),m=raw/p;return(m<1.5?1:m<3?2:m<7?5:10)*p;}
+function chart(cv,o){
+ const[c,W,H]=prep(cv),pad={l:o.padL||50,r:14,t:14,b:36};
+ const X=v=>pad.l+(v-o.x0)/(o.x1-o.x0)*(W-pad.l-pad.r), Y=v=>pad.t+(o.y1-v)/(o.y1-o.y0)*(H-pad.t-pad.b);
+ c.font=MONO;c.lineWidth=1;
+ const xs=niceStep(o.x1-o.x0,W<500?4:7),ys=niceStep(o.y1-o.y0,5),fx=o.fx||(v=>+v.toFixed(6)),fy=o.fy||(v=>+v.toFixed(6));
+ for(let v=Math.ceil(o.x0/xs)*xs;v<=o.x1+1e-9;v+=xs){c.strokeStyle=css('--grid');c.beginPath();c.moveTo(X(v),pad.t);c.lineTo(X(v),H-pad.b);c.stroke();
+  c.fillStyle=css('--muted');c.textAlign='center';c.textBaseline='top';c.fillText(fx(v),X(v),H-pad.b+4);}
+ for(let v=Math.ceil(o.y0/ys)*ys;v<=o.y1+1e-9;v+=ys){c.strokeStyle=css('--grid');c.beginPath();c.moveTo(pad.l,Y(v));c.lineTo(W-pad.r,Y(v));c.stroke();
+  c.fillStyle=css('--muted');c.textAlign='right';c.textBaseline='middle';c.fillText(fy(v),pad.l-5,Y(v));}
+ c.strokeStyle=css('--muted');c.beginPath();c.moveTo(pad.l,pad.t);c.lineTo(pad.l,H-pad.b);c.lineTo(W-pad.r,H-pad.b);c.stroke();
+ if(o.y0<0&&o.y1>0){c.beginPath();c.moveTo(pad.l,Y(0));c.lineTo(W-pad.r,Y(0));c.stroke();}
+ c.fillStyle=css('--muted');c.textAlign='right';c.textBaseline='bottom';c.fillText(o.xl||'',W-pad.r,H-2);
+ c.textAlign=o.ylRight?'right':'left';c.textBaseline='top';if(o.yl){c.save();c.fillStyle=css('--muted');c.fillText(o.yl,o.ylRight?W-pad.r-4:pad.l+6,o.ylRight?H-pad.b-16:pad.t+2);c.restore();}
+ return{c,X,Y,W,H,pad,o};
+}
+function line(g,f,a,b,col,lw,dash){const{c,X,Y,o}=g;c.save();c.beginPath();c.rect(g.pad.l,g.pad.t,g.W-g.pad.l-g.pad.r,g.H-g.pad.t-g.pad.b);c.clip();
+ c.strokeStyle=col;c.lineWidth=lw||2;c.setLineDash(dash||[]);c.beginPath();let on=false;
+ for(let i=0;i<=300;i++){const x=a+(b-a)*i/300,y=f(x);if(!isFinite(y)){on=false;continue;}on?c.lineTo(X(x),Y(y)):c.moveTo(X(x),Y(y));on=true;}c.stroke();c.restore();}
+function seg(g,x0,y0,x1,y1,col,lw,dash){const{c,X,Y}=g;c.save();c.strokeStyle=col;c.lineWidth=lw||1;c.setLineDash(dash||[]);c.beginPath();c.moveTo(X(x0),Y(y0));c.lineTo(X(x1),Y(y1));c.stroke();c.restore();}
+function dot(g,x,y,col,label,dx,dy){const{c,X,Y}=g;c.fillStyle=col;c.beginPath();c.arc(X(x),Y(y),5,0,Math.PI*2);c.fill();c.strokeStyle=css('--panel');c.lineWidth=2;c.stroke();
+ if(label){c.font='600 11px ui-monospace, Menlo, monospace';c.fillStyle=col;c.textAlign=(dx||0)<0?'right':'left';c.textBaseline='middle';c.fillText(label,X(x)+(dx??8),Y(y)+(dy??-12));}}
+function stats(id,items){document.getElementById(id).innerHTML=items.map(([k,v,key])=>`<div class="stat${key?' key':''}">${k}<b>${v}</b></div>`).join('');}
+function setV(id,t){const e=document.getElementById(id+'v');if(e)e.innerHTML=t;}
+
+function arrow(c,x,y,dx,dy,col,label,lx,ly){const L=Math.hypot(dx,dy);if(L<2)return;c.strokeStyle=col;c.fillStyle=col;c.lineWidth=2.5;c.beginPath();c.moveTo(x,y);c.lineTo(x+dx,y+dy);c.stroke();
+ const ux=dx/L,uy=dy/L,h=9;c.beginPath();c.moveTo(x+dx,y+dy);c.lineTo(x+dx-h*ux+h*0.5*uy,y+dy-h*uy-h*0.5*ux);c.lineTo(x+dx-h*ux-h*0.5*uy,y+dy-h*uy+h*0.5*ux);c.closePath();c.fill();
+ if(label){c.font='600 13px ui-monospace, Menlo, monospace';c.textAlign='center';c.textBaseline='middle';c.fillText(label,x+dx+(lx??ux*14),y+dy+(ly??uy*14));}}
+function plane(c,x,y,ang,s){c.save();c.translate(x,y);c.rotate(-ang);c.fillStyle=css('--ink');
+ c.beginPath();c.ellipse(0,0,34*s,6*s,0,0,Math.PI*2);c.fill();
+ c.beginPath();c.moveTo(-26*s,-2*s);c.lineTo(-36*s,-16*s);c.lineTo(-30*s,-16*s);c.lineTo(-18*s,-3*s);c.fill();
+ c.fillStyle=css('--muted');c.fillRect(-6*s,-1.5*s,18*s,3*s);c.restore();}
+/* gamma: + climb, − descent (radians, drawn as given) */
+function drawForces(cv,o){const[c,W,H]=prep(cv);const g=o.gamma,cx=W/2,cy=H/2+8,L=Math.min(80,H*0.32);
+ const ux=Math.cos(g),uy=-Math.sin(g);
+ c.strokeStyle=css('--grid');c.lineWidth=1;c.setLineDash([5,5]);c.beginPath();c.moveTo(20,cy);c.lineTo(W-20,cy);c.stroke();c.setLineDash([]);
+ c.strokeStyle=css('--muted');c.setLineDash([2,4]);c.beginPath();c.moveTo(cx-ux*W,cy-uy*W);c.lineTo(cx+ux*W,cy+uy*W);c.stroke();c.setLineDash([]);
+ c.fillStyle=css('--muted');c.font=MONO;c.textAlign='left';c.fillText('horizon',24,cy-6);
+ plane(c,cx,cy,g,1);
+ const Wl=L*1.15,Ll=Wl*Math.cos(g),Dl=o.T?L*0.6:Math.max(L*0.3,Wl*Math.abs(Math.sin(g))),Tl=o.T?(o.Tl??Dl):0;
+ arrow(c,cx,cy,uy*Ll,-ux*Ll,css('--accent'),'L');
+ arrow(c,cx,cy,-ux*Dl,-uy*Dl,css('--signal'),'D');
+ if(o.T)arrow(c,cx+ux*36,cy+uy*36,ux*Tl,uy*Tl,css('--good'),'T');
+ arrow(c,cx,cy,0,Wl,css('--ink'),'W',16,0);
+ c.fillStyle=css('--muted');c.font='600 12px ui-monospace, Menlo, monospace';c.textAlign='left';
+ const d=Math.min(W*0.4,cx-20),vx=cx+ux*d,vy=cy+uy*d;c.fillText('V →',Math.min(W-40,vx),Math.max(14,Math.min(H-8,vy-10)));
+ if(g!==0){const r=Math.min(150,W*0.32);c.strokeStyle=css('--warn');c.lineWidth=1.5;c.beginPath();
+  g<0?c.arc(cx,cy,r,0,-g):c.arc(cx,cy,r,-g,0);c.stroke();c.fillStyle=css('--warn');c.fillText('γ',cx+r+6,cy+(g<0?r*Math.sin(-g)/2+4:-r*Math.sin(g)/2));}
+}
+
+/* ---------- step 2: polar ---------- */
+function initPolar(){const A=document.getElementById('pA'),E=document.getElementById('pE'),C=document.getElementById('pC');
+ const set=a=>{A.value=a.A;E.value=a.e;C.value=a.CD0;u();};
+ document.getElementById('pSR').onclick=()=>set(AC.sr22);document.getElementById('pLJ').onclick=()=>set(AC.lj);
+ const u=()=>{const a=+A.value,e=+E.value,c0=+C.value,k=1/(Math.PI*a*e),cls=Math.sqrt(c0/k),ld=1/(2*Math.sqrt(k*c0));
+  setV('pA',a.toFixed(2));setV('pE',e.toFixed(3));setV('pC',c0.toFixed(4));
+  document.getElementById('pSR').classList.toggle('right',Math.abs(a-10.12)<.01&&Math.abs(e-.7566)<.001&&Math.abs(c0-.0251)<.0001);
+  document.getElementById('pLJ').classList.toggle('right',Math.abs(a-7.33)<.01&&Math.abs(e-.825)<.001&&Math.abs(c0-.02)<.0001);
+  stats('pStats',[['k = 1/(πAe)',k.toFixed(5)],['best C<sub>L</sub> = √(C<sub>D0</sub>/k)',cls.toFixed(3),1],['C<sub>D</sub> there = 2C<sub>D0</sub>',(2*c0).toFixed(4)],['(L/D)<sub>max</sub> = 1/(2√(kC<sub>D0</sub>))',ld.toFixed(1),1]]);
+  const g=chart(document.getElementById('polar'),{x0:0,x1:0.16,y0:0,y1:1.6,xl:'C_D',yl:'C_L',fx:v=>v.toFixed(2),fy:v=>v.toFixed(1)});
+  const {c,X,Y}=g;c.save();c.strokeStyle=css('--accent');c.lineWidth=2.5;c.beginPath();for(let i=0;i<=200;i++){const cl=1.6*i/200,cd=c0+k*cl*cl;i?c.lineTo(X(cd),Y(cl)):c.moveTo(X(cd),Y(cl));}c.stroke();c.restore();
+  seg(g,0,0,0.16,0.16*ld,css('--signal'),1.5,[5,4]);dot(g,2*c0,cls,css('--signal'),'max C_L/C_D');
+  seg(g,c0,0,c0,1.6,css('--muted'),1,[2,4]);c.fillStyle=css('--muted');c.font=MONO;c.textAlign='left';c.fillText('C_D0',X(c0)+4,Y(0.08));};
+ A.oninput=E.oninput=C.oninput=u;u();}
+
+/* ---------- step 3: drag vs EAS ---------- */
+let dAc='sr22';
+function initDrag(){const Ws=document.getElementById('dW');
+ document.getElementById('dSR').onclick=()=>{dAc='sr22';u();};document.getElementById('dLJ').onclick=()=>{dAc='lj';u();};
+ const u=()=>{const a=AC[dAc],k=kOf(a),W=a.W*Ws.value/100,S=a.S;setV('dW',Ws.value+'% · '+fmt(W)+' N');
+  document.getElementById('dSR').classList.toggle('right',dAc==='sr22');document.getElementById('dLJ').classList.toggle('right',dAc==='lj');
+  const Dp=v=>0.5*RHO0*v*v*S*a.CD0, Di=v=>k*W*W/(0.5*RHO0*v*v*S), Vs=Math.sqrt(2*W/(RHO0*S*a.CLmax)), Vm=vmd(W,RHO0,S,k,a.CD0);
+  const x0=dAc==='sr22'?30:60,x1=dAc==='sr22'?100:220,ymax=dAc==='sr22'?2000:12000;
+  const g=chart(document.getElementById('dragCv'),{x0,x1,y0:0,y1:ymax,xl:'EAS (m/s)',yl:'Drag (N)',padL:54,fy:v=>fmt(v)});
+  line(g,Dp,Vs,x1,css('--signal'),2,[6,4]);line(g,Di,Vs,x1,css('--good'),2,[8,3,2,3]);line(g,v=>Dp(v)+Di(v),Vs,x1,css('--accent'),2.8);
+  if(Vs>=x0){seg(g,Vs,0,Vs,ymax,css('--muted'),1,[2,4]);g.c.fillStyle=css('--muted');g.c.font=MONO;g.c.textAlign='left';g.c.fillText('stall',g.X(Vs)+4,g.Y(ymax*0.95));}
+  dot(g,Vm,Dp(Vm)+Di(Vm),css('--accent'),'V_MD '+Vm.toFixed(1)+' m/s',8,-14);dot(g,Vm,Dp(Vm),css('--good'),'D_p = D_i',8,14);
+  document.getElementById('dCap').textContent=`${a.name}, clean, ${Ws.value}% of gross weight. The curve starts at the clean stall speed (C_L,max = ${a.CLmax}).`;
+  stats('dStats',[['V<sub>MD</sub> (EAS)',Vm.toFixed(1)+' m/s',1],['D<sub>min</sub>',fmt(Dp(Vm)+Di(Vm))+' N'],['(L/D)<sub>max</sub>',(1/(2*Math.sqrt(k*a.CD0))).toFixed(1)],['V<sub>stall</sub> clean (EAS)',Vs.toFixed(1)+' m/s']]);};
+ Ws.oninput=u;u();}
+
+/* ---------- step 5: power vs EAS ---------- */
+let wAc='sr22';
+function initPower(){const Hs=document.getElementById('wH'),Ws=document.getElementById('wW');
+ document.getElementById('wSR').onclick=()=>{wAc='sr22';u();};document.getElementById('wLJ').onclick=()=>{wAc='lj';u();};
+ const u=()=>{const a=AC[wAc],k=kOf(a),W=a.W*Ws.value/100,S=a.S,h=+Hs.value,r=rhoAt(h),sg=Math.sqrt(r/RHO0);
+  setV('wH',fmt(h)+' m · ρ = '+r.toFixed(4));setV('wW',Ws.value+'%');
+  document.getElementById('wSR').classList.toggle('right',wAc==='sr22');document.getElementById('wLJ').classList.toggle('right',wAc==='lj');
+  const D=v=>0.5*RHO0*v*v*S*a.CD0+k*W*W/(0.5*RHO0*v*v*S), P=(v,s)=>D(v)*v/s/1000;
+  const Vs=Math.sqrt(2*W/(RHO0*S*a.CLmax)),Vm=vmd(W,RHO0,S,k,a.CD0),Vp=0.7598*Vm;
+  const x0=wAc==='sr22'?30:60,x1=wAc==='sr22'?100:220,ymax=wAc==='sr22'?300:2500;
+  const g=chart(document.getElementById('powCv'),{x0,x1,y0:0,y1:ymax,xl:'EAS (m/s)',yl:'Power required (kW)',padL:48});
+  line(g,v=>P(v,1),Vs,x1,css('--muted'),1.5,[5,4]);line(g,v=>P(v,sg),Vs,x1,css('--accent'),2.8);
+  dot(g,Vp,P(Vp,sg),css('--good'),'V_MP',-8,-14);dot(g,Vm,P(Vm,sg),css('--signal'),'V_MD',8,-14);
+  stats('wStats',[['V<sub>MP</sub> EAS / TAS',Vp.toFixed(1)+' / '+(Vp/sg).toFixed(1)+' m/s',1],['P<sub>min</sub>',P(Vp,sg).toFixed(1)+' kW'],['V<sub>MD</sub> EAS / TAS',Vm.toFixed(1)+' / '+(Vm/sg).toFixed(1)+' m/s'],['P at V<sub>MD</sub>',P(Vm,sg).toFixed(1)+' kW']]);};
+ Hs.oninput=Ws.oninput=u;u();}
+
+/* ---------- step 8: glide hodograph ---------- */
+function initHodo(){const Ws=document.getElementById('hW'),Hs=document.getElementById('hH');
+ const u=()=>{const a=AC.lj,k=kOf(a),W=a.W*Ws.value/100,S=a.S,h=+Hs.value,r=rhoAt(h);setV('hW',Ws.value+'%');setV('hH',fmt(h)+' m');
+  const sink=v=>{const cl=2*W/(r*v*v*S);return v*(a.CD0+k*cl*cl)/cl;};
+  const Vs=Math.sqrt(2*W/(r*S*a.CLmax)),Vm=vmd(W,r,S,k,a.CD0),Ve=Math.sqrt(2*W/(r*S))*Math.pow(k/(3*a.CD0),0.25);
+  const gr=2*Math.sqrt(k*a.CD0),ge=1.155*gr;
+  const g=chart(document.getElementById('hodo'),{x0:0,x1:320,y0:-20,y1:0,xl:'TAS (m/s)',yl:'vertical speed (m/s), sink is down',ylRight:1,fy:v=>v.toFixed(0)});
+  line(g,v=>-sink(v),Vs,320,css('--accent'),2.8);seg(g,0,0,320,-320*gr,css('--signal'),1.5,[6,4]);
+  seg(g,0,-sink(Ve),320,-sink(Ve),css('--good'),1,[2,4]);
+  dot(g,Vm,-sink(Vm),css('--signal'),'range',8,14);dot(g,Ve,-sink(Ve),css('--good'),'endurance',-8,-12);
+  stats('hStats',[['V<sub>range</sub> = V<sub>MD</sub>',Vm.toFixed(1)+' m/s',1],['γ<sub>range</sub>',gr.toFixed(4)+' rad ('+(gr*180/Math.PI).toFixed(2)+'°)'],['sink at V<sub>MD</sub>',sink(Vm).toFixed(2)+' m/s'],
+   ['V<sub>end</sub>',Ve.toFixed(1)+' m/s',1],['γ<sub>end</sub>',ge.toFixed(4)+' rad'],['minimum sink',sink(Ve).toFixed(2)+' m/s'],['range from 1000 m',(1000/gr/1000).toFixed(1)+' km']]);};
+ Ws.oninput=Hs.oninput=u;u();}
+
+/* ---------- step 10: approach ---------- */
+function initApproach(){const Ls=document.getElementById('aLD'),Gs=document.getElementById('aG');
+ const u=()=>{const ld=+Ls.value,gd=+Gs.value,g=gd*Math.PI/180,tw=1/ld-g,W=AC.lj.W;setV('aLD',ld.toFixed(1));setV('aG',gd.toFixed(1)+'° = '+g.toFixed(5)+' rad');
+  stats('aStats',[['C<sub>D</sub>/C<sub>L</sub>',(1/ld).toFixed(4)],['γ (rad)',g.toFixed(4)],['T/W needed = C<sub>D</sub>/C<sub>L</sub> − γ',tw.toFixed(4),1],['T for W = 95,632 N',tw>0?fmt(tw*W/1000,1)+' kN':'none: '+fmt(-tw*W/1000,1)+' kN too little drag'],['L/D for zero-thrust glide',(1/Math.tan(g)).toFixed(1)]]);
+  drawForces(document.getElementById('fApp'),{gamma:-Math.min(0.6,4*g),T:tw>0,Tl:Math.max(8,Math.min(70,tw*300))});};
+ Ls.oninput=Gs.oninput=u;u();}
+
+/* ---------- step 11: insufficient thrust ---------- */
+function initThrust(){const Ts=document.getElementById('iT'),Hs=document.getElementById('iH');
+ const u=()=>{const a=AC.lj,k=kOf(a),W=a.W,S=a.S,r=RHO0,h=+Hs.value,tw=Ts.value/100*a.T/W;setV('iT',(+Ts.value).toFixed(1)+'% · T/W = '+tw.toFixed(4));setV('iH',fmt(h)+' m');
+  const Vm=vmd(W,r,S,k,a.CD0),g0=2*Math.sqrt(k*a.CD0),gR=g0-tw;
+  const cl=-tw/(2*k)+Math.sqrt(tw*tw/(4*k*k)+3*a.CD0/k),Ve=Math.sqrt(2*W/(r*S*cl)),gE=(a.CD0+k*cl*cl)/cl-tw,sinkE=Ve*gE;
+  const Vg=Math.sqrt(2*W/(r*S))*Math.pow(k/(3*a.CD0),0.25),sinkG=Vg*1.155*g0;
+  const Rg=h/g0/1000,R=gR>0?h/gR/1000:Infinity,tG=h/sinkG,tE=gE>0?h/sinkE:Infinity;
+  const xR=Math.max(Rg*2.2,Math.min(isFinite(R)?R*1.1:Rg*4,Rg*8));
+  let g=chart(document.getElementById('iR'),{x0:0,x1:xR,y0:0,y1:h*1.1,xl:'distance (km)',yl:'height (m)',fy:v=>fmt(v)});
+  seg(g,0,h,Rg,0,css('--muted'),1.8,[5,4]);if(isFinite(R))seg(g,0,h,R,0,css('--accent'),2.8);else seg(g,0,h,xR,h-xR*1000*gR,css('--accent'),2.8);
+  if(isFinite(R))dot(g,Math.min(R,xR),Math.max(0,h-Math.min(R,xR)*1000*gR),css('--accent'),R<=xR?R.toFixed(1)+' km':'',8,-12);
+  const xT=Math.max(tG*2.2,Math.min(isFinite(tE)?tE*1.1:tG*4,tG*8));
+  g=chart(document.getElementById('iE'),{x0:0,x1:xT,y0:0,y1:h*1.1,xl:'time (s)',yl:'height (m)',fy:v=>fmt(v)});
+  seg(g,0,h,tG,0,css('--muted'),1.8,[5,4]);if(isFinite(tE)){seg(g,0,h,tE,0,css('--accent'),2.8);if(tE<=xT)dot(g,tE,0,css('--accent'),tE.toFixed(0)+' s',8,-12);}else seg(g,0,h,xT,h-xT*sinkE,css('--accent'),2.8);
+  stats('iStats',[['γ at V<sub>MD</sub> = 2√(kC<sub>D0</sub>) − T/W',gR>0?gR.toFixed(4)+' rad ('+(gR*180/Math.PI).toFixed(2)+'°)':'≤ 0: level flight possible',1],['range at V<sub>MD</sub> = '+Vm.toFixed(1)+' m/s',isFinite(R)?R.toFixed(1)+' km':'no descent needed'],['glide range',Rg.toFixed(1)+' km'],
+   ['C<sub>L</sub> for endurance',cl.toFixed(4)],['V<sub>end</sub>',Ve.toFixed(1)+' m/s'],['sink rate',gE>0?sinkE.toFixed(2)+' m/s':'≤ 0'],['flight time',isFinite(tE)?tE.toFixed(0)+' s':'no descent needed',1],['glide time (V<sub>end</sub> glide)',tG.toFixed(0)+' s']]);};
+ Ts.oninput=Hs.oninput=u;u();}
+
+/* ---------- step 12, 16: segment diagrams ---------- */
+function dim(c,x0,x1,y,label,col){c.strokeStyle=col;c.fillStyle=col;c.lineWidth=1.2;c.beginPath();c.moveTo(x0,y);c.lineTo(x1,y);c.moveTo(x0,y-5);c.lineTo(x0,y+5);c.moveTo(x1,y-5);c.lineTo(x1,y+5);c.stroke();
+ c.font='600 11px ui-monospace, Menlo, monospace';c.textAlign='center';c.textBaseline='bottom';c.fillText(label,(x0+x1)/2,y-3);}
+function vlab(c,x,yG,label){c.strokeStyle=css('--muted');c.lineWidth=1;c.beginPath();c.moveTo(x,yG);c.lineTo(x,yG+16);c.stroke();c.fillStyle=css('--ink');c.font='600 11px ui-monospace, Menlo, monospace';c.textAlign='center';c.textBaseline='top';c.fillText(label,x,yG+18);}
+function drawLanding(cv){const[c,W,H]=prep(cv),yG=H*0.52,m=Math.max(16,W*0.04),u=(W-2*m)/100;
+ const xO=m+4*u,xF=m+40*u,xTD=m+52*u,xBR=m+64*u,xS=m+96*u,hO=H*0.36;
+ c.fillStyle=css('--accent-soft');c.fillRect(0,yG,W,10);c.strokeStyle=css('--ink');c.lineWidth=2;c.beginPath();c.moveTo(0,yG);c.lineTo(W,yG);c.stroke();
+ c.fillStyle=css('--line');c.beginPath();c.moveTo(xO-10,yG);c.lineTo(xO,yG-hO);c.lineTo(xO+10,yG);c.fill();
+ c.fillStyle=css('--muted');c.font=MONO;c.textAlign='left';c.fillText('50 ft screen',xO+12,yG-hO+4);
+ const yF=yG-hO*0.22;c.strokeStyle=css('--accent');c.lineWidth=2;c.setLineDash([6,4]);c.beginPath();c.moveTo(xO,yG-hO);c.lineTo(xF,yF);c.quadraticCurveTo(xF+(xTD-xF)*0.6,yG,xTD,yG-2);c.lineTo(xS,yG-2);c.stroke();c.setLineDash([]);
+ c.strokeStyle=css('--warn');c.lineWidth=1;c.beginPath();c.moveTo(xO,yG-hO);c.lineTo(xO+22*u,yG-hO);c.stroke();c.fillStyle=css('--warn');c.fillText('θ_app',xO+14*u,yG-hO+16);
+ plane(c,xO+3*u,yG-hO-6,-0.12,0.55);plane(c,xF,yF-6,-0.05,0.55);plane(c,xTD,yG-7,0,0.55);plane(c,xBR,yG-7,0,0.55);plane(c,xS-2*u,yG-7,0,0.55);
+ vlab(c,xO,yG,'V_REF');vlab(c,xF,yG,'V_FLR');vlab(c,xTD,yG,'V_TD');vlab(c,xBR,yG,'V_BR');vlab(c,xS,yG,'V = 0');
+ const y1=yG+56;dim(c,xO,xF,y1,'S_A',css('--accent'));dim(c,xF,xTD,y1,'S_F',css('--good'));dim(c,xTD,xBR,y1,'S_FR',css('--warn'));dim(c,xBR,xS,y1,'S_BR',css('--signal'));
+ dim(c,xO,xS,y1+34,'S_LDG',css('--ink'));}
+function drawTakeoff(cv){const[c,W,H]=prep(cv),yG=H*0.52,m=Math.max(16,W*0.04),u=(W-2*m)/100;
+ const x0=m+4*u,xS=m+30*u,xR=m+56*u,xL=m+68*u,x2=m+94*u,hO=H*0.26;
+ c.fillStyle=css('--accent-soft');c.fillRect(0,yG,W,10);c.strokeStyle=css('--ink');c.lineWidth=2;c.beginPath();c.moveTo(0,yG);c.lineTo(W,yG);c.stroke();
+ c.strokeStyle=css('--accent');c.lineWidth=2;c.setLineDash([6,4]);c.beginPath();c.moveTo(x0,yG-2);c.lineTo(xL,yG-2);c.quadraticCurveTo(xL+(x2-xL)*0.5,yG-2,x2,yG-hO);c.stroke();c.setLineDash([]);
+ c.strokeStyle=css('--muted');c.lineWidth=1;c.beginPath();c.moveTo(x2+8,yG);c.lineTo(x2+8,yG-hO);c.stroke();c.fillStyle=css('--muted');c.font=MONO;c.textAlign='right';c.fillText('35 ft',x2-4,yG-hO/2);
+ plane(c,x0+2*u,yG-7,0,0.55);plane(c,xR,yG-9,0.12,0.55);plane(c,x2,yG-hO-8,0.3,0.55);
+ vlab(c,x0,yG,'V = 0');vlab(c,xS,yG,'V_S');vlab(c,xR,yG,'V_R');vlab(c,xL,yG,'V_LOF');vlab(c,x2,yG,'V_2');
+ const y1=yG+56;dim(c,x0,xR,y1,'S_G ground roll',css('--accent'));dim(c,xR,xL,y1,'S_ROT',css('--warn'));dim(c,xL,x2,y1,'S_TR + S_C',css('--good'));dim(c,x0,x2,y1+34,'S_TOT',css('--ink'));}
+
+/* ---------- step 14: landing calculator ---------- */
+const LD={W:95632,S:28.95,CLmax:2.5,CL:0.1,CD:0.04};
+function landCalc(mu,r,T,gR){const Vst=Math.sqrt(2*LD.W/(r*LD.S*LD.CLmax)),Vtd=1.1*Vst,B=r*LD.S*LD.CL*(LD.CD/LD.CL-mu)/(2*LD.W),A=mu-T/LD.W+gR;
+ let SG=NaN;if(A>0){SG=Math.abs(B)<1e-12?Vtd*Vtd/(2*G*A):(B*Vtd*Vtd+A>0?(Math.log(B*Vtd*Vtd+A)-Math.log(A))/(2*G*B):NaN);}
+ const V=s=>{const v2=Math.abs(B)<1e-12?Vtd*Vtd-2*G*A*s:((B*Vtd*Vtd+A)*Math.exp(-2*G*B*s)-A)/B;return v2>=0?Math.sqrt(v2):NaN;};return{Vst,Vtd,A,B,SG,V};}
+function initLanding(){const M=document.getElementById('lMu'),R=document.getElementById('lR'),T=document.getElementById('lT'),Sl=document.getElementById('lS');
+ const pre=(mu,r)=>{M.value=mu;R.value=r;T.value=3;Sl.value=0;u();};
+ document.getElementById('lE1').onclick=()=>pre(0.3,1.225);document.getElementById('lE2').onclick=()=>pre(0.15,1.225);document.getElementById('lE3').onclick=()=>pre(0.3,1.0);
+ const u=()=>{const mu=+M.value,r=+R.value,t=+T.value*1000,gR=+Sl.value;setV('lMu',mu.toFixed(2));setV('lR',r.toFixed(3));setV('lT',(t/1000).toFixed(1)+' kN');setV('lS',gR.toFixed(3));
+  [['lE1',.3,1.225],['lE2',.15,1.225],['lE3',.3,1]].forEach(([id,m,rr])=>document.getElementById(id).classList.toggle('right',Math.abs(mu-m)<.001&&Math.abs(r-rr)<.001&&Math.abs(t-3000)<1&&gR===0));
+  const k=landCalc(mu,r,t,gR),ref=landCalc(0.3,1.225,3000,0);
+  const x1=Math.max(1200,isFinite(k.SG)?Math.ceil(k.SG*1.1/100)*100:1200);
+  const g=chart(document.getElementById('lCv'),{x0:0,x1,y0:0,y1:70,xl:'distance from touchdown (m)',yl:'speed V (m/s)',fx:v=>fmt(v)});
+  line(g,ref.V,0,ref.SG,css('--muted'),1.6,[5,4]);
+  if(isFinite(k.SG)){line(g,k.V,0,k.SG,css('--accent'),2.8);dot(g,k.SG,0,css('--signal'),fmt(k.SG)+' m',k.SG>x1*0.8?-8:8,-12);}
+  dot(g,0,k.Vtd,css('--accent'),'V_TD '+k.Vtd.toFixed(1),8,-10);
+  stats('lStats',[['V<sub>stall</sub>',k.Vst.toFixed(2)+' m/s'],['V<sub>TD</sub> = 1.1 V<sub>stall</sub>',k.Vtd.toFixed(2)+' m/s'],['B',(k.B*1e6).toFixed(4)+' × 10⁻⁶'],['A',k.A.toFixed(4)],['B V<sub>TD</sub>²',(k.B*k.Vtd*k.Vtd).toFixed(5)],
+   ['braking distance S<sub>G</sub>',isFinite(k.SG)?fmt(k.SG)+' m':'does not stop (A ≤ 0)',1],['free roll 1 to 3 × V<sub>TD</sub>',fmt(k.Vtd)+' to '+fmt(3*k.Vtd)+' m']]);};
+ M.oninput=R.oninput=T.oninput=Sl.oninput=u;u();}
+
+/* ---------- step 15: reverse thrust ---------- */
+function initReverse(){const S=document.getElementById('rS');const base=landCalc(0.3,1.225,3000,0),B=base.B,V2=base.Vtd*base.Vtd,W=LD.W;
+ const Treq=s=>{const A=B*V2/(Math.exp(2*G*B*s)-1);return(0.3-A)*W/1000;};
+ const u=()=>{const s=+S.value,A=B*V2/(Math.exp(2*G*B*s)-1),T=(0.3-A)*W;setV('rS',s+' m');
+  stats('rStats',[['2gB S<sub>G</sub>',(2*G*B*s).toFixed(7)],['A needed',A.toFixed(4)],['T needed',(T/1000).toFixed(2)+' kN',1],['as % of 31.1 kN',(Math.abs(T)/311.36).toFixed(1)+'% '+(T<0?'reverse':'forward')]]);
+  const g=chart(document.getElementById('rCv'),{x0:150,x1:600,y0:-50,y1:10,xl:'target S_G (m)',yl:'T (kN)',fx:v=>fmt(v)});
+  line(g,Treq,150,600,css('--accent'),2.8);seg(g,150,-31.136,600,-31.136,css('--signal'),1,[4,4]);g.c.fillStyle=css('--signal');g.c.font=MONO;g.c.textAlign='left';g.c.fillText('−31.1 kN (size of max forward thrust)',g.X(160),g.Y(-31.136)+12);
+  dot(g,400,Treq(400),css('--muted'),'Ex 4',8,-12);dot(g,300,Treq(300),css('--muted'),'Ex 5',8,-12);dot(g,491,3,css('--muted'),'491 m, T = +3 kN',-8,-12);
+  dot(g,s,T/1000,css('--signal'),'',0,0);};
+ S.oninput=u;u();}
+
+/* ---------- step 17: take-off calculator ---------- */
+const TO={W:95632,S:28.95,CLmax:1.6,CL:0.8,CDCL:0.085,T:31136};
+function toCalc(W,r,mu,gR){const T=TO.T*r/RHO0,Vst=Math.sqrt(2*W/(r*TO.S*TO.CLmax)),VR=1.1*Vst,D=-r*TO.S*TO.CL*(TO.CDCL-mu)/(2*W),C=T/W-mu-gR;
+ const ok=C>0&&D*VR*VR+C>0,SG=ok?(Math.log(D*VR*VR+C)-Math.log(C))/(2*G*D):NaN;const V=s=>{const v2=C*(Math.exp(2*G*D*s)-1)/D;return v2>=0?Math.sqrt(v2):NaN;};return{T,Vst,VR,D,C,SG,V};}
+function initTakeoff(){const M=document.getElementById('tM'),R=document.getElementById('tR'),Mu=document.getElementById('tMu'),Sl=document.getElementById('tS');
+ const pre=(m,r)=>{M.value=m;R.value=r;Mu.value=0.03;Sl.value=0;u();};
+ document.getElementById('tE1').onclick=()=>pre(0,1.225);document.getElementById('tE2').onclick=()=>pre(500,1.225);document.getElementById('tE3').onclick=()=>pre(0,1.0);
+ const u=()=>{const m=+M.value,W=TO.W-m*G,r=+R.value,mu=+Mu.value,gR=+Sl.value;setV('tM',m+' kg · W = '+fmt(W)+' N');setV('tR',r.toFixed(3));setV('tMu',mu.toFixed(3));setV('tS',gR.toFixed(3));
+  [['tE1',0,1.225],['tE2',500,1.225],['tE3',0,1]].forEach(([id,mm,rr])=>document.getElementById(id).classList.toggle('right',m===mm&&Math.abs(r-rr)<.001&&Math.abs(mu-.03)<1e-4&&gR===0));
+  const k=toCalc(W,r,mu,gR),ref=toCalc(TO.W,1.225,0.03,0);
+  const x1=Math.max(1400,isFinite(k.SG)?Math.ceil(k.SG*1.1/100)*100:1400);
+  const g=chart(document.getElementById('tCv'),{x0:0,x1,y0:0,y1:90,xl:'distance from brake release (m)',yl:'speed V (m/s)',fx:v=>fmt(v)});
+  line(g,ref.V,0,ref.SG,css('--muted'),1.6,[5,4]);
+  if(isFinite(k.SG)){line(g,k.V,0,k.SG,css('--accent'),2.8);dot(g,k.SG,k.VR,css('--signal'),'V_R at '+fmt(k.SG)+' m',k.SG>x1*0.7?-8:8,-12);}
+  stats('tStats',[['T = (ρ/ρ₀) × 31,136',fmt(k.T)+' N'],['V<sub>stall</sub>',k.Vst.toFixed(2)+' m/s'],['V<sub>R</sub>',k.VR.toFixed(2)+' m/s'],['C',k.C.toFixed(4)],['D',(k.D*1e6).toFixed(4)+' × 10⁻⁶'],['D V<sub>R</sub>²',(k.D*k.VR*k.VR).toFixed(6)],
+   ['ground roll S<sub>G</sub>',isFinite(k.SG)?fmt(k.SG)+' m':'cannot reach V_R',1],['rotation 1 to 3 × V<sub>R</sub>',fmt(k.VR)+' to '+fmt(3*k.VR)+' m']]);};
+ M.oninput=R.oninput=Mu.oninput=Sl.oninput=u;u();}
+
+/* ---------- step 18: climb ---------- */
+function initClimb(){const Hs=document.getElementById('cH'),Ws=document.getElementById('cW');
+ const u=()=>{const a=AC.lj,k=kOf(a),W=a.W*Ws.value/100,S=a.S,h=+Hs.value,r=rhoAt(h),T=a.T*r/RHO0,tw=T/W;setV('cH',fmt(h)+' m · T = '+fmt(T)+' N');setV('cW',Ws.value+'%');
+  const gam=v=>{const cl=2*W/(r*v*v*S);return tw-(a.CD0+k*cl*cl)/cl;},roc=v=>v*gam(v);
+  const Vs=Math.sqrt(2*W/(r*S*a.CLmax)),Vm=vmd(W,r,S,k,a.CD0),gm=tw-2*Math.sqrt(k*a.CD0);
+  let vb=Vs,rb=-1e9;for(let v=Vs;v<=400;v+=0.25){const q=roc(v);if(q>rb){rb=q;vb=v;}}
+  let x1=Math.min(400,Math.max(vb*1.6,Vm*2.2));
+  const gTop=Math.max(20,Math.ceil(gam(Vs)*180/Math.PI/5+1)*5),rTop=Math.max(60,Math.ceil(rb/10+1)*10);
+  let g=chart(document.getElementById('cG'),{x0:0,x1,y0:-5,y1:gTop,xl:'TAS (m/s)',yl:'γ (deg)',fy:v=>v.toFixed(0)});
+  line(g,v=>gam(v)*180/Math.PI,Vs,x1,css('--accent'),2.8);dot(g,Vm,gm*180/Math.PI,css('--signal'),'V_MD steepest',8,-12);dot(g,vb,gam(vb)*180/Math.PI,css('--good'),'best rate',8,14);
+  g=chart(document.getElementById('cV'),{x0:0,x1,y0:-10,y1:rTop,xl:'TAS (m/s)',yl:'V γ (m/s)',fy:v=>v.toFixed(0)});
+  line(g,roc,Vs,x1,css('--accent'),2.8);dot(g,Vm,roc(Vm),css('--signal'),'V_MD',8,14);dot(g,vb,rb,css('--good'),'max V γ',8,14);
+  stats('cStats',[['T/W',tw.toFixed(4)],['V<sub>MD</sub> (steepest)',Vm.toFixed(1)+' m/s',1],['γ<sub>max</sub> = T/W − 2√(kC<sub>D0</sub>)',gm.toFixed(4)+' rad ('+(gm*180/Math.PI).toFixed(1)+'°)',1],['V γ at V<sub>MD</sub>',roc(Vm).toFixed(1)+' m/s'],['best-rate speed (from curve)',vb.toFixed(1)+' m/s'],['max V γ',rb.toFixed(1)+' m/s']]);};
+ Hs.oninput=Ws.oninput=u;u();}
+
+/* ---------- per-step setup ---------- */
+function setup(){
+ const s=steps[cur];if(s.init)s.init();
+ document.querySelectorAll('.reveal').forEach(rv=>{const ls=[...rv.querySelectorAll('.line')],rb=document.querySelector(`.revBtn[data-r="${rv.id}"]`),rs=document.querySelector(`.revReset[data-r="${rv.id}"]`);
+  let n=+(rv.dataset.n||1);
+  const show=()=>{rv.dataset.n=n;ls.forEach((l,i)=>l.classList.toggle('show',i<n));rb.disabled=n>=ls.length;rb.textContent=n>=ls.length?'All lines shown':'Reveal next line ('+n+'/'+ls.length+')';};
+  rb.onclick=()=>{n++;show();};rs.onclick=()=>{n=1;show();};show();});
+}
+const redraw=()=>{if(!anim&&stage.querySelector('canvas'))setup();};
+let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(redraw,150);});
+render();
+</script>
+
+</body></html>

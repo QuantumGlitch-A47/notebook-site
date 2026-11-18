@@ -23,10 +23,12 @@
       <p class="nav__course">Communication Systems 3<span>ENG 3014</span></p>
       <ol>
           <li><a href="#s01" class="is-active"><span class="num">01</span>Introduction</a></li>
-          <li><a href="#s02"><span class="num">02</span>Labs</a></li>
-          <li><a class="nav__sub" href="#s02-1">2.1 Spectrum analysis of waveforms</a></li>
-          <li><a class="nav__sub" href="#s02-2">2.2 Eye diagrams, noise and bandwidth</a></li>
-          <li><a class="nav__sub" href="#s02-3">2.3 Communication channel simulation</a></li>
+          <li><a href="#s02"><span class="num">02</span>Interactive notes</a></li>
+          <li><a class="nav__sub" href="#s02-1">2.1 Course map</a></li>
+          <li><a href="#s03"><span class="num">03</span>Labs</a></li>
+          <li><a class="nav__sub" href="#s03-1">3.1 Spectrum analysis of waveforms</a></li>
+          <li><a class="nav__sub" href="#s03-2">3.2 Eye diagrams, noise and bandwidth</a></li>
+          <li><a class="nav__sub" href="#s03-3">3.3 Communication channel simulation</a></li>
       </ol>
       <div class="progress"><i></i></div>
     </nav>
@@ -43,20 +45,32 @@
 
     <section class="section" id="s02">
       <header class="section-head">
-        <span class="num">02 / Labs</span>
+        <span class="num">02 / Interactive notes</span>
+        <h2>Interactive notes</h2>
+        <p class="lede">The whole course as one connected map, with formulas, variables and live demos for every topic.</p>
+      </header>
+
+      <h3 class="sub" id="s02-1"><span class="num">2.1</span>Course map</h3>
+      <div class="prose"><p>Four topics in 21 parts: fundamentals (bits, decibels, Fourier series and transforms, convolution, sampling and Shannon capacity), wireless (modulation, receivers, noise and BER, path loss, fading and MIMO), wired (cables, multiplexing, optical fibre and lasers) and networks. Select a topic to see what it builds on and what it leads to.</p></div>
+      <p class="lab-link"><a href="interactive/communication-course-map.html">Open the course map →</a></p>
+    </section>
+
+    <section class="section" id="s03">
+      <header class="section-head">
+        <span class="num">03 / Labs</span>
         <h2>Labs</h2>
         <p class="lede">Experiments and assignments from this course, with the full reports.</p>
       </header>
 
-      <h3 class="sub" id="s02-1"><span class="num">2.1</span>Lab 2: Spectrum analysis of waveforms</h3>
+      <h3 class="sub" id="s03-1"><span class="num">3.1</span>Lab 2: Spectrum analysis of waveforms</h3>
       <div class="prose"><p>Spectra of a sine wave, a 50% duty-cycle square wave, an AM signal and an FM signal, measured with the oscilloscope FFT and analysed in Python.</p></div>
-      <p class="lab-link"><a href="reports/eng3014-lab2-spectrum-analysis.pdf">Open report (PDF) →</a></p>
-      <h3 class="sub" id="s02-2"><span class="num">2.2</span>Lab 3: Eye diagrams, noise and bandwidth</h3>
+      <p class="lab-link"><a href="reports/eng3014-lab2-spectrum-analysis.pdf?v=20261118">Open report (PDF) →</a></p>
+      <h3 class="sub" id="s03-2"><span class="num">3.2</span>Lab 3: Eye diagrams, noise and bandwidth</h3>
       <div class="prose"><p>NRZ and PAM-4 eye diagrams showing intersymbol interference, jitter and noise as bandwidth and noise change.</p></div>
-      <p class="lab-link"><a href="reports/eng3014-lab3-eye-diagrams.pdf">Open report (PDF) →</a></p>
-      <h3 class="sub" id="s02-3"><span class="num">2.3</span>Communication channel simulation</h3>
+      <p class="lab-link"><a href="reports/eng3014-lab3-eye-diagrams.pdf?v=20261118">Open report (PDF) →</a></p>
+      <h3 class="sub" id="s03-3"><span class="num">3.3</span>Communication channel simulation</h3>
       <div class="prose"><p>A binary FSK link that sends an ASCII message through a noisy, fading channel. Bit error rate measured at 6, 18 and 24 dB SNR, with Hamming (7,4) error correction.</p></div>
-      <p class="lab-link"><a href="reports/eng3014-fsk-channel-simulation.pdf">Open report (PDF) →</a></p>
+      <p class="lab-link"><a href="reports/eng3014-fsk-channel-simulation.pdf?v=20261118">Open report (PDF) →</a></p>
     </section>
 
     <nav class="pager label" aria-label="Other courses">

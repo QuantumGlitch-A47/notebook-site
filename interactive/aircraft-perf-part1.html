@@ -1,0 +1,720 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Wing and Tail Design</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: a single "bench" panel, one step at a time, with a step rail on top and an instrument area per step */
+:root{
+  --bg:#f3f5f8; --panel:#ffffff; --ink:#152033; --muted:#5a6578; --line:#d7dde7;
+  --accent:#1f5fd1; --accent-soft:#e3ecfb; --signal:#d9480f; --good:#1d8a5b; --warn:#b7791f;
+  --grid:#e7ebf2;
+  --f-display:"Space Grotesk",system-ui,sans-serif;
+  --f-body:"Inter",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1420; --panel:#151d2c; --ink:#e6ebf4; --muted:#97a3b8; --line:#2a3548;
+  --accent:#6ea0ff; --accent-soft:#1c2a45; --signal:#ff8a4c; --good:#4cc38a; --warn:#e5b454; --grid:#1f2a3c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1420; --panel:#151d2c; --ink:#e6ebf4; --muted:#97a3b8; --line:#2a3548;
+  --accent:#6ea0ff; --accent-soft:#1c2a45; --signal:#ff8a4c; --good:#4cc38a; --warn:#e5b454; --grid:#1f2a3c; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-direction:column;gap:6px}
+.course{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-size:clamp(24px,4vw,34px);line-height:1.15;margin:0;text-wrap:balance}
+.rail{display:flex;gap:6px;flex-wrap:wrap}
+.rail button{font-family:var(--f-mono);font-size:12px;min-width:34px;height:30px;border-radius:6px;border:1px solid var(--line);
+  background:var(--panel);color:var(--muted);cursor:pointer}
+.rail button.done{color:var(--accent);border-color:var(--accent)}
+.rail button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.rail button:focus-visible,.btn:focus-visible,.opt:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.progress{height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:clamp(16px,3vw,28px);display:flex;flex-direction:column;gap:18px;min-width:0}
+.tag{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--signal)}
+h2{font-family:var(--f-display);font-size:clamp(21px,3vw,27px);line-height:1.2;margin:0;text-wrap:balance}
+h4{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0;font-weight:600}
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:760px){.trio{grid-template-columns:1fr}}
+.cell{border-top:3px solid var(--line);padding-top:10px;min-width:0}
+.cell h3{margin:0 0 4px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.cell.what{border-color:var(--accent)} .cell.mean{border-color:var(--good)} .cell.aim{border-color:var(--signal)}
+.cell p{margin:0;max-width:65ch}
+.eq{font-family:var(--f-mono);font-size:clamp(14px,2.2vw,17px);background:var(--accent-soft);border-radius:8px;padding:14px 16px;overflow-x:auto;line-height:2.1;white-space:nowrap}
+.eq .row{display:block}
+.eq .note{font-family:var(--f-body);font-size:13px;color:var(--muted);margin-left:12px;white-space:normal}
+.fr{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;margin:0 .15em;line-height:1.35}
+.fr>span:first-child{border-bottom:1.5px solid currentColor;padding:0 .25em}
+.fr>span:last-child{padding:0 .25em}
+.hl{color:var(--signal);font-weight:600}
+.hb{color:var(--accent);font-weight:600}
+table.vars{border-collapse:collapse;width:100%;font-size:14px}
+.tablebox{overflow-x:auto}
+table.vars td,table.vars th{border-bottom:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+table.vars th{font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:400}
+table.vars td:first-child{font-family:var(--f-mono);font-weight:600;white-space:nowrap}
+table.vars.plain td:first-child{font-family:var(--f-body);white-space:normal}
+.nav{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.btn{font-family:var(--f-body);font-weight:600;font-size:15px;padding:10px 18px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn:disabled{opacity:.4;cursor:default}
+.hint{font-size:13px;color:var(--muted)}
+canvas{display:block;width:100%;border-radius:8px;background:var(--bg)}
+.lab{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:14px}
+.lab.even{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+@media (max-width:760px){.lab,.lab.even{grid-template-columns:1fr}}
+.ctrls{display:flex;flex-wrap:wrap;gap:18px;align-items:center}
+.ctrl{display:flex;flex-direction:column;gap:4px;min-width:200px;flex:1}
+.ctrl label{font-family:var(--f-mono);font-size:13px;display:flex;justify-content:space-between;gap:8px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.num{display:flex;flex-direction:column;gap:4px;min-width:170px;flex:1;font-family:var(--f-mono);font-size:13px}
+.num input{font:inherit;font-size:15px;padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink)}
+.badge{font-family:var(--f-mono);font-size:13px;font-weight:600;padding:6px 12px;border-radius:999px;border:1.5px solid currentColor;display:inline-block}
+.cap{font-size:13px;color:var(--muted);margin-top:4px}
+.flow{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap}
+.box{flex:1;min-width:150px;border:1.5px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:4px}
+.box small{font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.box.s{border-color:var(--accent);background:var(--accent-soft)}
+.arrow{align-self:center;font-family:var(--f-mono);color:var(--signal);font-weight:600;font-size:14px;text-align:center}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{font-family:var(--f-body);font-size:14px;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;text-align:left}
+.opt.on{border-color:var(--accent);background:var(--accent);color:#fff;font-weight:600}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
+.readout{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.readout div{border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
+.readout small{display:block;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.readout b{font-family:var(--f-mono);font-size:16px}
+.readout div.key{border-color:var(--signal)}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+@media (max-width:760px){.two{grid-template-columns:1fr}}
+.two ul,.list{margin:4px 0 0;padding-left:20px}
+.two li,.list li{margin:2px 0}
+.desc{border-left:3px solid var(--accent);padding:6px 12px;min-height:3em}
+.desc p{margin:0 0 4px}
+@media (prefers-reduced-motion: reduce){.progress i{transition:none}}
+</style>
+
+<style>/* Aerosystems Notebook: site look, light only */
+:root,:root:not([data-theme="light"]),:root[data-theme="dark"]{
+  --bg:#f3f5f8; --panel:#ffffff; --ink:#152033; --muted:#5a6578; --line:#d7dde7;
+  --accent:#1f5fd1; --accent-soft:#e3ecfb; --signal:#d9480f; --good:#1d8a5b; --warn:#b7791f;
+  --grid:#e7ebf2;
+  --f-display:"Space Grotesk",system-ui,sans-serif;
+  --f-body:"Inter",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+--bg:#ffffff;--panel:#ffffff;--ink:#111111;--muted:#5a5a55;--line:#d4d4ce;--grid:#ececea;--f-display:"Helvetica Neue",Helvetica,Arial,sans-serif;--f-body:"Helvetica Neue",Helvetica,Arial,sans-serif;--f-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;color-scheme:light;}
+.nbk-back{display:block;max-width:980px;margin:0 auto 8px;padding:0 0 10px;border-bottom:2px solid #111;font:700 12px/16px "Helvetica Neue",Helvetica,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#111;text-decoration:none}
+.nbk-back:hover{text-decoration:underline}
+</style>
+<a class="nbk-back" href="../eng3059.html#s02">← Aircraft Perf Des. Analysis 3</a>
+<div class="wrap">
+  <header>
+    <div class="course">ENG3059 Aircraft Perf Des. Analysis 3 · Part 1 · Wing and tail design</div>
+    <h1>Wing and Tail Design</h1>
+  </header>
+  <div class="rail" id="rail" aria-label="Steps"></div>
+  <div class="progress"><i id="bar"></i></div>
+  <main class="panel" id="stage" aria-live="polite"></main>
+  <div class="nav">
+    <button class="btn ghost" id="prev">← Back</button>
+    <span class="hint">Use ← → keys to move between steps</span>
+    <button class="btn" id="next">Next →</button>
+  </div>
+</div>
+
+<script>
+const F=(n,d)=>`<span class="fr"><span>${n}</span><span>${d}</span></span>`;
+const VT=rows=>`<div class="tablebox"><table class="vars"><tr><th>Symbol</th><th>Meaning</th><th>Units</th></tr>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</table></div>`;
+const TB=(head,rows,cls)=>`<div class="tablebox"><table class="vars ${cls||''}"><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr>${rows.map(r=>`<tr>${r.map(x=>`<td>${x}</td>`).join('')}</tr>`).join('')}</table></div>`;
+const SL=(id,label,min,max,step,v)=>`<div class="ctrl"><label for="${id}"><span>${label}</span><span id="${id}v"></span></label><input id="${id}" type="range" min="${min}" max="${max}" step="${step}" value="${v}"></div>`;
+const LE='Λ<sub>LE</sub>', cr='c<sub>r</sub>', ct='c<sub>t</sub>', cb='c̄', dd='∂';
+const CLa='C<sub>Lα</sub>', Cla='C<sub>lα</sub>';
+
+const steps=[
+/* 1 */
+{tag:"Step 1 · Overview",title:"Shape the wing first, then size the tail",
+ what:"Part 1 has two sections. Section 1 sets the wing: its planform, its aerofoil and the devices added to it. Section 2 sets the tail: the tailplane and the fin.",
+ mean:"The wing makes the lift. The tail keeps the aircraft trimmed and stable about the centre of gravity. You need the wing numbers (S, b, c̄) before you can size the tail.",
+ aim:"Learn the few parameters that describe a wing and what each one does. Then size a tail with volume ratios and check trim and static stability. Later sections use these for the flight envelope and flight performance.",
+ extra:`<div class="flow">
+  <div class="box s"><small>Section 1</small><b>Wing geometry</b><span class="hint">S, b, AR, λ, Λ<sub>LE</sub>, dihedral, twist, i<sub>w</sub></span></div>
+  <div class="arrow">→</div>
+  <div class="box s"><small>Section 1</small><b>Aerofoil and 3D wing</b><span class="hint">C<sub>Lα</sub>, C<sub>Lmax</sub>, high lift devices, tips</span></div>
+  <div class="arrow">→</div>
+  <div class="box"><small>Section 2</small><b>Tail sizing</b><span class="hint">V<sub>H</sub>, V<sub>V</sub>, S<sub>T</sub>, S<sub>F</sub>, l<sub>T</sub>, l<sub>F</sub></span></div>
+  <div class="arrow">→</div>
+  <div class="box"><small>Section 2</small><b>Trim and stability</b><span class="hint">elevator range δ<sub>e</sub>, static margin K<sub>n</sub></span></div></div>
+  <p class="cap">The role of the aircraft drives every choice. A fast jet fighter has highly swept wings with thin sections for supersonic flight. A small general aviation aircraft has straight wings with thicker sections for low speed flight.</p>`},
+
+/* 2 */
+{tag:"Step 2 · Section 1 · Geometry",title:"The general trapezoidal wing in five numbers",
+ what:"Any straight tapered wing is fixed by its span b, root chord c<sub>r</sub>, tip chord c<sub>t</sub> and leading edge sweep Λ<sub>LE</sub>. Area, average chord, taper ratio and aspect ratio follow from these.",
+ mean:"The mean geometric chord (MGC) is the chord of a rectangular wing that stands in for the whole wing. It sits at a spanwise station y<sub>MGC</sub> and is set back x<sub>MGC</sub> from the root leading edge. You use it as c̄ in tail sizing and stability.",
+ aim:"Move the sliders. Watch the planform redraw and the red MGC line move. The defaults are the business jet wing of Worked Example 2.2.",
+ eq:`<span class="row">S = b ( ${F(`${cr} + ${ct}`,'2')} ) <span class="note">wing area</span></span>
+ <span class="row">c<sub>ave</sub> = ${F(`${cr} + ${ct}`,'2')} , &nbsp; λ = ${F(ct,cr)} , &nbsp; AR = ${F('b²','S')} = ${F('b','c<sub>ave</sub>')} <span class="note">average chord, taper ratio, aspect ratio</span></span>
+ <span class="row">c<sub>MGC</sub> ≈ c<sub>MAC</sub> ≡ c̄</span>
+ <span class="row">c<sub>MGC</sub> = ${F('2','3')}${cr} ( ${F('1 + λ + λ²','1 + λ')} ) , &nbsp; y<sub>MGC</sub> = ( ${F('b','6')} )( ${F('1 + 2λ','1 + λ')} ) , &nbsp; x<sub>MGC</sub> = y<sub>MGC</sub> tan ${LE}</span>`,
+ extra:VT([['S','Wing area (both halves)','m²'],['b','Wing span, tip to tip','m'],[`${cr}, ${ct}`,'Root chord and tip chord','m'],['c<sub>ave</sub>','Average chord','m'],['λ','Taper ratio','none'],['AR','Aspect ratio','none'],['c<sub>MGC</sub>, c<sub>MAC</sub>, c̄','Mean geometric chord, mean aerodynamic chord, mean chord','m'],['y<sub>MGC</sub>','Spanwise distance from the centreline to the MGC','m'],['x<sub>MGC</sub>','Distance of the MGC leading edge behind the root leading edge','m'],[LE,'Leading edge sweep angle','deg']])+
+ `<div class="ctrls">${SL('pfS','Wing area S (m²)',10,600,1,36)}${SL('pfAR','Aspect ratio AR',2,14,0.05,7.5)}${SL('pfL','Taper ratio λ',0.1,1,0.01,0.3)}${SL('pfSw','Sweep Λ<sub>LE</sub> (deg)',0,60,1,25)}</div>
+ <div><canvas id="pfCv" height="300"></canvas><div class="cap">Top view. Solid red line: the MGC on each side. Dashed line: quarter-chord line. Thin line at the top: datum through the root leading edge.</div></div>
+ <div class="readout" id="pfOut"></div>`},
+
+/* 3 */
+{tag:"Step 3 · Aspect ratio",title:"Aspect ratio: how slender the wing is",
+ what:"Tip vortices cut the lift near the tip. Fuselage interference cuts the lift near the root. On a high aspect ratio wing these two regions are a smaller share of the span.",
+ mean:"Wing drag is approximated by a drag polar. The induced drag factor k falls as AR rises. So a high AR wing has lower induced drag and a higher L/D.",
+ aim:"Choose high AR where high L/D matters, for example a long endurance aircraft such as the RQ-4 Global Hawk. Choose low AR where low roll damping matters for manoeuvrability, for example the F-104 Starfighter.",
+ eq:`<span class="row">C<sub>D</sub> = C<sub>D0</sub> + k C<sub>L</sub>² <span class="note">drag polar</span></span>
+ <span class="row">k = ${F('1','π AR e')} <span class="note">increasing AR decreases induced drag</span></span>`,
+ extra:VT([['C<sub>D</sub>','Wing drag coefficient','none'],['C<sub>D0</sub>','Profile drag component','none'],['k','Induced drag factor','none'],['C<sub>L</sub>','Lift coefficient','none'],['AR','Aspect ratio','none'],['e','Span efficiency factor','none']])+
+ TB(['','Low aspect ratio','High aspect ratio'],[
+  ['Lift curve','Shallower slope, lower C<sub>Lmax</sub>, stalls at a higher angle of attack','Steeper slope, higher C<sub>Lmax</sub>, stalls at a lower angle of attack'],
+  ['Induced drag','Higher: needs more α for the same C<sub>L</sub>','Lower'],
+  ['Roll damping','Less (more manoeuvrable)','More (less manoeuvrable)'],
+  ['Structure','Lower mass: smaller bending moment','Higher mass: longer lever arm, larger bending moment']],'plain')+
+ `<h4>Wing parameters of real aircraft</h4>`+TB(['Aircraft','Class','AR','λ','Dihedral Γ (deg)','Washout (deg)','i<sub>w</sub> (deg)','Λ<sub>LE</sub> (deg)'],[
+ ['Airbus A310','Jet airliner','8.8','0.26','11.3 / 4.05','-','5.05','28'],['Boeing 767','Jet airliner','7.9','0.267','6','-','4.25','31.5'],['BAC 167 Strikemaster','Military jet','5.84','0.545','6','3','3','-'],['HS Harrier','Military jet','3.175','0.354','-12','-8','1.75','34'],['SAAB 340','Turboprop','11.0','0.375','7','-','2','3.6'],['Lockheed C-130','Turboprop','10.09','0.852','2.5','3','3','0'],['Beechcraft Bonanza','GA single','6.2','0.5','6','3','4','0'],['Cirrus SR20/22','GA single','10','0.5','4.5','0','0.25','0'],['Cessna 310','GA twin','7.3','0.674','5','3','2.5','-'],['Piper PA-31 Cheyenne','GA twin','7.22','-','5','2.5','1.5','0'],['Cessna Citation II','Business jet','7.8','-','4','3','2.5','-'],['Gates Learjet 55','Business jet','6.72','0.391','-','-','-','13']],'plain')+
+ `<p class="cap">Extremes: HS Harrier AR = 3.175, SAAB 340 AR = 11.0.</p>`},
+
+/* 4 */
+{tag:"Step 4 · Taper and sweep",title:"Taper moves lift outboard. Sweep delays the shock waves",
+ what:"Taper ratio λ = c<sub>t</sub>/c<sub>r</sub> changes the spanwise lift distribution. Leading edge sweep Λ<sub>LE</sub> delays the onset and reduces the strength of shock waves.",
+ mean:"On an untapered wing the sectional lift coefficient falls slowly along the span. On a tapered wing it rises towards the tip, then falls fast close to the tip. This can start the stall at the tip and give a sudden, dangerous rolling moment.",
+ aim:"Use washout (twist the outer sections to a lower angle of attack) to stop tip stall on tapered wings. Use sweep for aircraft that cruise close to the speed of sound.",
+ eq:`<span class="row">λ = ${F(ct,cr)} <span class="note">Boeing 767: 0.267 · Lockheed C-130: 0.852</span></span>
+ <span class="row">Λ<sub>LE</sub> <span class="note">Airbus A310: 28° · Beechcraft Bonanza: 0°</span></span>`,
+ extra:VT([['λ','Taper ratio','none'],[`${ct}, ${cr}`,'Tip chord, root chord','m'],[LE,'Leading edge sweep angle','deg']])+
+ `<div class="two"><div><h4>Why sweep</h4><ul>
+ <li>Shock waves form at transonic and supersonic speeds. The speed where they start is the critical Mach number.</li>
+ <li>Shocks raise drag and push the aerodynamic centre aft. That changes the static margin and so the stability.</li>
+ <li>Most jet airliners cruise close to the speed of sound, so they have swept wings.</li></ul></div>
+ <div><h4>Why not always sweep</h4><ul>
+ <li>Straight, unswept wings are more efficient at low speed and have better stall behaviour. A swept wing has a lower C<sub>Lmax</sub> and stalls earlier than the equivalent unswept wing.</li>
+ <li>Sweep moves the aerodynamic centre aft. On the Douglas DC3 it was added to fix a centre of gravity that sat too far aft.</li>
+ <li>Variable sweep wings (Panavia Tornado) sweep forward at low speed and aft at high speed.</li></ul></div></div>`},
+
+/* 5 */
+{tag:"Step 5 · Dihedral, twist, incidence",title:"Dihedral, washout and the fixed wing incidence",
+ what:"Dihedral: the tip sits higher than the root (anhedral: lower). Twist: the tip sits at a different incidence from the root. Fixed incidence i<sub>w</sub>: the angle at which the wing is fitted to the fuselage.",
+ mean:"Dihedral stabilises the coupling between sideslip and roll. It stops the aircraft dropping a wing into the sideslip. Low wings usually get dihedral, high wings anhedral. Washout (tip incidence below root incidence) makes the tip stall last and evens out the lift along the span, which cuts induced drag.",
+ aim:"Choose i<sub>w</sub> so the fuselage sits at its best angle of attack (minimum drag or maximum L/D) at the cruise mission point (CMP), the middle of the cruise. Drag the sliders to see the result.",
+ eq:`<span class="row">α = α<sub>F</sub> + i<sub>w</sub> &nbsp; or &nbsp; α<sub>F</sub> = α − i<sub>w</sub></span>
+ <span class="row"><span class="hl">i<sub>w</sub> = α<sub>c</sub> − α<sub>Fopt</sub></span> <span class="note">Slide example: α<sub>Fopt</sub> = 1°, α<sub>c</sub> = 4°, so i<sub>w</sub> = 3° to the fuselage datum</span></span>`,
+ extra:VT([['α','Wing angle of attack','deg'],['α<sub>F</sub>','Fuselage angle of attack','deg'],['i<sub>w</sub>','Fixed wing incidence (wing chord to fuselage datum)','deg'],['α<sub>c</sub>','Wing angle of attack at the cruise mission point','deg'],['α<sub>Fopt</sub>','Optimum fuselage angle of attack in cruise','deg'],['Γ','Dihedral angle (negative = anhedral). Strikemaster 6°, Harrier −12°','deg']])+
+ `<div class="ctrls">${SL('inC','Wing α at CMP, α<sub>c</sub> (deg)',0,8,0.25,4)}${SL('inF','Best fuselage α<sub>Fopt</sub> (deg)',-2,4,0.25,1)}${SL('inA','Actual wing α now (deg)',-2,10,0.25,4)}</div>
+ <div><canvas id="incCv" height="230"></canvas><div class="cap" id="inCap"></div></div>
+ <div class="two"><div><h4>Geometric washout</h4><p class="hint">Twist built into the structure. The spar must be twisted.</p></div>
+ <div><h4>Aerodynamic washout</h4><p class="hint">A different aerofoil outboard that stalls at a higher angle of attack. Often preferred: the spar stays straight and untwisted, so manufacture is easier, mainly for composite aircraft.</p></div></div>`},
+
+/* 6 */
+{tag:"Step 6 · Planform choice",title:"Pick a planform by lift, bending, stall and roll",
+ what:"A designer weighs four issues. The wing must make enough lift through good use of the span. It must not create too much bending moment. It must stall gently. Roll response must be acceptable.",
+ mean:"Real lift falls near the root (fuselage) and near the tip (vortex). So the centre of lift sits inboard of the semi-span midpoint, and the root bending moment is lower than with an ideal uniform distribution. A uniform distribution helps only in cruise. It also means the whole wing stalls at once.",
+ aim:"Click each planform. Read what it is good at and what it costs.",
+ extra:`<div class="opts" id="gal"></div><div class="lab"><div class="desc" id="galTxt"></div><div><canvas id="galCv" height="220"></canvas><div class="cap" id="galCap"></div></div></div>`},
+
+/* 7 */
+{tag:"Step 7 · Aerofoil selection",title:"The section sets the drag bucket, C<sub>Lmax</sub>, C<sub>M</sub> and M<sub>crit</sub>",
+ what:"Three main parameters describe an aerofoil: thickness, mean line and camber. Camber is the largest gap between the mean line and the chord line.",
+ mean:"More camber gives more lift and a higher C<sub>Lmax</sub>. Thicker sections stall at higher angles but have more drag. A larger leading edge radius delays separation at high α. A square trailing edge on laminar sections can stop a separation bubble forming.",
+ aim:"Match the section to the speed range and to the tail. Put cruise C<sub>L</sub> (and ideally climb C<sub>L</sub>) inside the drag bucket.",
+ extra:TB(['Section family','What it does','Watch out for'],[
+ ['NACA 6 series','Thickest point moved aft to keep a laminar boundary layer over much of the chord. Has a low drag "bucket". Used on WW2 fighters, high performance GA, business jets, trainers.','A large wing chosen for climb gives a low cruise C<sub>L</sub> that can sit outside the bucket'],
+ ['NACA 23012 (2 series)','One of the most widely used sections. High L/D: low C<sub>Dmin</sub>, high C<sub>Lmax</sub>. Also used on helicopter rotor blades.','Stalls abruptly'],
+ ['Supercritical','For transonic aircraft. Delays the drag rise above M<sub>crit</sub>, which can be as low as Mach 0.6 for conventional sections.','Allows less sweep, which also improves low speed handling'],
+ ['Supersonic (double wedge, diamond)','Very thin. Minimises the effect of the shock waves on the surface.','Only for supersonic flight']],'plain')+
+ TB(['Property','Influence on the design'],[
+ ['Flow separation','Sets when and how the wing stalls. Even the C<sub>L</sub> vs α slope after stall differs between sections.'],
+ ['C<sub>Lmax</sub> and stall','More camber gives a higher maximum lift coefficient.'],
+ ['Pitching moment C<sub>M</sub>','Cambered sections have a negative C<sub>M</sub>. It drives longitudinal trim and so the tailplane design.'],
+ ['Critical Mach number','Thick sections accelerate the flow more, so shocks form at lower Mach. Use supercritical sections for transonic flight.'],
+ ['Thickness','Adds drag, but a thick inboard section allows a taller spar and more fuel volume.']],'plain')},
+
+/* 8 */
+{tag:"Step 8 · The 3D wing",title:"A real wing has a lower lift slope and a lower C<sub>Lmax</sub> than its section",
+ what:"Section data come from a wind tunnel. The flow is square to the leading edge and the walls act like end plates, so there are no root or tip effects. A 3D wing has spanwise flow, a tip vortex and root interference.",
+ mean:"The 3D wing needs a higher α for the same C<sub>L</sub>, so it has more drag. The higher the aspect ratio, the closer the wing gets to the 2D section.",
+ aim:"Correct the 2D lift slope with AR, and the 2D C<sub>lmax</sub> with sweep. Drag the AR slider to infinity and see the two lines merge.",
+ eq:`<span class="row">${CLa} = ${F(Cla,`( 1 + ${F(Cla,'π AR')} )`)} <span class="note">as AR → ∞, ${CLa} → ${Cla}</span></span>
+ <span class="row">C<sub>lmax</sub> = (C<sub>lmax</sub>)<sub>root</sub> + ${F('2y<sub>MGC</sub>','b')} [ (C<sub>lmax</sub>)<sub>tip</sub> − (C<sub>lmax</sub>)<sub>root</sub> ] <span class="note">varies with section and Reynolds number along the span</span></span>
+ <span class="row">y<sub>MGC</sub> = ( ${F('b','6')} )( ${F('1 + 2λ','1 + λ')} )</span>
+ <span class="row"><span class="hl">C<sub>Lmax</sub> = K<sub>A</sub> C<sub>lmax</sub></span> , &nbsp; K<sub>A</sub> = 0.9 cos³ ${LE} <span class="note">for a swept wing</span></span>`,
+ extra:VT([[Cla,'2D section lift curve slope','per rad'],[CLa,'3D wing lift curve slope','per rad'],['AR','Aspect ratio','none'],['C<sub>lmax</sub>','2D maximum lift coefficient (span weighted)','none'],['C<sub>Lmax</sub>','3D wing maximum lift coefficient','none'],['y<sub>MGC</sub>','Spanwise position of the mean geometric chord','m'],['b','Wing span','m'],['K<sub>A</sub>','Sweep correction factor','none'],[LE,'Leading edge sweep','deg']])+
+ `<div class="ctrls">${SL('lcA','2D slope C<sub>lα</sub> (/rad)',4,7,0.01,6.28)}${SL('lcAR','Aspect ratio AR',1,30,0.1,7.5)}${SL('lcS','Sweep Λ<sub>LE</sub> (deg)',0,60,1,25)}${SL('lcM','Section C<sub>lmax</sub>',0.8,2.2,0.01,1.5)}</div>
+ <div class="lab"><div class="readout" id="lcOut" style="align-content:start"></div><div><canvas id="lcCv" height="280"></canvas>
+ <div class="legend"><span><i style="background:var(--muted)"></i>2D section</span><span><i style="background:var(--accent)"></i>3D wing</span><span><i style="background:var(--signal)"></i>α needed for C<sub>L</sub> = 0.5</span></div>
+ <div class="cap">Straight lines through zero lift at α = 0, capped at C<sub>lmax</sub> and C<sub>Lmax</sub>. The slider values are yours to choose. 2π /rad is the thin aerofoil value.</div></div></div>`},
+
+/* 9 */
+{tag:"Step 9 · Worked Example 2.2",title:"Business jet wing: is 36 m² enough for a 90 kt stall?",
+ what:"NACA 65<sub>2</sub>-415 section. Mass 5500 kg. λ = 0.3, Λ<sub>LE</sub> = 25°, S = 36 m², b = 16.43 m. Maximum stall speed 90 knots. Kinematic viscosity ν = μ/ρ = 1.461×10⁻⁵ m²/s.",
+ mean:"You read C<sub>lα</sub> and C<sub>lmax</sub> from the section chart, at the Reynolds numbers of the root and tip. Then you correct them to the 3D wing with Step 8.",
+ aim:"Estimate C<sub>Lα</sub> and C<sub>Lmax</sub>. Then check the C<sub>L</sub> the wing needs at 90 kt. The page computes the geometry. Type in your chart readings to finish.",
+ eq:`<span class="row">AR = ${F('b²','S')} = ${F('16.43²','36')} = <span class="hb">7.50</span></span>
+ <span class="row">${cr} = ${F('2S','b(1 + λ)')} = <span class="hb">3.371 m</span>, &nbsp; ${ct} = λ${cr} = <span class="hb">1.011 m</span>, &nbsp; c<sub>MGC</sub> = <span class="hb">2.403 m</span></span>
+ <span class="row">y<sub>MGC</sub> = ( ${F('16.43','6')} )( ${F('1.6','1.3')} ) = <span class="hb">3.370 m</span>, &nbsp; ${F('2y<sub>MGC</sub>','b')} = 0.410</span>
+ <span class="row">K<sub>A</sub> = 0.9 cos³ 25° = <span class="hb">0.670</span></span>
+ <span class="row">V = 90 kt = 46.30 m/s, &nbsp; Re = ${F('V c','ν')} : root 1.07×10⁷, MGC 7.6×10⁶, tip 3.2×10⁶ <span class="note">pick the chart curves (R = 3, 6, 9 ×10⁶) closest to these</span></span>
+ <span class="row">C<sub>L,req</sub> = ${F('2 m g','ρ V² S')} <span class="note">ρ is not given on the slide. The page uses sea level ISA, ρ = 1.225 kg/m³</span></span>`,
+ extra:VT([['m','Aircraft mass','kg'],['g','Gravitational acceleration, 9.81','m/s²'],['V','Stall speed','m/s'],['ν, μ, ρ','Kinematic viscosity, dynamic viscosity, air density','m²/s, Pa s, kg/m³'],['Re','Reynolds number based on local chord','none'],['C<sub>L,req</sub>','Lift coefficient the wing must reach at the stall speed','none']])+
+ `<div class="ctrls"><label class="num">C<sub>lα</sub> from chart (per degree)<input id="weA" type="number" step="0.001" placeholder="e.g. read slope"></label>
+ <label class="num">(C<sub>lmax</sub>)<sub>root</sub> from chart<input id="weR" type="number" step="0.01" placeholder="root Re curve"></label>
+ <label class="num">(C<sub>lmax</sub>)<sub>tip</sub> from chart<input id="weT" type="number" step="0.01" placeholder="tip Re curve"></label></div>
+ <div class="readout" id="weOut"></div>`},
+
+/* 10 */
+{tag:"Step 10 · High lift devices",title:"Slats raise the stall angle. Flaps shift the curve up",
+ what:"Wing area is set for cruise, where L = mg. Take-off and landing need more lift at low speed. High lift devices reshape the section: they add camber and often area, so C<sub>Lmax</sub> rises while S stays small.",
+ mean:"Leading edge devices extend the same lift line to a higher stall angle and C<sub>Lmax</sub>. Slope and zero lift angle stay the same, so trim is unaffected. Trailing edge flaps add camber: the line moves up, C<sub>Lmax</sub> rises but stall comes at a lower α, and trim changes.",
+ aim:"Shorter take-off ground run and lower approach speed. Pick a configuration to see the schematic lift curve and section shape.",
+ extra:`<div class="opts" id="hlOpts"></div><div class="lab even"><div><canvas id="hlSec" height="200"></canvas><div class="cap">Section shape (schematic).</div></div><div><canvas id="hlCv" height="200"></canvas><div class="cap" id="hlCap"></div></div></div>`+
+ TB(['Device','Type','How it works'],[
+ ['Droop nose (hinged leading edge)','Leading edge','Nose hinges down 15° to 40° to add camber. Raises C<sub>Lmax</sub> and α<sub>stall</sub>. The upper surface must stay smooth or flow separates.'],
+ ['Fixed slot','Leading edge','High pressure air passes from the lower to the upper surface and delays separation. Cannot retract, so mainly on STOL aircraft.'],
+ ['Kruger flap','Leading edge','Panel under the wing swings forward. Moves the stagnation point and delays separation. Often inboard, with "bull nose" or variable camber Krugers outboard.'],
+ ['Two or three position slat','Leading edge','Extends like a fixed slot at low speed, retracts in cruise to avoid drag. Three position: retracted (cruise), part extended without slot (take-off), fully extended (landing).'],
+ ['Plain flap','Trailing edge','Aft part hinges down. More camber, higher C<sub>Lmax</sub>, lower α<sub>stall</sub>.'],
+ ['Split flap','Trailing edge','Only the lower surface hinges down. Same effect as a plain flap.'],
+ ['Slotted flap','Trailing edge','Moves aft to open a slot and deflects down. Adds area. Slot flow energises the flap upper surface, so it can deflect further.'],
+ ['Double / triple slotted flap','Trailing edge','More slots, more boundary layer control, more camber and chord. Also more drag and pitching moment. Complex and heavy, so large aircraft only.'],
+ ['Fowler flap','Trailing edge','Slides aft first to add chord, then rotates to add camber. The wing upper surface needs stiffening at the overlap.']],'plain')+
+ `<p class="cap">Flaps and slats are usually used together: a large rise in C<sub>Lmax</sub> with only a small change in stall angle. Flaps add drag, so on take-off they are retracted as soon as a steady climb is established.</p>`},
+
+/* 11 */
+{tag:"Step 11 · Tips and other devices",title:"Wing tips, winglets, vortex generators and spoilers",
+ what:"The tip shape sets where the tip vortex forms and how strong it is. The vortex shrinks the part of the wing with good 2D properties. This acts like a reduction in aspect ratio.",
+ mean:"Push the vortex outboard and the effective AR rises, so induced drag falls. Any added surface must save more induced drag than it adds in skin friction, interference drag and weight.",
+ aim:"Know what each device does and the slide figures: raked tip up to 7% better L/D; Whitcomb winglet 3% less cruise fuel, 2% more range, 5% shorter take-off.",
+ extra:TB(['Device','Effect'],[
+ ['Round or spherical tip','Inefficient. The vortex rolls up and moves inboard, cutting effective AR and raising induced drag.'],
+ ['Square tip','Vortex forms slightly outboard of the tip. Better.'],
+ ['Booster tip','Pushes the vortex as far outboard as possible.'],
+ ['Hoerner tip','Pushes the vortex outboard. Its curved planform also improves low speed stall.'],
+ ['Raked tip','Raises AR and efficiency, but the span grows. Up to 7% better L/D, depending on rake angle and tip dihedral.'],
+ ['Winglet','Spreads the tip vorticity over a swept surface and weakens the vortex. Common on transonic aircraft.'],
+ ['Airbus winglet (end plate)','Makes the wing act more like a 2D section. Helps stop spanwise spread of separation.'],
+ ['Whitcomb winglet','Tests: 3% less fuel burn in cruise, 2% more range, 5% shorter take-off distance.'],
+ ['Vortex generators','Small vanes that make local vortices and suppress separation. On the leading edge or ahead of a control surface. On nacelles ("nacelle strakes") they make a vortex over the wing at high α.'],
+ ['Spoilers and airbrakes','Flush upper surface flaps that dump lift. One wing: brief roll control. Both wings: steeper descent. On landing: keep the aircraft on the ground and add drag. STOL, delta wing and very large aircraft may need extra airbrakes.']],'plain')},
+
+/* 12 */
+{tag:"Step 12 · Section 2 · Tail roles",title:"The tail trims, stabilises and controls",
+ what:"The tail has a tailplane (horizontal stabiliser) and a fin (vertical stabiliser). Their main jobs are trim and stability. They also give control through the elevator and the rudder.",
+ mean:"Trim: no acceleration (forces balance) and no rotation (no moment about the CG). Stability: the aircraft returns to trim when disturbed. For the tailplane, trim comes first. For the fin, directional stability comes first.",
+ aim:"Balance the forces and moments. Move the wing aerodynamic centre ahead of or behind the CG and watch the tail lift change sign.",
+ eq:`<span class="row">Wing AC ahead of CG: &nbsp; T = D, &nbsp; L = W − L<sub>T</sub>, &nbsp; <span class="hl">L a − L<sub>T</sub> b = 0</span> <span class="note">a = CG to wing lift, b = CG to tail lift (tail lift up)</span></span>
+ <span class="row">Wing AC behind CG: &nbsp; T = D, &nbsp; L = W + L<sub>T</sub>, &nbsp; <span class="hl">L a − L<sub>T</sub>(a + b) = 0</span> <span class="note">a = CG to wing lift, b = wing lift to tail (tail lift down)</span></span>`,
+ extra:VT([['T, D','Thrust, drag','N'],['L','Wing lift','N'],['W','Weight','N'],['L<sub>T</sub>','Tailplane lift (magnitude)','N'],['a, b','Lever arms as defined in each case','m']])+
+ `<div class="ctrls">${SL('trD','Wing AC ahead of CG, as % of tail arm',-15,15,0.5,5)}<span class="badge" id="trB"></span></div>
+ <div><canvas id="trCv" height="230"></canvas><div class="cap" id="trCap"></div></div>
+ <div class="two"><div><h4>Pitch damping</h4><p class="hint">Nose pitches up, so the tail moves down. Air moves up over the tailplane and raises its angle of attack and lift by ΔL<sub>T</sub>. That pitches the nose back down.</p>
+ <h4 style="margin-top:10px">Elevator</h4><p class="hint">The CG moves as fuel burns and loads change, so the tail must give different trim moments. The elevator changes the effective camber of the tailplane to do this.</p></div>
+ <div><h4>Fin trim and one engine out</h4><p class="hint">Aircraft are symmetric about the xz plane, so directional trim is easy. Single engine propeller torque is trimmed with a small aileron offset. With one engine inoperative (OEI) the fin side force must balance the asymmetric thrust. A yaw disturbance raises the fin sideslip and makes a restoring yaw moment: "weathercock stability".</p></div></div>
+ <div class="eq"><span class="row">Σ N<sub>G</sub> = 0: &nbsp; <span class="hl">Y<sub>F</sub> l<sub>F</sub> − T<sub>R</sub> b<sub>E</sub> = 0</span> <span class="note">OEI yaw balance, the main criterion for rudder design</span></span>
+ <span class="row">Y<sub>F</sub> = ${F('1','2')}ρV<sub>f</sub>² S<sub>F</sub> C<sub>YF</sub> , &nbsp; C<sub>YF</sub> = ${F(`${dd}C<sub>YF</sub>`,`${dd}β`)} β + ${F(`${dd}C<sub>YF</sub>`,`${dd}δ<sub>r</sub>`)} δ<sub>r</sub></span></div>`+
+ VT([['Y<sub>F</sub>','Fin side force','N'],['l<sub>F</sub>','Fin lever arm from the CG','m'],['T<sub>R</sub>','Thrust of the working engine','N'],['b<sub>E</sub>','Lateral offset of that engine from the CG','m'],['ρ, V<sub>f</sub>','Air density, flight speed','kg/m³, m/s'],['S<sub>F</sub>','Fin area','m²'],['C<sub>YF</sub>','Fin side force coefficient','none'],['β, δ<sub>r</sub>','Sideslip angle, rudder deflection','rad']])},
+
+/* 13 */
+{tag:"Step 13 · Tail sizing",title:"Size the tail with volume ratios from historical data",
+ what:"A tail volume ratio is tail area times lever arm, divided by a wing area and a wing length. Similar aircraft have similar values. So you pick V<sub>H</sub> and V<sub>V</sub> from data, estimate the arms, and solve for the areas.",
+ mean:"A longer arm means a smaller tail for the same effect. For jet airliners the arms are about half the fuselage length.",
+ aim:"Repeat the Cruiser preliminary design: S = 462.6 m², b = 66.3 m, l<sub>Fus</sub> = 65 m, c̄ = 7.82 m. With V<sub>H</sub> = 0.8 and V<sub>V</sub> = 0.06 you should get S<sub>T</sub> = 90.86 m² and S<sub>F</sub> = 62.91 m².",
+ eq:`<span class="row">V<sub>H</sub> = ${F('S<sub>T</sub> l<sub>T</sub>','S c̄')} &nbsp;⇒&nbsp; S<sub>T</sub> = ${F('V<sub>H</sub> S c̄','l<sub>T</sub>')} = ${F('0.8 × 462.6 × 7.82','31.85')} = <span class="hl">90.86 m²</span></span>
+ <span class="row">V<sub>V</sub> = ${F('S<sub>F</sub> l<sub>F</sub>','S b')} &nbsp;⇒&nbsp; S<sub>F</sub> = ${F('V<sub>V</sub> S b','l<sub>F</sub>')} = ${F('0.06 × 462.6 × 66.3','29.25')} = <span class="hl">62.91 m²</span></span>
+ <span class="row">Jet airliners: l<sub>T</sub> = 0.49 l<sub>Fus</sub> = 31.85 m, &nbsp; l<sub>F</sub> = 0.45 l<sub>Fus</sub> = 29.25 m</span>
+ <span class="row">Tailplane: AR = 4.5, λ = 0.35, Λ<sub>LE</sub> = 35° <span class="note">typical values from airliner data</span></span>
+ <span class="row">&nbsp;&nbsp;b<sub>T</sub> = √(AR S<sub>T</sub>) = 20.22 m, c<sub>ave</sub> = b<sub>T</sub>/AR = 4.49 m</span>
+ <span class="row">&nbsp;&nbsp;${cr} = 6.65 m, ${ct} = 2.32 m</span>
+ <span class="row">Fin: AR = 1.6, λ = 0.35, Λ<sub>LE</sub> = 45°</span>
+ <span class="row">&nbsp;&nbsp;b<sub>F</sub> = √(AR S<sub>F</sub>) = 10.03 m, c<sub>ave</sub> = 6.27 m</span>
+ <span class="row">&nbsp;&nbsp;${cr} = 9.28 m, ${ct} = 3.25 m</span>`,
+ extra:VT([['V<sub>H</sub>, V<sub>V</sub>','Tailplane and fin volume ratios','none'],['S<sub>T</sub>, S<sub>F</sub>','Tailplane area, fin area','m²'],['S','Wing area','m²'],['c̄','Wing mean aerodynamic chord','m'],['b','Wing span','m'],['l<sub>T</sub>, l<sub>F</sub>','Tailplane and fin lever arms (CG to tail aerodynamic centre)','m'],['l<sub>Fus</sub>','Fuselage length','m'],['b<sub>T</sub>, b<sub>F</sub>','Tailplane span, fin height','m']])+
+ `<div class="opts" id="vhOpts"></div>
+ <div class="ctrls">${SL('vhH','Tailplane V<sub>H</sub>',0.3,1.2,0.01,0.8)}${SL('vhV','Fin V<sub>V</sub>',0.01,0.1,0.001,0.06)}${SL('vhT','l<sub>T</sub> / l<sub>Fus</sub>',0.35,0.6,0.01,0.49)}${SL('vhF','l<sub>F</sub> / l<sub>Fus</sub>',0.35,0.6,0.01,0.45)}</div>
+ <div class="readout" id="vhOut"></div>
+ <div class="lab even"><div><canvas id="vhCurve" height="240"></canvas><div class="cap">S<sub>T</sub> needed against tail arm l<sub>T</sub> for your V<sub>H</sub> (Cruiser wing). Dot: your design.</div></div>
+ <div><canvas id="vhPlan" height="240"></canvas><div class="cap">Your tailplane (top view) and fin (side view) to the same scale, using the tailplane and fin AR, λ and Λ<sub>LE</sub> above.</div></div></div>`+
+ `<h4>Typical volume ratios</h4>`+TB(['Aircraft type','V<sub>H</sub>','V<sub>V</sub>'],[['Glider','0.5','0.02'],['General aviation, single engine','0.7','0.04'],['General aviation, twin engine','0.8','0.07'],['Twin turboprop','0.9','0.08'],['Jet trainer','0.7','0.06'],['Jet fighter','0.4','0.07'],['Military cargo / bomber','1.0','0.08'],['Jet airliner','1.0','0.09']],'plain')+
+ `<h4>Airliner data behind the Cruiser choice</h4>`+TB(['Aircraft','S (m²)','c̄ (m)','b (m)','S<sub>T</sub> (m²)','l<sub>T</sub> (m)','V<sub>H</sub>','S<sub>F</sub> (m²)','l<sub>F</sub> (m)','V<sub>V</sub>','l<sub>Fus</sub> (m)'],[
+ ['Airbus A330-300','361.4','7.26','60.3','72.9','28.6','0.795','45.2','27.5','0.0570','63.4'],['Boeing 777-200','427.8','8.75','60.9','101.26','27.9','0.755','53.23','26.6','0.0543','63.7'],['Airbus A350-900','440.4','9.15','64.6','81.45','32.98','0.666','51.0','27.76','0.0498','67.0'],['Airbus A340-300','361.4','7.26','60.3','72.9','28.6','0.795','45.2','27','0.0560','63.7'],['Boeing 777-300','427.8','8.75','60.9','101.26','32.95','0.891','53.23','31.65','0.0647','73.9'],['Boeing 747-400','534.9','9.68','64.4','136.6','32.5','0.857','77.1','30','0.0671','70.7']],'plain')+
+ `<p class="cap">Shapes: tail surfaces use thinner, symmetric sections than the wing, so they give the same force for positive or negative α. Both have a much lower AR than the wing. The tailplane always lifts, so its AR is as high as feasible. The fin lifts only in sideslip, so a lower, stronger AR is fine. Sweep on jet tails cuts high speed drag and moves the tail AC aft, lengthening the arm.</p>`},
+
+/* 14 */
+{tag:"Step 14 · Longitudinal trim equation",title:"From the moment balance to one coefficient equation",
+ what:"Take moments about the CG G for the wing plus fuselage, the tailplane and the thrust. Divide by ½ρV<sub>f</sub>²Sc̄ to make it dimensionless. The tailplane group S<sub>T</sub>l<sub>T</sub>/(Sc̄) is the volume ratio V<sub>H</sub>.",
+ mean:"M<sub>wf</sub> and Th<sub>T</sub> are often small. For trim the tailplane usually has to give a download, so L<sub>T</sub> comes out negative. The CG h and the thrust change through the flight, and V<sub>H</sub> is fixed. So the only way to trim everywhere is to change C<sub>LT</sub> with the elevator.",
+ aim:"Know every line of this chain. You use it directly in the elevator range example next.",
+ eq:`<span class="row">ΣF<sub>x</sub> = 0: T − D = 0 , &nbsp; ΣF<sub>z</sub> = 0: mg − L<sub>wf</sub> − L<sub>T</sub> = 0</span>
+ <span class="row">ΣM<sub>G</sub> = 0: &nbsp; M<sub>wf</sub> + L<sub>wf</sub>(h − h<sub>nwf</sub>)c̄ − l<sub>T</sub>L<sub>T</sub> + T h<sub>T</sub> = 0</span>
+ <span class="row">L<sub>T</sub> = ${F('1','2')}ρV<sub>f</sub>² S<sub>T</sub> C<sub>LT</sub> &nbsp;⇒&nbsp; C<sub>Mwf</sub> + C<sub>Lwf</sub>(h − h<sub>nwf</sub>) − ${F('S<sub>T</sub> l<sub>T</sub>','S c̄')} C<sub>LT</sub> + C<sub>T</sub> ${F('h<sub>T</sub>','c̄')} = 0</span>
+ <span class="row"><span class="hl">C<sub>Mwf</sub> + C<sub>Lwf</sub>(h − h<sub>nwf</sub>) − V<sub>H</sub> C<sub>LT</sub> + C<sub>T</sub> ${F('h<sub>T</sub>','c̄')} = 0</span> <span class="note">pitch trim equation</span></span>
+ <span class="row">C<sub>Mwf</sub> = ${F('AR cos²(Λ)','AR + 2 cos(Λ)')} C<sub>Mw</sub> <span class="note">wing-fuselage moment from the wing moment</span></span>
+ <span class="row">C<sub>LT</sub> = ${F(`${dd}C<sub>LT</sub>`,`${dd}α<sub>T</sub>`)} α<sub>T</sub> + ${F(`${dd}C<sub>LT</sub>`,`${dd}δ<sub>e</sub>`)} δ<sub>e</sub> , &nbsp; α<sub>T</sub> = α − ε − i<sub>T</sub> , &nbsp; ε = ${F('2 C<sub>Lw</sub>','π AR')}</span>`,
+ extra:VT([['L<sub>wf</sub>, C<sub>Lwf</sub>','Lift of wing plus fuselage (fuselage can add about 10%), and its coefficient','N, none'],['M<sub>wf</sub>, C<sub>Mwf</sub>','Pitching moment of wing plus fuselage about its AC, usually negative (nose down)','N m, none'],['C<sub>Mw</sub>','Wing pitching moment coefficient','none'],['h','CG position as a fraction of c̄','none'],['h<sub>nwf</sub>','Wing-fuselage aerodynamic centre as a fraction of c̄ (about 0.25, fuselage adds ±5%)','none'],['l<sub>T</sub>','Tail arm, CG to tailplane AC','m'],['h<sub>T</sub>','Thrust line offset from the CG','m'],['C<sub>T</sub>','Thrust coefficient, T / (½ρV<sub>f</sub>²S)','none'],['C<sub>LT</sub>','Tailplane lift coefficient','none'],['α, α<sub>T</sub>','Aircraft (wing) and tailplane angle of attack','rad'],['ε','Downwash angle at the tail','rad'],['i<sub>T</sub>','Fixed tailplane setting (positive nose down)','rad'],['δ<sub>e</sub>','Elevator deflection','rad'],['Λ','Wing sweep','deg']])+
+ `<p class="cap">Downwash: the wing turns the flow ahead of the tail, so the tailplane sees a lower angle of attack than the wing. Elevator deflection shifts the tailplane lift line up or down without changing its slope.</p>`},
+
+/* 15 */
+{tag:"Step 15 · Worked example",title:"Elevator range for the Cruiser",
+ what:"Find the elevator travel needed for trim. Wing-fuselage AC at 0.27c̄. CG limits 0.2c̄ to 0.4c̄. Thrust line 2 m below the CG (h<sub>T</sub> = 2 m).",
+ mean:"Wing: S = 462.6 m², AR = 9.5, Λ<sub>LE</sub> = 30°, c̄ = 7.82 m, C<sub>Lw</sub> = 0.5667, C<sub>Mw</sub> = −0.03, C<sub>Lw</sub> = C<sub>L0</sub> + C<sub>Lα</sub>α with C<sub>L0</sub> = 0.32, C<sub>Lα</sub> = 4.5. Tail: V<sub>H</sub> = 0.8, i<sub>T</sub> = 1° = 0.01745 rad, ∂C<sub>LT</sub>/∂α<sub>T</sub> = 3.2, ∂C<sub>LT</sub>/∂δ<sub>e</sub> = 0.3. Cruise: T = 248 kN, V<sub>f</sub> = 250.75 m/s, ρ = 0.3648 kg/m³.",
+ aim:"Solve the trim equation for C<sub>LT</sub>, then for δ<sub>e</sub>, at each CG limit. The slides give the data only. The page works the numbers from the Step 14 equations. Move the CG and follow the chain.",
+ extra:`<div class="ctrls">${SL('elH','CG position h (fraction of c̄)',0.15,0.45,0.005,0.2)}<span class="badge" id="elB"></span></div>
+ <div class="eq" id="elEq"></div>
+ <div class="lab even"><div class="readout" id="elOut" style="align-content:start"></div><div><canvas id="elCv" height="240"></canvas><div class="cap">Elevator angle for trim against CG position. Shaded band: the CG limits 0.2c̄ to 0.4c̄. Positive δ<sub>e</sub> raises tail lift.</div></div></div>
+ <p class="cap">Assumptions made by the page: C<sub>Lwf</sub> = C<sub>Lw</sub> (fuselage lift ignored), Λ = Λ<sub>LE</sub> in the C<sub>Mwf</sub> formula, C<sub>T</sub> = T/(½ρV<sub>f</sub>²S), and the thrust term taken with the + sign of the trim equation for h<sub>T</sub> = 2 m.</p>`},
+
+/* 16 */
+{tag:"Step 16 · Static stability",title:"Stable when the neutral point is behind the CG",
+ what:"Statically stable: after a disturbance the aircraft tends back to trim. Pitch it up by a small +Δα. A stable aircraft makes a nose down moment, so C<sub>mα</sub> &lt; 0. The fin does the same in yaw: C<sub>nβ</sub> &gt; 0.",
+ mean:"Differentiate the trim equation with respect to α. C<sub>Mwf</sub> about the AC and the thrust term do not change with α. The neutral point h<sub>n</sub> is where C<sub>mα</sub> = 0. Then C<sub>mα</sub> = a<sub>wf</sub>(h − h<sub>n</sub>).",
+ aim:"Keep the static margin K<sub>n</sub> = h<sub>n</sub> − h positive, typically 5% to 15% of c̄. Too large and the aircraft is hard to manoeuvre. Move the CG and V<sub>H</sub> below. Cruiser data from Step 15.",
+ eq:`<span class="row">C<sub>m</sub> = C<sub>Mwf</sub> + C<sub>Lwf</sub>(h − h<sub>nwf</sub>) − V<sub>H</sub>C<sub>LT</sub> + C<sub>T</sub>h<sub>T</sub>/c̄ <span class="note">trim when C<sub>m</sub> = 0</span></span>
+ <span class="row">C<sub>mα</sub> = a<sub>wf</sub>(h − h<sub>nwf</sub>) − V<sub>H</sub> ${F(`${dd}C<sub>LT</sub>`,`${dd}α`)} , &nbsp; ${F(`${dd}C<sub>LT</sub>`,`${dd}α`)} = a<sub>T</sub>(1 − ${F(`${dd}ε`,`${dd}α`)})</span>
+ <span class="row">C<sub>mα</sub> = a<sub>wf</sub>(h − h<sub>nwf</sub>) − a<sub>T</sub>V<sub>H</sub>(1 − ${F(`${dd}ε`,`${dd}α`)}) <span class="note">(A); at h = h<sub>n</sub> it is 0 (B); (A) − (B):</span></span>
+ <span class="row"><span class="hl">C<sub>mα</sub> = a<sub>wf</sub>(h − h<sub>n</sub>)</span> , &nbsp; <span class="hl">h<sub>n</sub> = h<sub>nwf</sub> + ${F('a<sub>T</sub>','a<sub>wf</sub>')}V<sub>H</sub>(1 − ${F(`${dd}ε`,`${dd}α`)})</span> , &nbsp; ${F(`${dd}ε`,`${dd}α`)} = ${F('2','π AR')}${F(`${dd}C<sub>Lw</sub>`,`${dd}α`)}</span>
+ <span class="row">Elevator sizing check: L<sub>T</sub> = L<sub>wf</sub>(h − h<sub>nwf</sub>)${F('c̄','l<sub>T</sub>')} <span class="note">aft CG (h &gt; h<sub>nwf</sub>): tail lifts up. Forward CG: tail lifts down</span></span>`,
+ extra:VT([['C<sub>mα</sub>','Slope of pitching moment coefficient with α','per rad'],['a<sub>wf</sub>','Lift curve slope of wing plus fuselage, ∂C<sub>Lwf</sub>/∂α','per rad'],['a<sub>T</sub>','Tailplane lift curve slope, ∂C<sub>LT</sub>/∂α<sub>T</sub>','per rad'],['∂ε/∂α','Downwash gradient','none'],['h, h<sub>n</sub>, h<sub>nwf</sub>','CG, aircraft neutral point, wing-fuselage AC (fractions of c̄)','none'],['K<sub>n</sub>','Static margin, h<sub>n</sub> − h','fraction of c̄'],['C<sub>nβ</sub>','Slope of yawing moment coefficient with sideslip','per rad']])+
+ `<div class="ctrls">${SL('smH','CG position h',0.1,0.9,0.005,0.2)}${SL('smV','Tail volume ratio V<sub>H</sub>',0.3,1.2,0.01,0.8)}<span class="badge" id="smB"></span></div>
+ <div class="readout" id="smOut"></div>
+ <div class="lab even"><div><canvas id="smBar" height="200"></canvas><div class="cap">Mean chord c̄ from leading edge (0) to trailing edge (1). Green band: static margin 5% to 15% ahead of h<sub>n</sub>.</div></div>
+ <div><canvas id="smCv" height="200"></canvas><div class="cap">C<sub>mα</sub> = a<sub>wf</sub>(h − h<sub>n</sub>) against CG position. Below zero: stable.</div></div></div>
+ <p class="cap">Worked example (static margin, Cruiser): with a<sub>wf</sub> = C<sub>Lα</sub> = 4.5 and a<sub>T</sub> = 3.2, ∂ε/∂α = 2(4.5)/(π·9.5) = 0.302 and h<sub>n</sub> = 0.27 + (3.2/4.5)(0.8)(0.698) = 0.667. Forward CG 0.2c̄: K<sub>n</sub> = 0.467, C<sub>mα</sub> = −2.10. Aft CG 0.4c̄: K<sub>n</sub> = 0.267, C<sub>mα</sub> = −1.20. Stable at both limits, but the margin is well above 5% to 15%, so the aircraft could be hard to manoeuvre. These numbers are worked by the page from the slide equations, with a<sub>wf</sub> taken equal to the wing C<sub>Lα</sub>.</p>`},
+
+/* 17 */
+{tag:"Step 17 · Configurations and stall",title:"Tail layouts, and how the tail behaves near the stall",
+ what:"Over 80% of aircraft use a conventional tail. Other layouts solve a specific problem: rear engines, rear loading, height limits, a pusher propeller or weight.",
+ mean:"Tail position decides what the wing wake does at high α. A conventional tail gives a stall warning buffet. A T-tail keeps the rudder clear in a spin but risks deep stall.",
+ aim:"Pick each layout for a reason, and know the stall hazards and the fixes: stick shaker or stick limiter for deep stall, dorsal fin for rudder lock.",
+ extra:`<div class="opts" id="cfOpts"></div><div class="lab"><div class="desc" id="cfTxt"></div><div><canvas id="cfCv" height="200"></canvas><div class="cap" id="cfCap">Schematic rear view.</div></div></div>`+
+ TB(['Stall effect','What happens','Design answer'],[
+ ['Conventional tail, near stall','Cruise: wake passes below the tailplane (A). Near stall the wake hits it and causes buffet the pilot can feel (B). Post stall a good design lets the wake clear (C).','Natural stall warning'],
+ ['Conventional tail, spin','Post stall the tailplane wake can blank the rudder. Too little rudder authority makes spin recovery hard.','Size and place the rudder clear of the wake'],
+ ['T-tail, deep stall','At very high α the tailplane sits in the wing and rear nacelle wake. The elevator stops working and the nose cannot be pushed down. Found in 1963 on the BAC 1-11.','Stick shaker to warn, stick limiter to prevent. Full thrust can help push the nose down'],
+ ['Fin stall, rudder lock','High sideslip stalls a high AR fin. The side force drives the rudder over, and the pilot may be unable to move it back.','Dorsal fin: a low AR lower section that stalls at a higher β and still gives a restoring moment'],
+ ['Ventral fin','Below the rear fuselage. Vertical: extra yaw damping. Curved towards horizontal: lift at high α gives a nose down moment to aid stall recovery.','Fit for yaw damping or post stall recovery']],'plain')}
+];
+
+const stage=document.getElementById('stage'), rail=document.getElementById('rail');
+let cur=0, visited=new Set([0]), anim=null;
+try{const s=parseInt(localStorage.getItem('aa3p1step'));if(s>=0&&s<steps.length)cur=s;}catch(e){}
+
+steps.forEach((s,i)=>{const b=document.createElement('button');b.textContent=i+1;b.title=s.tag;b.onclick=()=>go(i);rail.appendChild(b);});
+
+function go(i){cur=Math.max(0,Math.min(steps.length-1,i));visited.add(cur);try{localStorage.setItem('aa3p1step',cur)}catch(e){}render();}
+document.getElementById('prev').onclick=()=>go(cur-1);
+document.getElementById('next').onclick=()=>go(cur+1);
+document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='ArrowRight')go(cur+1);if(e.key==='ArrowLeft')go(cur-1);});
+
+function render(){
+ if(anim){cancelAnimationFrame(anim);anim=null;}
+ const s=steps[cur];
+ stage.innerHTML=`<div class="tag">${s.tag}</div><h2>${s.title}</h2>
+ <div class="trio"><div class="cell what"><h3>What it is</h3><p>${s.what}</p></div>
+ <div class="cell mean"><h3>What it means</h3><p>${s.mean}</p></div>
+ <div class="cell aim"><h3>The aim</h3><p>${s.aim}</p></div></div>
+ ${s.eq?`<div class="eq">${s.eq}</div>`:''}${s.extra||''}`;
+ [...rail.children].forEach((b,i)=>{b.className=(i===cur?'on':visited.has(i)?'done':'');});
+ document.getElementById('bar').style.width=((cur+1)/steps.length*100)+'%';
+ document.getElementById('prev').disabled=cur===0;
+ document.getElementById('next').disabled=cur===steps.length-1;
+ setup();
+}
+
+/* ---------- drawing helpers ---------- */
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function prep(cv){const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.height/(cv._dpr||1);cv._dpr=dpr;cv._h=cv._h||h;
+ cv.width=w*dpr;cv.height=cv._h*dpr;cv.style.height=cv._h+'px';const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,cv._h);return[c,w,cv._h];}
+const $=id=>document.getElementById(id);
+const V=id=>+$(id).value;
+const MONO='11px ui-monospace, Menlo, monospace';
+const RD=Math.PI/180;
+const subs=t=>t.replace(/_([A-Za-z\u03b1-\u03c9\u0394\u0101-\u03ff0-9]+)/g,'<sub>$1</sub>');
+function out(id,items){$(id).innerHTML=items.map(([k,v,key])=>`<div${key?' class="key"':''}><small>${subs(k)}</small><b>${subs(v)}</b></div>`).join('');}
+function setv(id,txt){const e=$(id+'v');if(e)e.textContent=txt;}
+function poly(c,pts,fill,stroke,lw){c.beginPath();pts.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.closePath();if(fill){c.fillStyle=fill;c.fill();}if(stroke){c.strokeStyle=stroke;c.lineWidth=lw||1.5;c.stroke();}}
+function line(c,x1,y1,x2,y2,col,lw,dash){c.strokeStyle=col;c.lineWidth=lw||1;c.setLineDash(dash||[]);c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke();c.setLineDash([]);}
+function txt(c,s,x,y,col,align,base,font){c.fillStyle=col||css('--muted');c.font=font||MONO;c.textAlign=align||'left';c.textBaseline=base||'alphabetic';c.fillText(s,x,y);}
+function arrowV(c,x,y0,len,col,lw){/* vertical arrow from y0, len>0 up */const y1=y0-len;line(c,x,y0,x,y1,col,lw||2.5);const d=len>0?1:-1;if(Math.abs(len)<2)return;
+ c.fillStyle=col;c.beginPath();c.moveTo(x,y1);c.lineTo(x-5,y1+7*d);c.lineTo(x+5,y1+7*d);c.closePath();c.fill();}
+function plotAxes(c,W,H,pad,x0,x1,y0,y1,xt,yt,xl,yl,fmtx,fmty){
+ const X=v=>pad.l+(v-x0)/(x1-x0)*(W-pad.l-pad.r), Y=v=>pad.t+(y1-v)/(y1-y0)*(H-pad.t-pad.b);
+ c.lineWidth=1;
+ for(let v=Math.ceil(x0/xt)*xt;v<=x1+1e-9;v+=xt){line(c,X(v),pad.t,X(v),H-pad.b,css('--grid'));txt(c,fmtx?fmtx(v):String(+v.toFixed(3)),X(v),H-pad.b+5,css('--muted'),'center','top');}
+ for(let v=Math.ceil(y0/yt)*yt;v<=y1+1e-9;v+=yt){line(c,pad.l,Y(v),W-pad.r,Y(v),css('--grid'));txt(c,fmty?fmty(v):String(+v.toFixed(3)),pad.l-5,Y(v),css('--muted'),'right','middle');}
+ if(y0<0&&y1>0)line(c,pad.l,Y(0),W-pad.r,Y(0),css('--muted'));
+ if(x0<0&&x1>0)line(c,X(0),pad.t,X(0),H-pad.b,css('--muted'));
+ if(xl)txt(c,xl,W-pad.r,H-pad.b-6,css('--muted'),'right');
+ if(yl)txt(c,yl,pad.l+6,pad.t+10,css('--muted'),'left');
+ return[X,Y];}
+function trap(b,S,lam,swDeg){const cave=S/b,crr=2*cave/(1+lam);return{b,cave,cr:crr,ct:lam*crr,sw:swDeg*RD};}
+function drawTrapTop(c,cx,top,g,sc,fill,stroke){/* full span, LE at top */const h=g.b/2,dx=h*Math.tan(g.sw);
+ const P=(y,x)=>[cx+y*sc,top+x*sc];
+ poly(c,[P(0,0),P(h,dx),P(h,dx+g.ct),P(0,g.cr),P(-h,dx+g.ct),P(-h,dx)],fill,stroke,1.5);}
+
+/* ---------- step 2: planform ---------- */
+function planform(){
+ const S=V('pfS'),AR=V('pfAR'),lam=V('pfL'),sw=V('pfSw');
+ setv('pfS',S.toFixed(0));setv('pfAR',AR.toFixed(2));setv('pfL',lam.toFixed(2));setv('pfSw',sw.toFixed(0)+'°');
+ const b=Math.sqrt(AR*S),g=trap(b,S,lam,sw),cm=2/3*g.cr*(1+lam+lam*lam)/(1+lam),ym=b/6*(1+2*lam)/(1+lam),xm=ym*Math.tan(g.sw);
+ const cv=$('pfCv'),[c,W,H]=prep(cv),pad=26,dx=b/2*Math.tan(g.sw),depth=Math.max(g.cr,dx+g.ct);
+ const sc=Math.min((W-2*pad)/b,(H-2*pad-20)/depth),cx=W/2,top=pad+14;
+ line(c,cx-b/4*sc,top-10,cx+b/4*sc,top-10,css('--ink'),2);txt(c,'DATUM',cx+b/4*sc+6,top-6,css('--muted'));
+ drawTrapTop(c,cx,top,g,sc,css('--accent-soft'),css('--ink'));
+ line(c,cx,top,cx,top+g.cr,css('--muted'),1,[2,3]);
+ [1,-1].forEach(s=>{line(c,cx,top+g.cr/4*sc,cx+s*b/2*sc,top+(dx+g.ct/4)*sc,css('--accent'),1.5,[6,4]);
+  line(c,cx+s*ym*sc,top+xm*sc,cx+s*ym*sc,top+(xm+cm)*sc,css('--signal'),3);});
+ txt(c,'b = '+b.toFixed(2)+' m',cx,H-6,css('--ink'),'center');
+ line(c,cx-b/2*sc,H-20,cx+b/2*sc,H-20,css('--muted'),1);
+ txt(c,'c_r',cx+4,top+g.cr*sc/2,css('--muted'));
+ txt(c,'c_MGC',cx+ym*sc+5,top+(xm+cm/2)*sc,css('--signal'));
+ out('pfOut',[['Span b',b.toFixed(2)+' m'],['Root chord c_r',g.cr.toFixed(3)+' m'],['Tip chord c_t',g.ct.toFixed(3)+' m'],['c_ave',g.cave.toFixed(3)+' m'],['c_MGC',cm.toFixed(3)+' m',1],['y_MGC',ym.toFixed(3)+' m',1],['x_MGC',xm.toFixed(3)+' m',1],['y_MGC / (b/2)',(ym/(b/2)).toFixed(3)]]);
+}
+
+/* ---------- step 5: incidence ---------- */
+function incidence(){
+ const ac=V('inC'),af=V('inF'),a=V('inA');setv('inC',ac.toFixed(2)+'°');setv('inF',af.toFixed(2)+'°');setv('inA',a.toFixed(2)+'°');
+ const iw=ac-af,aF=a-iw;
+ const cv=$('incCv'),[c,W,H]=prep(cv),cx=W*0.5,cy=H*0.55,k=4; /* exaggerate angles x4 for visibility */
+ line(c,20,cy,W-20,cy,css('--muted'),1,[5,4]);txt(c,'relative wind →',24,cy-6,css('--muted'));
+ c.save();c.translate(cx,cy);c.rotate(-aF*RD*k);
+ const L=Math.min(W*0.42,320);
+ c.beginPath();c.ellipse(0,0,L,22,0,0,Math.PI*2);c.fillStyle=css('--bg');c.fill();c.strokeStyle=css('--ink');c.lineWidth=1.5;c.stroke();
+ line(c,-L-10,0,L+10,0,css('--accent'),1.5,[6,3]);txt(c,'fuselage datum',-L,14,css('--accent'));
+ c.save();c.translate(-L*0.15,-4);c.rotate(-iw*RD*k);
+ c.beginPath();c.moveTo(-60,0);c.quadraticCurveTo(-30,-14,40,-3);c.lineTo(60,0);c.quadraticCurveTo(0,6,-60,0);c.fillStyle=css('--signal');c.globalAlpha=.85;c.fill();c.globalAlpha=1;
+ line(c,-70,0,80,0,css('--signal'),1.2);c.restore();c.restore();
+ txt(c,'angles drawn ×4 for clarity',W-10,H-8,css('--muted'),'right');
+ const diff=aF-af,col=Math.abs(diff)<0.13?css('--good'):css('--signal');
+ txt(c,'i_w = '+iw.toFixed(2)+'°   α_F = '+aF.toFixed(2)+'°',14,20,css('--ink'),'left','alphabetic','600 13px ui-monospace, Menlo, monospace');
+ $('inCap').innerHTML=`i<sub>w</sub> = α<sub>c</sub> − α<sub>Fopt</sub> = ${ac.toFixed(2)} − ${af.toFixed(2)} = <b>${iw.toFixed(2)}°</b>. Fuselage now at α<sub>F</sub> = α − i<sub>w</sub> = <b style="color:${col}">${aF.toFixed(2)}°</b>, `+(Math.abs(diff)<0.13?'the optimum: this is the cruise mission point.':diff>0?`${diff.toFixed(2)}° above optimum (early cruise: heavy aircraft, higher C<sub>L</sub>).`:`${(-diff).toFixed(2)}° below optimum (late cruise: lighter aircraft, lower C<sub>L</sub>).`);
+}
+
+/* ---------- step 6: planform gallery ---------- */
+const ell=(()=>{const p=[];for(let i=0;i<=40;i++){const y=i/40,ch=0.42*Math.sqrt(Math.max(0,1-y*y));p.push([y,0.21-ch/2]);}for(let i=40;i>=0;i--){const y=i/40,ch=0.42*Math.sqrt(Math.max(0,1-y*y));p.push([y,0.21+ch/2]);}return p;})();
+const gallery=[
+ {n:'Rectangular',p:[[0,0],[1,0],[1,.3],[0,.3]],ex:'Cessna 210, Piper Aztec, DH6 Twin Otter, Shorts 360',
+  t:'Easy to make: every rib is the same and the spar is a constant thickness beam. Stalls from root to tip, so the stall is gentle with little roll. Common on GA trainers. Inefficient in cruise, so not for long range.'},
+ {n:'Elliptical',p:ell,ex:'Supermarine Spitfire, Heinkel He 70, P-47 Thunderbolt',
+  t:'Uniform lift per unit span and the minimum induced drag of any planform. Hard to manufacture. Because the lift is uniform, the whole wing tends to stall at once.'},
+ {n:'Straight tapered',p:[[0,0],[1,.1],[1,.24],[0,.4]],ex:'Cessna Citation II, Saab 340, Short Tucano, Hawker Seahawk',
+  t:'Root loaded: the larger root sections carry more lift, which cuts the root bending moment. Better tip lift and lower induced drag than a rectangular wing. Can stall from the tip, so it may need washout or better tip sections.'},
+ {n:'Tapered, straight TE',p:[[0,0],[1,.26],[1,.4],[0,.4]],ex:'Lockheed S-3 Viking, Airbus A400, General Dynamics F-16',
+  t:'Same properties as the conventional tapered wing, but the aerodynamic centre sits slightly further forward. Useful when the CG also sits too far forward.'},
+ {n:'Swept',p:[[0,0],[1,.55],[1,.85],[0,.3]],ex:'Messerschmitt 262, English Electric Lightning, F-86 Sabre, MiG-15, Hawker Hunter',
+  t:'Delays shock waves and shock drag to a higher Mach number. Can move the AC to suit the CG. The centre of lift is aft of the root, so it adds torsion as well as bending. Spanwise flow (root to tip) raises tip α and can cause tip stall and a dangerous roll.'},
+ {n:'Swept and tapered',p:[[0,0],[1,.55],[1,.68],[0,.4]],ex:'Boeing 777, Tupolev Tu-95, Boeing C-17, Gulfstream G250',
+  t:'Most modern swept wings add taper. It improves the stall (lower Reynolds number at the tip than the root). The tip carries less load, so bending moment falls.'},
+ {n:'Cranked trapezoidal',p:[[0,0],[1,.58],[1,.7],[.35,.5],[0,.5]],ex:'Large airliners',
+  t:'Leading and trailing edge sweep change at a kink. The inboard trailing edge often has zero sweep, so inboard flaps sit square to the flow and work better. A larger effective root chord gives strength and volume for fuel and the retracted undercarriage.'},
+ {n:'Forward swept',p:[[0,.3],[1,0],[1,.15],[0,.55]],ex:'Grumman X-29, Sukhoi Su-47, VisionAire Vantage, Rutan Boomerang',
+  t:'Delays shock drag like aft sweep, but spanwise flow runs tip to root, so no tip stall problem. The AC is ahead of the root, so torsion twists the wing nose up, raising α and load: an unstable (divergent) case. Aft sweep twists nose down: stable.'},
+ {n:'Delta',p:[[0,0],[1,.9],[0,.9]],ex:'Fairey Delta 2, Eurofighter Typhoon, Dassault Mirage 2000',
+  t:'Only for high subsonic or supersonic aircraft. Highly swept LE delays shocks. Shallow C<sub>L</sub> vs α curve: stalls late, low C<sub>Lmax</sub>. High approach speed and angle, sometimes a braking parachute. A standing vortex on top helps lift at low speed.'},
+ {n:'Cranked delta',p:[[0,0],[.3,.62],[1,.95],[0,.95]],ex:'Saab Draken, Avro Vulcan, F-16XL, Chengdu F-7',
+  t:'Two vortices form and interfere with each other, which makes this delta more manoeuvrable than a plain delta.'}];
+function galDraw(i){const g=gallery[i];
+ [...$('gal').children].forEach((b,j)=>b.classList.toggle('on',j===i));
+ $('galTxt').innerHTML=`<p><b>${g.n}</b></p><p>${g.t}</p>`;$('galCap').textContent='Examples: '+g.ex+'. Schematic top view.';
+ const cv=$('galCv'),[c,W,H]=prep(cv),sc=Math.min((W-40)/2,(H-30)/1.0),cx=W/2,top=15;
+ line(c,cx,top-5,cx,H-5,css('--muted'),1,[3,3]);
+ [1,-1].forEach(s=>poly(c,g.p.map(([y,x])=>[cx+s*y*sc,top+x*sc]),css('--accent-soft'),css('--ink'),1.5));}
+
+/* ---------- step 8: lift curve ---------- */
+function liftcurve(){
+ const cla=V('lcA'),AR=V('lcAR'),sw=V('lcS'),clm=V('lcM');setv('lcA',cla.toFixed(2));setv('lcAR',AR.toFixed(1));setv('lcS',sw+'°');setv('lcM',clm.toFixed(2));
+ const CLa=cla/(1+cla/(Math.PI*AR)),KA=0.9*Math.pow(Math.cos(sw*RD),3),CLm=KA*clm;
+ const a2=clm/cla/RD,a3=CLm/CLa/RD,r2=0.5/cla/RD,r3=0.5/CLa/RD;
+ const cv=$('lcCv'),[c,W,H]=prep(cv),pad={l:36,r:12,t:14,b:24};
+ const[X,Y]=plotAxes(c,W,H,pad,-4,24,-0.4,2.4,4,0.4,'α (deg)','C_L',v=>v+'°',v=>v.toFixed(1));
+ const cur=(sl,cm,col,lw)=>{const as=cm/sl/RD;c.strokeStyle=col;c.lineWidth=lw;c.beginPath();c.moveTo(X(-4),Y(sl*-4*RD));
+  const aEnd=Math.min(as,24);c.lineTo(X(aEnd),Y(sl*aEnd*RD));if(as<22){c.quadraticCurveTo(X(as+1.5),Y(cm*1.02),X(Math.min(as+4,24)),Y(cm*0.8));}c.stroke();};
+ cur(cla,clm,css('--muted'),2);cur(CLa,CLm,css('--accent'),2.8);
+ line(c,X(-4),Y(0.5),X(Math.max(r2,r3)),Y(0.5),css('--signal'),1,[3,3]);
+ [r2,r3].forEach(r=>line(c,X(r),Y(0.5),X(r),Y(0),css('--signal'),1,[3,3]));
+ txt(c,'α₁',X(r2)-3,Y(0)+14,css('--signal'),'right');txt(c,'α₂',X(r3)+3,Y(0)+14,css('--signal'),'left');
+ out('lcOut',[['3D slope C_Lα',CLa.toFixed(3)+' /rad',1],['C_Lα / C_lα',(CLa/cla).toFixed(3)],['K_A = 0.9cos³Λ',KA.toFixed(3)],['3D C_Lmax',CLm.toFixed(3),1],['α for C_L = 0.5: 2D, 3D',r2.toFixed(2)+'°, '+r3.toFixed(2)+'°'],['Stall α: 2D, 3D',a2.toFixed(1)+'°, '+a3.toFixed(1)+'°']]);
+}
+
+/* ---------- step 9: worked example 2.2 ---------- */
+function we22(){
+ const m=5500,g=9.81,S=36,b=16.43,lam=0.3,V9=90*0.514444,rho=1.225,AR=b*b/S,KA=0.9*Math.pow(Math.cos(25*RD),3);
+ const ym=b/6*(1+2*lam)/(1+lam),CLreq=2*m*g/(rho*V9*V9*S);
+ const a=parseFloat($('weA').value),r=parseFloat($('weR').value),t=parseFloat($('weT').value);
+ const items=[['C<sub>L,req</sub> at 90 kt (sea level)',CLreq.toFixed(3),1]];
+ if(isFinite(a)&&a>0){const clr=a/RD,CLa=clr/(1+clr/(Math.PI*AR));items.push(['C_lα',clr.toFixed(3)+' /rad'],['C_Lα',CLa.toFixed(3)+' /rad, '+(CLa*RD).toFixed(4)+' /deg',1]);}
+ else items.push(['C_Lα','enter chart slope']);
+ if(isFinite(r)&&isFinite(t)){const clm=r+2*ym/b*(t-r),CLm=KA*clm,ok=CLm>=CLreq;items.push(['Span C_lmax',clm.toFixed(3)],['C_Lmax = K_A C_lmax',CLm.toFixed(3),1],['36 m² enough?',ok?'Yes: C<sub>Lmax</sub> ≥ C<sub>L,req</sub>':'No: C<sub>Lmax</sub> &lt; C<sub>L,req</sub>',1],['S needed for 90 kt',(2*m*g/(rho*V9*V9*CLm)).toFixed(1)+' m²']);}
+ else items.push(['C_Lmax','enter root and tip C_lmax']);
+ out('weOut',items);
+}
+
+/* ---------- step 10: high lift ---------- */
+const hlCfg=[{n:'Clean',a0:0,as:14,col:'--muted'},{n:'Slats',a0:0,as:20,col:'--good'},{n:'Flaps',a0:-5,as:11,col:'--signal'},{n:'Flaps + slats',a0:-5,as:15,col:'--accent'}];
+let hlSel=0;
+function naca(xc){const t=0.12,m=0.02,p=0.4,yt=5*t*(0.2969*Math.sqrt(xc)-0.126*xc-0.3516*xc*xc+0.2843*xc**3-0.1015*xc**4);
+ const yc=xc<p?m/(p*p)*(2*p*xc-xc*xc):m/((1-p)**2)*((1-2*p)+2*p*xc-xc*xc);return[yc+yt,yc-yt];}
+function hlDraw(){
+ [...$('hlOpts').children].forEach((b,j)=>b.classList.toggle('on',j===hlSel));
+ const cfg=hlCfg[hlSel],slat=hlSel===1||hlSel===3,flap=hlSel>=2;
+ /* section */
+ {const cv=$('hlSec'),[c,W,H]=prep(cv),sc=Math.min(W*0.7,320),ox=(W-sc)/2-(flap?0:0),oy=H*0.45;
+  const seg=(x0,x1,tf)=>{const up=[],lo=[];for(let i=0;i<=30;i++){const x=x0+(x1-x0)*i/30,[u,l]=naca(x);up.push(tf(x,u));lo.push(tf(x,l));}
+   poly(c,up.concat(lo.reverse()).map(([x,y])=>[ox+x*sc,oy-y*sc]),css('--accent-soft'),css('--ink'),1.5);};
+  const rot=(cx,cy,ang,dx,dy)=>(x,y)=>{const s=Math.sin(ang),co=Math.cos(ang),X=x-cx,Y=y-cy;return[cx+X*co+Y*s+dx,cy-X*s+Y*co+dy];};
+  const xs=slat?0.15:0,xf=flap?0.75:1;
+  seg(xs,xf,(x,y)=>[x,y]);
+  if(slat)seg(0,0.15,rot(0.15,0,22*RD,-0.06,-0.035));
+  if(flap)seg(0.75,1,rot(0.75,0,-30*RD,0.04,-0.02));
+  txt(c,cfg.n,10,18,css('--ink'),'left','alphabetic','600 13px ui-monospace, Menlo, monospace');}
+ /* curves */
+ const cv=$('hlCv'),[c,W,H]=prep(cv),pad={l:26,r:10,t:12,b:22},X=a=>pad.l+(a+10)/(32)*(W-pad.l-pad.r),Y=v=>H-pad.b-(v+0.3)/(3.0)*(H-pad.t-pad.b),sl=0.1;
+ line(c,pad.l,Y(0),W-pad.r,Y(0),css('--muted'));line(c,X(0),pad.t,X(0),H-pad.b,css('--muted'));
+ txt(c,'α',W-pad.r,Y(0)-5,css('--muted'),'right');txt(c,'C_L',X(0)+5,pad.t+8,css('--muted'));
+ hlCfg.forEach((k,i)=>{const cm=sl*(k.as-k.a0);c.strokeStyle=css(k.col);c.globalAlpha=i===hlSel?1:0.25;c.lineWidth=i===hlSel?3:1.5;
+  c.beginPath();c.moveTo(X(-9),Y(sl*(-9-k.a0)));c.lineTo(X(k.as),Y(cm));c.quadraticCurveTo(X(k.as+1.5),Y(cm*1.02),X(k.as+4),Y(cm*0.82));c.stroke();c.globalAlpha=1;
+  if(i===hlSel){c.fillStyle=css(k.col);c.beginPath();c.arc(X(k.as),Y(cm),4,0,7);c.fill();}});
+ $('hlCap').textContent={0:'Clean wing: baseline lift line and stall.',1:'Slats: same line, extended to a higher stall angle and higher C_Lmax. No trim change.',2:'Flaps: line shifted up (more lift at every α), higher C_Lmax, but stall at a lower α. Trim changes.',3:'Flaps + slats: the highest C_Lmax with only a small change in stall angle.'}[hlSel]+' Schematic, no scale.';
+}
+
+/* ---------- step 12: trim balance ---------- */
+function trimBal(){
+ const d=V('trD')/100;setv('trD',(d*100).toFixed(1)+' %');
+ const LT=d/(1+d),L=1/(1+d); /* per unit W, lT = 1 */
+ const cv=$('trCv'),[c,W,H]=prep(cv),cy=H*0.52,xn=W*0.08,xt=W*0.9,xg=W*0.42,lt=(xt-xg)*0.92,xw=xg+(-d)*lt,xT=xg+lt;
+ /* fuselage */
+ c.beginPath();c.moveTo(xn,cy);c.quadraticCurveTo(xn+20,cy-22,xn+70,cy-22);c.lineTo(xt-40,cy-18);c.lineTo(xt,cy-30);c.lineTo(xt+6,cy-6);c.lineTo(xt-40,cy+8);c.lineTo(xn+70,cy+18);c.quadraticCurveTo(xn+20,cy+18,xn,cy);c.fillStyle=css('--bg');c.fill();c.strokeStyle=css('--ink');c.lineWidth=1.5;c.stroke();
+ poly(c,[[xg-50,cy+4],[xg+40,cy+4],[xg+30,cy+10],[xg-45,cy+10]],css('--accent-soft'),css('--ink'),1);
+ const base=80;
+ arrowV(c,xw,cy,base*L,css('--accent'),3);txt(c,'L = '+L.toFixed(3)+' W',xw+7,cy-base*L+10,css('--accent'));
+ arrowV(c,xg,cy,-base,css('--ink'),3);txt(c,'W',xg+7,cy+base-4,css('--ink'));
+ c.fillStyle=css('--ink');c.beginPath();c.arc(xg,cy,5,0,7);c.fill();txt(c,'CG',xg-8,cy+20,css('--ink'),'right');
+ const tl=base*LT*5,tc=LT>=0?css('--good'):css('--signal');arrowV(c,xT,cy-10,tl,tc,3);
+ txt(c,'L_T = '+(LT>=0?'+':'')+LT.toFixed(4)+' W (arrow ×5)',xT-6,LT>=0?cy-tl-18:cy-tl+18,tc,'right');
+ line(c,xg,cy+48,xT,cy+48,css('--muted'),1);txt(c,'tail arm l_T',(xg+xT)/2,cy+60,css('--muted'),'center');
+ if(Math.abs(d)>0.001){line(c,xw,cy-4,xw,cy+40,css('--muted'),1,[3,3]);txt(c,d>0?'wing AC ahead':'wing AC behind',xw,cy+40+12,css('--muted'),'center');}
+ const b=$('trB');b.textContent=d>0?'Tail lift up':d<0?'Tail download':'Tail unloaded';b.style.color=d>0?css('--good'):d<0?css('--signal'):css('--muted');
+ $('trCap').innerHTML=`Moment about the CG: L·d = L<sub>T</sub>·l<sub>T</sub> with d = ${(d*100).toFixed(1)}% of l<sub>T</sub>. Force: L + L<sub>T</sub> = W. So L<sub>T</sub>/W = d/(l<sub>T</sub> + d) = ${LT.toFixed(4)} and L/W = ${L.toFixed(4)}. `+(d<0?'A download means the wing must lift more than the weight.':d>0?'The tail carries part of the weight, so the wing lifts less than W.':'');
+}
+
+/* ---------- step 13: tail sizing ---------- */
+const GU={S:462.6,b:66.3,lf:65,c:7.82};
+const vhPresets=[['Cruiser choice',0.8,0.06],['Glider',0.5,0.02],['GA single',0.7,0.04],['GA twin',0.8,0.07],['Twin turboprop',0.9,0.08],['Jet trainer',0.7,0.06],['Jet fighter',0.4,0.07],['Military cargo / bomber',1.0,0.08],['Jet airliner',1.0,0.09]];
+function sizing(){
+ const VH=V('vhH'),VV=V('vhV'),fT=V('vhT'),fF=V('vhF');setv('vhH',VH.toFixed(2));setv('vhV',VV.toFixed(3));setv('vhT',fT.toFixed(2));setv('vhF',fF.toFixed(2));
+ const lT=fT*GU.lf,lF=fF*GU.lf,ST=VH*GU.S*GU.c/lT,SF=VV*GU.S*GU.b/lF;
+ const tp=trap(Math.sqrt(4.5*ST),ST,0.35,35),fn=trap(Math.sqrt(1.6*SF),SF,0.35,45);
+ out('vhOut',[['l_T',lT.toFixed(2)+' m'],['S_T',ST.toFixed(2)+' m²',1],['l_F',lF.toFixed(2)+' m'],['S_F',SF.toFixed(2)+' m²',1],['b_T, c_r, c_t',tp.b.toFixed(2)+', '+tp.cr.toFixed(2)+', '+tp.ct.toFixed(2)+' m'],['b_F, c_r, c_t',fn.b.toFixed(2)+', '+fn.cr.toFixed(2)+', '+fn.ct.toFixed(2)+' m']]);
+ {const cv=$('vhCurve'),[c,W,H]=prep(cv),pad={l:40,r:12,t:14,b:24},ymax=Math.max(160,ST*1.2);
+  const[X,Y]=plotAxes(c,W,H,pad,15,45,0,ymax,5,ymax>200?50:20,'l_T (m)','S_T (m²)',v=>v.toFixed(0),v=>v.toFixed(0));
+  c.strokeStyle=css('--accent');c.lineWidth=2.5;c.beginPath();for(let i=0;i<=100;i++){const l=15+30*i/100,s=VH*GU.S*GU.c/l;i?c.lineTo(X(l),Y(Math.min(s,ymax))):c.moveTo(X(l),Y(Math.min(s,ymax)));}c.stroke();
+  c.fillStyle=css('--signal');c.beginPath();c.arc(X(lT),Y(ST),6,0,7);c.fill();txt(c,ST.toFixed(1)+' m²',X(lT)+9,Y(ST)-6,css('--signal'));}
+ {const cv=$('vhPlan'),[c,W,H]=prep(cv),pad=18;
+  const finW=fn.b*Math.tan(fn.sw)+fn.ct;
+  const sc=Math.min((W*0.6-2*pad)/tp.b,(H-2*pad-26)/Math.max(tp.b/2*Math.tan(tp.sw)+tp.ct,fn.b),(W*0.4-2*pad)/finW);
+  const cx=pad+tp.b/2*sc;drawTrapTop(c,cx,pad+6,tp,sc,css('--accent-soft'),css('--ink'));txt(c,'tailplane',cx,H-6,css('--muted'),'center');
+  /* fin side view: root at bottom, LE swept aft going up */
+  const fx=cx+tp.b/2*sc+28,fb=H-pad-10,dx=fn.b*Math.tan(fn.sw);
+  poly(c,[[fx,fb],[fx+dx*sc,fb-fn.b*sc],[fx+(dx+fn.ct)*sc,fb-fn.b*sc],[fx+fn.cr*sc,fb]],css('--accent-soft'),css('--ink'),1.5);
+  txt(c,'fin',fx+fn.cr*sc/2,H-6,css('--muted'),'center');
+  line(c,W-pad-10*sc,pad,W-pad,pad,css('--ink'),2);txt(c,'10 m',W-pad,pad+14,css('--muted'),'right');}
+}
+
+/* ---------- step 15: elevator range ---------- */
+const GC={S:462.6,AR:9.5,sw:30,c:7.82,CLw:0.5667,CMw:-0.03,CL0:0.32,CLa:4.5,VH:0.8,iT:0.01745,aT:3.2,ae:0.3,T:248000,Vf:250.75,rho:0.3648,hT:2,hnwf:0.27};
+function elev(h){const g=GC,alpha=(g.CLw-g.CL0)/g.CLa,eps=2*g.CLw/(Math.PI*g.AR),aTt=alpha-eps-g.iT,cs=Math.cos(g.sw*RD);
+ const CMwf=g.AR*cs*cs/(g.AR+2*cs)*g.CMw,CT=g.T/(0.5*g.rho*g.Vf*g.Vf*g.S),thr=CT*g.hT/g.c,cg=g.CLw*(h-g.hnwf);
+ const CLT=(CMwf+cg+thr)/g.VH,de=(CLT-g.aT*aTt)/g.ae;return{alpha,eps,aTt,CMwf,CT,thr,cg,CLT,de};}
+function elevator(){
+ const h=V('elH');setv('elH',h.toFixed(3)+' c̄');const r=elev(h),f=elev(0.2),a=elev(0.4);
+ $('elEq').innerHTML=`<span class="row">α = (C<sub>Lw</sub> − C<sub>L0</sub>)/C<sub>Lα</sub> = (0.5667 − 0.32)/4.5 = ${r.alpha.toFixed(5)} rad <span class="note">${(r.alpha/RD).toFixed(2)}°</span></span>
+ <span class="row">ε = 2C<sub>Lw</sub>/(πAR) = ${r.eps.toFixed(5)} rad , &nbsp; α<sub>T</sub> = α − ε − i<sub>T</sub> = ${r.aTt.toFixed(5)} rad</span>
+ <span class="row">C<sub>Mwf</sub> = ${F('9.5 cos²30°','9.5 + 2cos30°')}(−0.03) = ${r.CMwf.toFixed(5)}</span>
+ <span class="row">C<sub>T</sub> = ${F('T','½ρV<sub>f</sub>²S')} = ${r.CT.toFixed(5)} , &nbsp; C<sub>T</sub>h<sub>T</sub>/c̄ = ${r.thr.toFixed(5)}</span>
+ <span class="row">C<sub>Lw</sub>(h − h<sub>nwf</sub>) = 0.5667(${h.toFixed(3)} − 0.27) = ${r.cg.toFixed(5)}</span>
+ <span class="row">C<sub>LT</sub> = [C<sub>Mwf</sub> + C<sub>Lwf</sub>(h − h<sub>nwf</sub>) + C<sub>T</sub>h<sub>T</sub>/c̄] / V<sub>H</sub> = <span class="hb">${r.CLT.toFixed(5)}</span></span>
+ <span class="row">δ<sub>e</sub> = (C<sub>LT</sub> − 3.2 α<sub>T</sub>) / 0.3 = <span class="hl">${r.de.toFixed(4)} rad = ${(r.de/RD).toFixed(2)}°</span></span>`;
+ const b=$('elB');b.textContent=r.CLT<0?'Tail download':'Tail lift up';b.style.color=r.CLT<0?css('--signal'):css('--good');
+ out('elOut',[['Forward CG 0.2c̄: C_LT',f.CLT.toFixed(4)],['Forward CG 0.2c̄: δ_e',(f.de/RD).toFixed(2)+'°',1],['Aft CG 0.4c̄: C_LT',a.CLT.toFixed(4)],['Aft CG 0.4c̄: δ_e',(a.de/RD).toFixed(2)+'°',1],['Elevator travel for trim',((a.de-f.de)/RD).toFixed(2)+'°',1]]);
+ const cv=$('elCv'),[c,W,H]=prep(cv),pad={l:40,r:12,t:14,b:24};
+ const[X,Y]=plotAxes(c,W,H,pad,0.15,0.45,-15,25,0.05,5,'h (c̄)','δe (deg)',v=>v.toFixed(2),v=>v.toFixed(0));
+ c.fillStyle=css('--accent-soft');c.globalAlpha=.6;c.fillRect(X(0.2),pad.t,X(0.4)-X(0.2),H-pad.t-pad.b);c.globalAlpha=1;
+ c.strokeStyle=css('--accent');c.lineWidth=2.5;c.beginPath();for(let i=0;i<=60;i++){const hh=0.15+0.3*i/60,v=elev(hh).de/RD;i?c.lineTo(X(hh),Y(v)):c.moveTo(X(hh),Y(v));}c.stroke();
+ c.fillStyle=css('--signal');c.beginPath();c.arc(X(h),Y(r.de/RD),6,0,7);c.fill();
+}
+
+/* ---------- step 16: static margin ---------- */
+function stat(){
+ const h=V('smH'),VH=V('smV');setv('smH',h.toFixed(3)+' c̄');setv('smV',VH.toFixed(2));
+ const awf=4.5,aT=3.2,hnwf=0.27,de=2*awf/(Math.PI*9.5),hn=hnwf+aT/awf*VH*(1-de),Kn=hn-h,Cma=awf*(h-hn);
+ const b=$('smB');const st=Kn>0;b.textContent=!st?'Statically unstable':Kn<0.05?'Stable, small margin':Kn<=0.15?'Stable, typical margin':'Stable, large margin';b.style.color=!st?css('--signal'):Kn<=0.15&&Kn>=0.05?css('--good'):css('--warn');
+ out('smOut',[['∂ε/∂α',de.toFixed(4)],['Neutral point h_n',hn.toFixed(4)+' c̄',1],['Static margin K_n',(Kn*100).toFixed(1)+' % c̄',1],['C_mα',Cma.toFixed(3)+' /rad',1]]);
+ {const cv=$('smBar'),[c,W,H]=prep(cv),x0=20,x1=W-20,X=v=>x0+v*(x1-x0),cy=H*0.5;
+  c.beginPath();for(let i=0;i<=50;i++){const x=i/50,[u]=naca(x);i?c.lineTo(X(x),cy-u*(x1-x0)*0.9):c.moveTo(X(x),cy);}for(let i=50;i>=0;i--){const x=i/50,[,l]=naca(x);c.lineTo(X(x),cy-l*(x1-x0)*0.9);}c.closePath();c.fillStyle=css('--bg');c.fill();c.strokeStyle=css('--muted');c.lineWidth=1;c.stroke();
+  c.fillStyle=css('--good');c.globalAlpha=.25;c.fillRect(X(Math.max(0,hn-0.15)),cy-50,X(hn-0.05)-X(Math.max(0,hn-0.15)),100);c.globalAlpha=1;
+  const mk=(v,lab,col,up)=>{if(v<0||v>1)return;line(c,X(v),cy-46,X(v),cy+46,col,2);txt(c,lab,X(v),up?cy-52:cy+60,col,'center');};
+  const mk2=(v,lab,col,dy)=>{if(v<0||v>1)return;line(c,X(v),cy-40,X(v),cy+40,col,2);txt(c,lab,X(v),cy+52+dy,col,'center');};
+  mk2(hnwf,'h_nwf',css('--muted'),0);mk2(Math.min(hn,1),'h_n'+(hn>1?' (>1)':''),css('--accent'),Math.abs(hn-hnwf)<0.12?14:0);
+  c.fillStyle=css('--ink');c.beginPath();c.arc(X(h),cy,6,0,7);c.fill();txt(c,'CG h',X(h),cy-48,css('--ink'),'center');
+  txt(c,'LE 0',x0,H-6,css('--muted'),'left');txt(c,'TE 1',x1,H-6,css('--muted'),'right');}
+ {const cv=$('smCv'),[c,W,H]=prep(cv),pad={l:40,r:12,t:14,b:24};
+  const[X,Y]=plotAxes(c,W,H,pad,0.1,0.9,-4,2,0.1,1,'h (c̄)','C_mα',v=>v.toFixed(1),v=>v.toFixed(0));
+  line(c,X(0.1),Y(awf*(0.1-hn)),X(0.9),Y(awf*(0.9-hn)),css('--accent'),2.5);
+  if(hn>0.1&&hn<0.9){c.strokeStyle=css('--accent');c.lineWidth=1.5;c.beginPath();c.arc(X(hn),Y(0),5,0,7);c.stroke();}
+  c.fillStyle=Cma<0?css('--good'):css('--signal');c.beginPath();c.arc(X(h),Y(Math.max(-4,Math.min(2,Cma))),6,0,7);c.fill();}
+}
+
+/* ---------- step 17: tail configurations ---------- */
+const cfgs=[
+ {n:'Conventional',d:'c',t:'Over 80% of aircraft. Low risk. Propwash over a low tailplane gives better pitch control at take-off on single engine propeller aircraft. Both surfaces join the fuselage where it is still strong. Hard to use with engines on the rear fuselage.',ex:'Airbus A380, Cessna 310, Saab 340, Panavia Tornado'},
+ {n:'Cruciform',d:'x',t:'Tailplane near mid height on the fin. Suits tail mounted engine pods and rear loading ramps. The fin must be stronger and heavier to carry the tailplane loads. The rudder may need two sections.',ex:'Cessna Citation Sovereign, BAE Jetstream 41, Rockwell B-1 Lancer'},
+ {n:'T-tail',d:'t',t:'Common with rear fuselage engines or rear loading. Fin sweep pushes the tailplane aft, so the arm grows and the area shrinks. The tailplane acts as an end plate on the fin. In cruise it sits in clean air out of the wing wake and downwash, so it can be smaller. The fin must be stronger and heavier. Deep stall risk.',ex:'Vickers VC10, Airbus A400, Embraer Phenom, King Air 200'},
+ {n:'V-tail',d:'v',t:'Two surfaces with "ruddervators" replace three. Lighter, fewer moving parts. AC sits higher, so drag also adds to the pitching moment. Allows a single rear engine. Needs control mixing.',ex:'Eclipse 400, Beechcraft Bonanza, Global Hawk, MQ-1 Predator'},
+ {n:'Y-tail',d:'y',t:'A V-tail plus a vertical surface that may carry a rudder. Good directional stability and roll damping. Needs control mixing. Less ground clearance for take-off and landing.',ex:'MQ-9 Reaper, Learfan'},
+ {n:'H-tail / twin fin',d:'h',t:'Twin fins where height is limited, for example on carriers (F-14 height 4.88 m against Tornado 5.95 m). Fins can sit in propeller wakes. Fins act as end plates on the tailplane. Extra structural weight to carry fins at the tailplane ends.',ex:'Avro Lancaster, Shorts 360, Fairchild A-10, Grumman F-14'},
+ {n:'A-tail',d:'a',t:'A variant of the inverted V-tail.',ex:'FS-28 Avispa'},
+ {n:'Twin boom',d:'b',t:'Allows a pusher propeller on the centreline, and its wake over the tail helps. On GA aircraft the booms also keep people away from the propeller. Structural weight is the cost.',ex:'Cessna 337 Skymaster, OV-10 Bronco, Sea Vixen'},
+ {n:'Canard',d:'k',t:'The pitch surface sits ahead of the CG and lifts upward, so the wing lifts slightly less. The canard stalls before the wing and drops the nose ("stall proofing"). That hurts take-off, needing higher ground speed. The short arm often needs a larger canard area.',ex:'Beechcraft Starship, Piaggio P180 Avanti, Velocity XL'}];
+let cfSel=0;
+function cfDraw(){
+ [...$('cfOpts').children].forEach((b,j)=>b.classList.toggle('on',j===cfSel));const k=cfgs[cfSel];
+ $('cfTxt').innerHTML=`<p><b>${k.n}</b></p><p>${k.t}</p><p class="hint">Examples: ${k.ex}</p>`;
+ const cv=$('cfCv'),[c,W,H]=prep(cv),cx=W/2,gy=H*0.72,s=Math.min(W/260,H/150),ink=css('--ink'),fill=css('--accent-soft');
+ const P=(x,y)=>[cx+x*s,gy-y*s];
+ const body=()=>{c.beginPath();c.ellipse(cx,gy,18*s,18*s,0,0,7);c.fillStyle=css('--bg');c.fill();c.strokeStyle=ink;c.lineWidth=1.5;c.stroke();};
+ const hs=(y,w)=>poly(c,[P(-w,y-2),P(w,y-2),P(w,y+2),P(-w,y+2)],fill,ink,1.5);
+ const fin=(x,y0,y1,ang)=>{const dx=(y1-y0)*Math.tan(ang||0);poly(c,[P(x-3,y0),P(x+3,y0),P(x+3+dx,y1),P(x-3+dx,y1)],fill,ink,1.5);};
+ if(cfSel===8){body();hs(0,70);txt(c,'canard (front view), ahead of CG',cx,H-8,css('--muted'),'center');return;}
+ if(cfSel===7){[-50,50].forEach(x=>{c.beginPath();c.ellipse(cx+x*s,gy,8*s,8*s,0,0,7);c.fillStyle=css('--bg');c.fill();c.strokeStyle=ink;c.stroke();fin(x,8,60);});hs(50,58);txt(c,'two booms carry the tail',cx,H-8,css('--muted'),'center');return;}
+ body();
+ switch(k.d){case 'c':fin(0,18,90);hs(5,70);break;case 'x':fin(0,18,90);hs(50,60);break;case 't':fin(0,18,90);hs(90,55);break;
+  case 'v':fin(0,10,85,-35*RD);fin(0,10,85,35*RD);break;case 'y':fin(0,10,80,-38*RD);fin(0,10,80,38*RD);fin(0,-18,-55);break;
+  case 'h':hs(5,75);fin(-75,-25,70);fin(75,-25,70);break;case 'a':fin(0,-10,-60,-35*RD);fin(0,-10,-60,35*RD);fin(0,18,80);break;}
+}
+
+/* ---------- per-step setup ---------- */
+function bind(ids,fn){ids.forEach(i=>{const e=$(i);if(e)e.oninput=fn;});fn();}
+function setup(){
+ if($('pfCv'))bind(['pfS','pfAR','pfL','pfSw'],planform);
+ if($('incCv'))bind(['inC','inF','inA'],incidence);
+ if($('gal')){gallery.forEach((g,i)=>{const b=document.createElement('button');b.className='opt';b.textContent=g.n;b.onclick=()=>{galSel=i;galDraw(i);};$('gal').appendChild(b);});galDraw(galSel);}
+ if($('lcCv'))bind(['lcA','lcAR','lcS','lcM'],liftcurve);
+ if($('weOut'))bind(['weA','weR','weT'],we22);
+ if($('hlCv')){hlCfg.forEach((k,i)=>{const b=document.createElement('button');b.className='opt';b.textContent=k.n;b.onclick=()=>{hlSel=i;hlDraw();};$('hlOpts').appendChild(b);});hlDraw();}
+ if($('trCv'))bind(['trD'],trimBal);
+ if($('vhCurve')){vhPresets.forEach(([n,h,v])=>{const b=document.createElement('button');b.className='opt';b.textContent=`${n} (${h}, ${v})`;b.onclick=()=>{$('vhH').value=h;$('vhV').value=v;sizing();};$('vhOpts').appendChild(b);});bind(['vhH','vhV','vhT','vhF'],sizing);}
+ if($('elCv'))bind(['elH'],elevator);
+ if($('smCv'))bind(['smH','smV'],stat);
+ if($('cfCv')){cfgs.forEach((k,i)=>{const b=document.createElement('button');b.className='opt';b.textContent=k.n;b.onclick=()=>{cfSel=i;cfDraw();};$('cfOpts').appendChild(b);});cfDraw();}
+}
+let galSel=0;
+const redraw=()=>{const s=steps[cur];if(!stage.querySelector('canvas'))return;
+ if($('pfCv'))planform();if($('incCv'))incidence();if($('galCv'))galDraw(galSel);if($('lcCv'))liftcurve();if($('hlCv'))hlDraw();if($('trCv'))trimBal();if($('vhCurve'))sizing();if($('elCv'))elevator();if($('smCv'))stat();if($('cfCv'))cfDraw();};
+let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(redraw,150);});
+render();
+</script>
+
+</body></html>

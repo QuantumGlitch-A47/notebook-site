@@ -1,0 +1,579 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Forced Vibration Walkthrough</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: a single "bench" panel, one step at a time, with a step rail on top and an instrument area per step */
+:root{
+  --bg:#f3f5f8; --panel:#ffffff; --ink:#152033; --muted:#5a6578; --line:#d7dde7;
+  --accent:#1f5fd1; --accent-soft:#e3ecfb; --signal:#d9480f; --good:#1d8a5b; --warn:#b7791f;
+  --grid:#e7ebf2;
+  --f-display:"Space Grotesk",system-ui,sans-serif;
+  --f-body:"Inter",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1420; --panel:#151d2c; --ink:#e6ebf4; --muted:#97a3b8; --line:#2a3548;
+  --accent:#6ea0ff; --accent-soft:#1c2a45; --signal:#ff8a4c; --good:#4cc38a; --warn:#e5b454; --grid:#1f2a3c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1420; --panel:#151d2c; --ink:#e6ebf4; --muted:#97a3b8; --line:#2a3548;
+  --accent:#6ea0ff; --accent-soft:#1c2a45; --signal:#ff8a4c; --good:#4cc38a; --warn:#e5b454; --grid:#1f2a3c; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-direction:column;gap:6px}
+.course{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-size:clamp(24px,4vw,34px);line-height:1.15;margin:0;text-wrap:balance}
+.rail{display:flex;gap:6px;flex-wrap:wrap}
+.rail button{font-family:var(--f-mono);font-size:12px;min-width:34px;height:30px;border-radius:6px;border:1px solid var(--line);
+  background:var(--panel);color:var(--muted);cursor:pointer}
+.rail button.done{color:var(--accent);border-color:var(--accent)}
+.rail button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.rail button:focus-visible,.btn:focus-visible,.opt:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.progress{height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:clamp(16px,3vw,28px);display:flex;flex-direction:column;gap:18px;min-width:0}
+.tag{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--signal)}
+h2{font-family:var(--f-display);font-size:clamp(21px,3vw,27px);line-height:1.2;margin:0;text-wrap:balance}
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:760px){.trio{grid-template-columns:1fr}}
+.cell{border-top:3px solid var(--line);padding-top:10px;min-width:0}
+.cell h3{margin:0 0 4px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.cell.what{border-color:var(--accent)} .cell.mean{border-color:var(--good)} .cell.aim{border-color:var(--signal)}
+.cell p{margin:0;max-width:65ch}
+.eq{font-family:var(--f-mono);font-size:clamp(14px,2.2vw,17px);background:var(--accent-soft);border-radius:8px;padding:14px 16px;overflow-x:auto;line-height:2.1;white-space:nowrap}
+.eq .row{display:block}
+.eq .note{font-family:var(--f-body);font-size:13px;color:var(--muted);margin-left:12px;white-space:normal}
+.fr{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;margin:0 .15em;line-height:1.35}
+.fr>span:first-child{border-bottom:1.5px solid currentColor;padding:0 .25em}
+.fr>span:last-child{padding:0 .25em}
+.hl{color:var(--signal);font-weight:600}
+.hb{color:var(--accent);font-weight:600}
+table.vars{border-collapse:collapse;width:100%;font-size:14px}
+.tablebox{overflow-x:auto}
+table.vars td,table.vars th{border-bottom:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+table.vars th{font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:400}
+table.vars td:first-child{font-family:var(--f-mono);font-weight:600;white-space:nowrap}
+.teach{border:1px dashed var(--good);border-radius:10px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start}
+.teach b{font-family:var(--f-mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--good);white-space:nowrap;padding-top:2px}
+.teach p{margin:0}
+.nav{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.btn{font-family:var(--f-body);font-weight:600;font-size:15px;padding:10px 18px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn:disabled{opacity:.4;cursor:default}
+.hint{font-size:13px;color:var(--muted)}
+canvas{display:block;width:100%;border-radius:8px;background:var(--bg)}
+.lab{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:14px}
+@media (max-width:760px){.lab{grid-template-columns:1fr}}
+.ctrls{display:flex;flex-wrap:wrap;gap:18px;align-items:center}
+.ctrl{display:flex;flex-direction:column;gap:4px;min-width:200px;flex:1}
+.ctrl label{font-family:var(--f-mono);font-size:13px;display:flex;justify-content:space-between}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.badge{font-family:var(--f-mono);font-size:13px;font-weight:600;padding:6px 12px;border-radius:999px;border:1.5px solid currentColor;display:inline-block}
+.cap{font-size:13px;color:var(--muted);margin-top:4px}
+.flow{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap}
+.box{flex:1;min-width:150px;border:1.5px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:4px}
+.box small{font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.box.s{border-color:var(--accent);background:var(--accent-soft)}
+.arrow{align-self:center;font-family:var(--f-mono);color:var(--signal);font-weight:600;font-size:14px;text-align:center}
+.recipe{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;counter-reset:r}
+@media (max-width:760px){.recipe{grid-template-columns:1fr 1fr}}
+.recipe div{border:1.5px solid var(--line);border-radius:10px;padding:12px;min-width:0}
+.recipe div.key{border-color:var(--signal)}
+.recipe b{font-family:var(--f-display);font-size:28px;color:var(--accent);display:block;line-height:1}
+.recipe span{font-weight:600;display:block;margin:6px 0 2px}
+.recipe p{margin:0;font-size:14px;color:var(--muted)}
+.reveal .line{display:none} .reveal .line.show{display:block}
+.reveal .line .why{font-family:var(--f-body);font-size:13px;color:var(--good);display:block;line-height:1.4;white-space:normal;margin-bottom:6px}
+.quiz{display:flex;flex-direction:column;gap:16px}
+.q{display:flex;flex-direction:column;gap:8px}
+.q p{margin:0;font-weight:600}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{font-family:var(--f-body);font-size:14px;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;text-align:left}
+.opt.right{border-color:var(--good);color:var(--good);font-weight:600}
+.opt.wrong{border-color:var(--signal);color:var(--signal)}
+.fb{font-size:14px;color:var(--muted);min-height:1em}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
+@media (prefers-reduced-motion: reduce){.progress i{transition:none}}
+.lab2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:14px}
+@media (max-width:760px){.lab2{grid-template-columns:1fr}}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:760px){.metrics{grid-template-columns:1fr 1fr}}
+.mcard{border:1.5px solid var(--line);border-left-width:4px;border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.mcard small{font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.mcard b{font-family:var(--f-display);font-size:22px;font-variant-numeric:tabular-nums}
+.mcard span{font-family:var(--f-mono);font-size:11px;color:var(--muted);overflow-wrap:anywhere}
+.beamfig svg{width:100%;max-width:520px;display:block;margin:0 auto}
+.beamfig .b{stroke:var(--ink);stroke-width:7;stroke-linecap:round}
+.beamfig .pv{fill:var(--panel);stroke:var(--ink);stroke-width:2.5}
+.beamfig .d{stroke:var(--signal);stroke-width:2.5}
+.beamfig .dbox{fill:var(--accent-soft);stroke:var(--signal);stroke-width:2.5}
+.beamfig .f{stroke:var(--warn);stroke-width:3}
+.beamfig .fh{fill:var(--warn)}
+.beamfig .s{fill:none;stroke:var(--accent);stroke-width:2.5}
+.beamfig .g{stroke:var(--muted);stroke-width:2;stroke-dasharray:6 4}
+.beamfig .t{font-family:"JetBrains Mono",monospace;font-size:13px;fill:var(--muted)}
+.beamfig .dl{fill:var(--signal)} .beamfig .fl{fill:var(--warn)} .beamfig .sl{fill:var(--accent)} .beamfig .m{fill:var(--ink);font-weight:600}
+.opt[aria-checked="true"]{font-weight:600}
+</style>
+
+<style>/* Aerosystems Notebook: site look, light only */
+:root,:root:not([data-theme="light"]),:root[data-theme="dark"]{
+  --bg:#f3f5f8; --panel:#ffffff; --ink:#152033; --muted:#5a6578; --line:#d7dde7;
+  --accent:#1f5fd1; --accent-soft:#e3ecfb; --signal:#d9480f; --good:#1d8a5b; --warn:#b7791f;
+  --grid:#e7ebf2;
+  --f-display:"Space Grotesk",system-ui,sans-serif;
+  --f-body:"Inter",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+--bg:#ffffff;--panel:#ffffff;--ink:#111111;--muted:#5a5a55;--line:#d4d4ce;--grid:#ececea;--f-display:"Helvetica Neue",Helvetica,Arial,sans-serif;--f-body:"Helvetica Neue",Helvetica,Arial,sans-serif;--f-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;color-scheme:light;}
+.nbk-back{display:block;max-width:980px;margin:0 auto 8px;padding:0 0 10px;border-bottom:2px solid #111;font:700 12px/16px "Helvetica Neue",Helvetica,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#111;text-decoration:none}
+.nbk-back:hover{text-decoration:underline}
+</style>
+<a class="nbk-back" href="../eng3039.html#s02">← Dynamics 3</a>
+<div class="wrap">
+  <header>
+    <div class="course">ENG3039 Dynamics 3 · Chapter 7</div>
+    <h1>Forced Vibration, Transient Response and Transfer Functions</h1>
+  </header>
+  <div class="rail" id="rail" aria-label="Steps"></div>
+  <div class="progress"><i id="bar"></i></div>
+  <main class="panel" id="stage" aria-live="polite"></main>
+  <div class="nav">
+    <button class="btn ghost" id="prev">← Back</button>
+    <span class="hint">Use ← → keys to move between steps</span>
+    <button class="btn" id="next">Next →</button>
+  </div>
+</div>
+
+<script>
+const F=(n,d)=>`<span class="fr"><span>${n}</span><span>${d}</span></span>`;
+const wn='ω<sub>n</sub>', wd='ω<sub>d</sub>', z='ζ', rt='√(1 − ζ²)';
+const XSTEP=`x(t) = ${F('F₀','k')} [ 1 − e<sup>−${z}${wn}t</sup> ( cos ${wd}t + ${F(z,rt)} sin ${wd}t ) ]`;
+
+const steps=[
+{tag:"Step 1 · Free vs forced",title:"Chapter 6 let the mass go. Chapter 7 pushes it.",
+ what:"A force F(t) now acts on the mass for t > 0. The right side of the equation of motion is no longer zero. Gravity still cancels with the static spring deflection (mg − kδ = 0).",
+ mean:"The mass starts at rest at x = 0. The force drives it to a new resting position. The wobble on the way there is the transient. The new resting position is the steady state.",
+ aim:"Find x(t) for a given input F(t), then measure how good the response is.",
+ eq:`<span class="row">m ẍ + c ẋ + k x = <span class="hl">F(t)</span> <span class="note">forced vibration</span></span>
+ <span class="row">ẍ + 2${z}${wn} ẋ + ${wn}² x = ${F('F(t)','m')} <span class="note">standard form, divide by m</span></span>`,
+ extra:`<div><canvas id="msd1" height="150"></canvas><div class="cap">Sample system from the slides: m = 2.5 kg, k = 160 N/m, c = 4 N s/m, F₀ = 45 N. The arrow shows the step force switching on.</div></div>
+ <div class="tablebox"><table class="vars"><tr><th>Symbol</th><th>Meaning</th><th>Units</th></tr>
+ <tr><td>F(t), F₀</td><td>Applied force, and the size of a step force</td><td>N</td></tr>
+ <tr><td>${wn} = √(k/m)</td><td>Undamped natural frequency</td><td>rad/s</td></tr>
+ <tr><td>${z} = c/(2√(km))</td><td>Damping ratio</td><td>none</td></tr>
+ <tr><td>${wd} = ${wn}√(1 − ζ²)</td><td>Damped natural frequency. A question asking for "the natural frequency" of a damped system means this one</td><td>rad/s</td></tr>
+ <tr><td>x(∞)</td><td>Final steady-state displacement</td><td>m</td></tr>
+ <tr><td>t<sub>r</sub>, t<sub>p</sub>, M<sub>p</sub>, t<sub>s</sub></td><td>Rise time, peak time, maximum overshoot, settling time</td><td>s, s, m or %, s</td></tr></table></div>`,
+ teach:"Explain the difference between the transient response and the steady state, using the moving mass."},
+
+{tag:"Step 2 · Transfer function",title:"One fraction that describes the system",
+ what:"Take the Laplace transform with zero initial conditions, x(0) = 0 and ẋ(0) = 0. Every initial condition term vanishes. Divide output by input.",
+ mean:"G(s) holds m, c and k only. It does not care which force you apply. It is the system's fingerprint.",
+ aim:"Find G(s) once. Then any input gives the output by one multiplication: X(s) = G(s)·F(s).",
+ eq:`<span class="row">(ms² + cs + k) X(s) = F(s)</span>
+ <span class="row">G(s) = ${F('X(s)','F(s)')} = ${F('1','ms² + cs + k')} = ${F('1/m',`s² + 2${z}${wn}s + ${wn}²`)}</span>`,
+ extra:`<div class="flow">
+  <div class="box"><small>Input</small><b>F(s)</b><span class="hint">Step, ramp, exponential…</span></div>
+  <div class="arrow">→</div>
+  <div class="box s"><small>System</small><b>G(s)</b><span class="hint">Depends on m, c, k only</span></div>
+  <div class="arrow">→</div>
+  <div class="box"><small>Output</small><b>X(s) = G(s)·F(s)</b><span class="hint">Invert with the table to get x(t)</span></div></div>
+  <p class="cap">The denominator of G(s) is the same characteristic equation as Chapter 6. Same roots, same three damping cases. You meet transfer functions again in ENG3015 Control 3.</p>`,
+ teach:"Why does G(s) need zero initial conditions? What would appear in it otherwise?"},
+
+{tag:"Step 3 · Standard inputs",title:"What you push with decides F(s)",
+ what:"The slides list four standard inputs. Each has a simple Laplace transform from the table.",
+ mean:"Same system, different input, different response. The system part G(s) stays fixed.",
+ aim:"Turn the word description of a force into F(s). The exam focuses on step input.",
+ extra:`<div class="tablebox"><table class="vars"><tr><th>Input</th><th>P(t), t ≥ 0</th><th>Laplace P(s)</th></tr>
+ <tr><td>Step</td><td>a (constant)</td><td>${F('a','s')}</td></tr>
+ <tr><td>Ramp</td><td>a t (a = slope)</td><td>${F('a','s²')}</td></tr>
+ <tr><td>Step + ramp</td><td>P₀ + a t</td><td>${F('P₀','s')} + ${F('a','s²')}</td></tr>
+ <tr><td>Exponential</td><td>P₀ e<sup>−bt</sup></td><td>${F('P₀','s + b')}</td></tr></table></div>
+ <div class="ctrls" role="radiogroup" aria-label="Input type" id="inSel"></div>
+ <div class="lab2"><div><canvas id="inCv" height="150"></canvas><div class="cap">Input force F(t), N</div></div>
+ <div><canvas id="outCv" height="210"></canvas><div class="cap" id="outCap">Response x(t), m. Sample system: m = 2.5 kg, k = 160 N/m, c = 4 N s/m.</div></div></div>`,
+ teach:"Pick the ramp. Explain why the mass keeps moving instead of settling."},
+
+{tag:"Step 4 · Step response",title:"Derive x(t) for a step force F₀",
+ what:"Put F(s) = F₀/s into the transfer function. Use the same four moves as Chapter 6: partial fractions, complete the square, split the numerator, invert.",
+ mean:"The response is the final value F₀/k minus a decaying oscillation. The decaying part is the transient.",
+ aim:"Get Eq. 7.5. Know where each piece comes from, so you can derive it when the question says \"from first principles\".",
+ extra:`<div class="eq reveal" id="rev4">
+ <span class="line"><span class="why">Objective: x(t) for F(t) = F₀, zero initial conditions, ζ &lt; 1</span>X(s) = G(s)·${F('F₀','s')} = ${F('F₀/m',`s(s² + 2${z}${wn}s + ${wn}²)`)}</span>
+ <span class="line"><span class="why">Final value theorem first: x(∞) = lim s→0 of sX(s)</span>x(∞) = ${F('F₀/m',`${wn}²`)} = <span class="hl">${F('F₀','k')}</span> <span class="note">the static spring deflection</span></span>
+ <span class="line"><span class="why">Partial fractions. Quadratic has no real roots, so keep it whole with Bs + C on top</span>${F('F₀/m',`s(s² + 2${z}${wn}s + ${wn}²)`)} = ${F('A','s')} + ${F('Bs + C',`s² + 2${z}${wn}s + ${wn}²`)}</span>
+ <span class="line"><span class="why">Match powers: s²: A + B = 0. s¹: 2ζωₙA + C = 0. s⁰: ωₙ²A = F₀/m</span>A = ${F('F₀','k')}, &nbsp; B = −${F('F₀','k')}, &nbsp; C = −${F(`2${z}${wn}F₀`,'k')}</span>
+ <span class="line"><span class="why">Complete the square in the denominator</span>X(s) = ${F('F₀','k')} [ ${F('1','s')} − ${F(`s + 2${z}${wn}`,`(s + ${z}${wn})² + ${wd}²`)} ]</span>
+ <span class="line"><span class="why">Split the numerator: s + 2ζωₙ = (s + ζωₙ) + ζωₙ, and multiply by ωd/ωd</span>X(s) = ${F('F₀','k')} [ ${F('1','s')} − ${F(`s + ${z}${wn}`,`(s + ${z}${wn})² + ${wd}²`)} − ${F(`${z}${wn}`,wd)}·${F(wd,`(s + ${z}${wn})² + ${wd}²`)} ]</span>
+ <span class="line"><span class="why">Invert: 1/s ↔ 1, then e<sup>−at</sup>cos and e<sup>−at</sup>sin with a = ζωₙ. Use ζωₙ/ωd = ζ/√(1 − ζ²)</span><span class="hl">${XSTEP}</span> <span class="note">Eq. 7.5</span></span></div>
+ <div class="nav"><button class="btn" id="rev4Btn">Reveal next line</button><button class="btn ghost" id="rev4Reset">Start again</button></div>`,
+ teach:"Point at x(t) and say which part is the steady state and which part is the transient."},
+
+{tag:"Step 5 · Three damping cases",title:"Same push, three different dampers",
+ what:"The overdamped and critically damped step responses come from the same method. The slides give them. All three end at F₀/k because every exponential dies out.",
+ mean:"Underdamped overshoots. Critical arrives fastest without overshoot. Overdamped creeps up slowly.",
+ aim:"Recognise the case from ζ, then pick the right equation. About 90% of real systems are underdamped.",
+ eq:`<span class="row">ζ &lt; 1: &nbsp;${XSTEP} <span class="note">Eq. 7.5</span></span>
+ <span class="row">ζ = 1: &nbsp;x(t) = ${F('F₀','k')} [ 1 − e<sup>−${wn}t</sup>(1 + ${wn}t) ] <span class="note">Eq. 7.7</span></span>
+ <span class="row">ζ &gt; 1: &nbsp;x(t) = ${F('F₀','k')} [ 1 + A e<sup>−(ζ − √(ζ²−1))${wn}t</sup> + B e<sup>−(ζ + √(ζ²−1))${wn}t</sup> ] <span class="note">Eq. 7.6</span></span>
+ <span class="row"><span class="note">A = (−ζ − √(ζ²−1)) / (2√(ζ²−1)), B = (ζ − √(ζ²−1)) / (2√(ζ²−1)). Check: A + B = −1, so x(0) = 0 ✓</span></span>`,
+ extra:`<div><canvas id="race" height="320"></canvas><div class="cap">Three identical systems (ωₙ = 5 rad/s). The same step force switches on at the same moment. Only the damper changes. The second dashed line is the new resting position x(∞) = F₀/k.</div></div>
+ <p class="cap">Link to Chapter 6: step response = F₀/k × (1 − free response from x₀ = 1). The same shapes, flipped upside down.</p>`,
+ teach:"Which mass reaches the new dashed line first without passing it? Why would a car suspension designer care?"},
+
+{tag:"Step 6 · Worked Examples 9 and 10",title:"Rotating beam with a step force",
+ what:"Uniform beam, L = 1 m, m = 3 kg, pivot O. Damper c = 54 N s/m at a, force F(t) at 2a, spring k = 130 N/m at 3a = 1 m. So a = 1/3 m. Static position, so gravity cancels.",
+ mean:"Same moment method as Chapter 6. Each element's moment = force × its own lever arm. The force F(t) now adds a driving moment F·2a.",
+ aim:"Example 9: find Θ(s) for three force types. Example 10: find θ(t) for the 30 N step.",
+ extra:`<div class="beamfig"><svg viewBox="0 0 420 150" role="img" aria-label="Beam pivoted at O with damper at a, force at 2a, spring at 3a">
+  <line x1="40" y1="60" x2="380" y2="60" class="b"/><circle cx="40" cy="60" r="7" class="pv"/><text x="26" y="48" class="t">O</text>
+  <line x1="153" y1="66" x2="153" y2="96" class="d"/><rect x="143" y="96" width="20" height="22" class="dbox"/><line x1="153" y1="118" x2="153" y2="134" class="d"/><text x="170" y="112" class="t dl">c</text>
+  <line x1="266" y1="14" x2="266" y2="54" class="f"/><path d="M260 46 L266 56 L272 46" class="fh"/><text x="276" y="26" class="t fl">F(t)</text>
+  <path d="M380 66 l0 8 l-8 4 l16 8 l-16 8 l16 8 l-16 8 l8 4 l0 20" class="s"/><text x="394" y="112" class="t sl">k</text>
+  <line x1="120" y1="138" x2="400" y2="138" class="g"/>
+  <text x="147" y="50" class="t m" text-anchor="end">a</text><text x="258" y="50" class="t m" text-anchor="end">2a</text><text x="372" y="50" class="t m" text-anchor="end">3a</text><line x1="153" y1="54" x2="153" y2="66" class="g"/><line x1="266" y1="54" x2="266" y2="66" class="g"/><line x1="380" y1="54" x2="380" y2="66" class="g"/>
+  </svg><div class="cap">Positions from the slide figure. Check the directions of k, c and F on slide 19.</div></div>
+ <div class="eq reveal" id="rev6">
+ <span class="line"><span class="why">Moment of inertia: uniform rod about its end</span>I<sub>O</sub> = ⅓mL² = ⅓(3)(1)² = 1 kg m²</span>
+ <span class="line"><span class="why">Moments about O. Spring stretches 3aθ, arm 3a. Damper moves aθ̇, arm a. Force at 2a</span>I<sub>O</sub>θ̈ = F(t)(2a) − c a²θ̇ − k(3a)²θ</span>
+ <span class="line"><span class="why">Insert numbers: ca² = 54/9 = 6, k(3a)² = 130, 2a = 2/3</span>θ̈ + 6θ̇ + 130θ = ⅔F(t)</span>
+ <span class="line"><span class="why">Transfer function</span>G(s) = ${F('Θ(s)','F(s)')} = ${F('2/3','s² + 6s + 130')}</span>
+ <span class="line"><span class="why">Read off the system numbers</span>ωₙ = √130 = 11.40 rad/s, &nbsp; ζ = 6/(2ωₙ) = 0.263, &nbsp; ωd = √(130 − 9) = 11 rad/s</span>
+ <span class="line"><span class="why">Example 9: Θ(s) = G(s)F(s) for each force</span>(i) F = 30: Θ = ${F('20','s(s² + 6s + 130)')} &nbsp; (ii) F = 15 + 3t: Θ = ${F('10s + 2','s²(s² + 6s + 130)')} &nbsp; (iii) F = 3t²: Θ = ${F('4','s³(s² + 6s + 130)')}</span>
+ <span class="line"><span class="why">Example 10: partial fractions on case (i). 130P = 20, P + Q = 0, 6P + R = 0</span>P = 2/13, &nbsp; Q = −2/13, &nbsp; R = −12/13</span>
+ <span class="line"><span class="why">Complete the square: s² + 6s + 130 = (s + 3)² + 11². Split s + 6 = (s + 3) + 3</span>Θ(s) = ${F('2','13')} [ ${F('1','s')} − ${F('s + 3','(s + 3)² + 11²')} − ${F('3','11')}·${F('11','(s + 3)² + 11²')} ]</span>
+ <span class="line"><span class="why">Invert with the table</span><span class="hl">θ(t) = ${F('2','13')} [ 1 − e<sup>−3t</sup>( cos 11t + ${F('3','11')} sin 11t ) ]</span>, &nbsp; θ(∞) = 2/13 = 0.154 rad</span></div>
+ <div class="nav"><button class="btn" id="rev6Btn">Reveal next line</button><button class="btn ghost" id="rev6Reset">Start again</button></div>
+ <p class="cap">Part (ii): 15 N at t = 0 rising to 30 N at t = 5 s gives slope 3 N/s. Part (iii): F = bt² with 27 = b·3², so b = 3, and ℒ{t²} = 2/s³. Check (iii) against your slide.</p>`,
+ teach:"Why does the spring term use (3a)² while the force term uses 2a, not (2a)²?"},
+
+{tag:"Step 7 · Worked Example 11",title:"Same beam, exponential force F(t) = 36e<sup>−0.5t</sup>",
+ what:"Only F(s) changes. G(s) stays the same. The denominator gains a new factor (s + 0.5), so the split gets one more term.",
+ mean:"The force fades away, so the beam returns to zero. There is no steady deflection this time.",
+ aim:"Prove the method works for any input with a Laplace transform. Rule: one partial fraction term for each factor of the denominator.",
+ extra:`<div class="eq reveal" id="rev7">
+ <span class="line"><span class="why">Transform the input: ℒ{P₀e<sup>−bt</sup>} = P₀/(s + b)</span>F(s) = ${F('36','s + 0.5')}</span>
+ <span class="line"><span class="why">Multiply by G(s): 36 × 2/3 = 24</span>Θ(s) = ${F('24','(s + 0.5)(s² + 6s + 130)')}</span>
+ <span class="line"><span class="why">One term per factor</span>= ${F('P','s + 0.5')} + ${F('Qs + R','s² + 6s + 130')}</span>
+ <span class="line"><span class="why">Match powers: s²: P + Q = 0. s¹: 6P + 0.5Q + R = 0. s⁰: 130P + 0.5R = 24</span>Q = −P, &nbsp; R = −5.5P, &nbsp; 127.25P = 24</span>
+ <span class="line"><span class="why">Solve</span>P = 0.1886, &nbsp; Q = −0.1886, &nbsp; R = −1.0373</span>
+ <span class="line"><span class="why">Complete the square, split s + 5.5 = (s + 3) + 2.5</span>Θ(s) = 0.1886 [ ${F('1','s + 0.5')} − ${F('s + 3','(s + 3)² + 11²')} − ${F('2.5','11')}·${F('11','(s + 3)² + 11²')} ]</span>
+ <span class="line"><span class="why">Invert</span><span class="hl">θ(t) = 0.1886 [ e<sup>−0.5t</sup> − e<sup>−3t</sup>( cos 11t + 0.227 sin 11t ) ]</span></span>
+ <span class="line"><span class="why">Sanity check at t = 0: bracket is 1 − 1 = 0 ✓. As t → ∞ both terms die, θ → 0 ✓</span>Matches zero initial conditions and a vanishing force.</span></div>
+ <div class="nav"><button class="btn" id="rev7Btn">Reveal next line</button><button class="btn ghost" id="rev7Reset">Start again</button></div>
+ <p class="cap">The lecture calls this "example 10". The slide numbers it Worked Example 11.</p>`,
+ teach:"Why did P/(s + 0.5) appear? What part of the motion does it describe?"},
+
+{tag:"Step 8 · Is the system good?",title:"Four numbers that grade a step response",
+ what:"Hit the system with a step and measure four things: rise time, peak time, maximum overshoot and settling time. These apply to underdamped systems.",
+ mean:"Fast rise is good. A big overshoot is bad (a car hitting a bump). A long settling time is bad (the car keeps bouncing).",
+ aim:"Calculate each number and know what changes it. Move the sliders and watch all four marks move.",
+ extra:`<div class="ctrls">
+   <div class="ctrl"><label for="zs"><span>Damping ratio ζ</span><span id="zv">0.10</span></label><input id="zs" type="range" min="0.05" max="1.4" step="0.01" value="0.1"></div>
+   <div class="ctrl"><label for="ws"><span>Natural frequency ωₙ (rad/s)</span><span id="wv">8.0</span></label><input id="ws" type="range" min="2" max="12" step="0.1" value="8"></div>
+   <span class="badge" id="caseBadge">Under-damped</span></div>
+  <div><canvas id="msd8" height="140"></canvas></div>
+  <div><canvas id="perfCv" height="280"></canvas><div class="cap">Response x(t)/x(∞). Shaded band: ±5% of the final value. Starts at the slide's sample system (ζ = 0.1, ωₙ = 8 rad/s).</div></div>
+  <div class="metrics" id="metrics"></div>`,
+ teach:"Increase ζ slowly. Say out loud what happens to each of the four numbers."},
+
+{tag:"Step 9 · Rise time",title:"t<sub>r</sub>: first time the response reaches x(∞)",
+ what:"Set x(t<sub>r</sub>) = F₀/k in Eq. 7.5 and solve for t<sub>r</sub>. Only the first crossing counts.",
+ mean:"Rise time measures how quickly the system first reacts. It does not depend on F₀.",
+ aim:"Derive it from first principles when asked. Otherwise use the formula. Calculator in radians.",
+ eq:`<span class="row">${F('F₀','k')} = ${F('F₀','k')}[ 1 − e<sup>−ζωₙt<sub>r</sub></sup>( cos ωd t<sub>r</sub> + ${F(z,rt)} sin ωd t<sub>r</sub> ) ] <span class="note">set x(t<sub>r</sub>) = x(∞)</span></span>
+ <span class="row">0 = e<sup>−ζωₙt<sub>r</sub></sup>( cos ωd t<sub>r</sub> + ${F(z,rt)} sin ωd t<sub>r</sub> ) <span class="note">e<sup>−ζωₙt</sup> is never 0, so the bracket is 0</span></span>
+ <span class="row">tan ωd t<sub>r</sub> = −${F('√(1 − ζ²)',z)} <span class="note">divide by cos ωd t<sub>r</sub></span></span>
+ <span class="row">ωd t<sub>r</sub> = −tan<sup>−1</sup>(${F('√(1 − ζ²)',z)}) + nπ <span class="note">n = 0 gives negative time. n = 1 is the first crossing</span></span>
+ <span class="row"><span class="hl">t<sub>r</sub> = ${F('1',wd)} [ π − tan<sup>−1</sup>( ${F('√(1 − ζ²)',z)} ) ]</span></span>
+ <span class="row"><span class="note">Slide sample: ζ = 0.1, ωd = 7.960 → tan⁻¹(9.950) = 1.4706 rad → t<sub>r</sub> = 1.6710/7.960 = 0.210 s</span></span>`,
+ teach:"Why do you pick n = 1 and not n = 0 or n = 2?"},
+
+{tag:"Step 10 · Peak time",title:"t<sub>p</sub>: the first peak, where velocity is zero",
+ what:"At a peak the mass stops for an instant, so ẋ(t<sub>p</sub>) = 0. Differentiate Eq. 7.5 with the product rule. The cos terms cancel exactly.",
+ mean:"Peak time is when the worst overshoot happens. It equals half a damped period.",
+ aim:"Derive t<sub>p</sub> = π/ωd. This lecture (Lecture 4) stopped at rise time. Peak time comes next lecture, and the slides already show it.",
+ eq:`<span class="row">ẋ(t) = ${F('F₀','k')} e<sup>−ζωₙt</sup> ( ${F(`ζ²${wn}`,'√(1 − ζ²)')} + ${wd} ) sin ${wd}t <span class="note">after product rule; cos coefficient ζωₙ − ζωₙ = 0</span></span>
+ <span class="row">F₀/k ≠ 0, &nbsp; e<sup>−ζωₙt</sup> ≠ 0, &nbsp; ( … ) &gt; 0 &nbsp;⇒&nbsp; sin ωd t<sub>p</sub> = 0 <span class="note">product of terms = 0</span></span>
+ <span class="row">ωd t<sub>p</sub> = nπ, first peak n = 1 &nbsp;⇒&nbsp; <span class="hl">t<sub>p</sub> = ${F('π',wd)} = ${F('π',`${wn}√(1 − ζ²)`)}</span></span>
+ <span class="row"><span class="note">Slide sample: t<sub>p</sub> = π/7.960 = 0.395 s</span></span>`,
+ teach:"Why is the velocity zero at the peak? Describe what the mass is doing at that moment."},
+
+{tag:"Step 11 · Maximum overshoot",title:"M<sub>p</sub>: how far past x(∞) the first peak goes",
+ what:"Put t<sub>p</sub> into Eq. 7.5. At ωd t<sub>p</sub> = π, cos = −1 and sin = 0.",
+ mean:"Overshoot depends on ζ only. Same ζ, same percentage overshoot, whatever the mass or stiffness.",
+ aim:"Calculate M<sub>p</sub> as a distance or a percentage. Use it backwards to design ζ, then c (Example 13).",
+ eq:`<span class="row">x(t<sub>p</sub>) = ${F('F₀','k')}[ 1 − e<sup>−ζωₙt<sub>p</sub></sup>(−1 + 0) ] = x(∞)( 1 + e<sup>−ζωₙt<sub>p</sub></sup> )</span>
+ <span class="row">M<sub>p</sub> = x(t<sub>p</sub>) − x(∞) = <span class="hl">x(∞) e<sup>−ζωₙt<sub>p</sub></sup> = x(∞) e<sup>−πζ/√(1 − ζ²)</sup></span></span>
+ <span class="row">As a percentage: M<sub>p</sub> = 100 e<sup>−πζ/√(1 − ζ²)</sup> %</span>
+ <span class="row"><span class="note">Slide sample: 100e<sup>−0.1×8×0.395</sup> = 72.9%, or 0.281 × 0.729 = 0.205 m</span></span>`,
+ extra:`<div><canvas id="mpCv" height="200"></canvas><div class="cap">Overshoot (%) against ζ. Dots: the slide values for ζ = 0.1, 0.25, 0.35.</div></div>`,
+ teach:"Why does M<sub>p</sub> as a percentage not depend on ωₙ?"},
+
+{tag:"Step 12 · Settling time",title:"t<sub>s</sub>: when the wobble stays inside ±5%",
+ what:"The oscillation around x(∞) lives inside the envelope (F₀/k)e<sup>−ζωₙt</sup>. Set that envelope equal to 5% of x(∞).",
+ mean:"In theory the mass never stops. Settling time gives a practical \"stopped\" moment.",
+ aim:"Use t<sub>s</sub> ≈ 3/(ζωₙ) for 5%. For 2%, use −ln(0.02)/(ζωₙ) ≈ 4/(ζωₙ).",
+ eq:`<span class="row">x′(t) = x(∞) − x(t) = ${F('F₀','k')} e<sup>−ζωₙt</sup>( cos ωd t + ${F(z,rt)} sin ωd t ) <span class="note">distance from final value</span></span>
+ <span class="row">Envelope: ${F('F₀','k')} e<sup>−ζωₙt<sub>s</sub></sup> = 0.05 ${F('F₀','k')}</span>
+ <span class="row"><span class="hl">t<sub>s</sub> = −${F('ln(0.05)',`${z}${wn}`)} ≈ ${F('3',`${z}${wn}`)}</span> <span class="note">−ln 0.05 = 2.996</span></span>
+ <span class="row"><span class="note">Slide sample: t<sub>s</sub> = 3/(0.1 × 8) = 3.75 s</span></span>`,
+ teach:"Settling time only uses ζωₙ. Which part of the Chapter 6 pole plot is ζωₙ?"},
+
+{tag:"Step 13 · Effect of damping",title:"More damping: lower peak, faster settle, slower rise",
+ what:"Slide example: F₀ = 45 N, m = 2.5 kg, k = 160 N/m, ωₙ = 8 rad/s. Only ζ changes.",
+ mean:"You cannot win everything. Damping trades speed of rise for less overshoot and quicker settling.",
+ aim:"Explain a design choice. Sports car: stiff and quick. Comfort car: soft and slow. Very low damping never settles, which is not acceptable.",
+ extra:`<div class="tablebox"><table class="vars"><tr><th>ζ</th><th>ζωₙ (1/s)</th><th>ωd (rad/s)</th><th>t<sub>r</sub> (s)</th><th>t<sub>p</sub> (s)</th><th>M<sub>p</sub></th><th>t<sub>s</sub> (s)</th></tr>
+ <tr><td style="color:var(--signal)">0.1</td><td>0.8</td><td>7.960</td><td>0.210</td><td>0.395</td><td>72.9%</td><td>3.75</td></tr>
+ <tr><td style="color:var(--warn)">0.25</td><td>2.0</td><td>7.746</td><td>0.235</td><td>0.406</td><td>44.4%</td><td>1.50</td></tr>
+ <tr><td style="color:var(--accent)">0.35</td><td>2.8</td><td>7.494</td><td>0.257</td><td>0.419</td><td>30.9%</td><td>1.07</td></tr></table></div>
+ <div><canvas id="effCv" height="240"></canvas>
+ <div class="legend"><span><i style="background:var(--signal)"></i>ζ = 0.1</span><span><i style="background:var(--warn)"></i>ζ = 0.25</span><span><i style="background:var(--accent)"></i>ζ = 0.35</span></div>
+ <div class="cap">x(t) in metres. Dashed line: x(∞) = 0.281 m.</div></div>`,
+ teach:"Read across the table. Which number got worse as ζ went up, and why?"},
+
+{tag:"Step 14 · Worked Example 12",title:"Grade the beam from Example 10",
+ what:"θ(t) = (2/13)[1 − e<sup>−3t</sup>(cos 11t + (3/11) sin 11t)]. Find t<sub>r</sub>, t<sub>p</sub>, M<sub>p</sub> and the settling time from first principles.",
+ mean:"Plug the beam's ζ, ωₙ and ωd into the four results. Here ζωₙ = 3 and ωd = 11.",
+ aim:"Match the slide graph: t<sub>r</sub> = 0.167 s, t<sub>p</sub> = 0.2856 s, M<sub>p</sub> = 0.0654 rad, t<sub>s</sub> = 1.0 s.",
+ extra:`<div class="eq reveal" id="rev14">
+ <span class="line"><span class="why">Known: ζ = 3/√130 = 0.263, ωd = 11 rad/s, ζωₙ = 3, θ(∞) = 2/13 = 0.154 rad</span>√(1 − ζ²)/ζ = 0.9648/0.263 = 3.667</span>
+ <span class="line"><span class="why">Rise time (radians)</span>t<sub>r</sub> = (π − tan⁻¹ 3.667)/11 = (3.1416 − 1.3045)/11 = <span class="hl">0.167 s</span></span>
+ <span class="line"><span class="why">Peak time</span>t<sub>p</sub> = π/11 = <span class="hl">0.2856 s</span></span>
+ <span class="line"><span class="why">Maximum overshoot</span>M<sub>p</sub> = θ(∞) e<sup>−3 × 0.2856</sup> = 0.154 × 0.4245 = <span class="hl">0.0654 rad</span> (42.5%)</span>
+ <span class="line"><span class="why">Settling time, 5%</span>t<sub>s</sub> ≈ 3/(ζωₙ) = 3/3 = <span class="hl">1.0 s</span></span></div>
+ <div class="nav"><button class="btn" id="rev14Btn">Reveal next line</button><button class="btn ghost" id="rev14Reset">Start again</button></div>
+ <div><canvas id="ex12Cv" height="240"></canvas><div class="cap">θ(t) in radians with the four marks. Compare with slide 62.</div></div>`,
+ teach:"Without the calculator: is 42.5% overshoot sensible for ζ = 0.263? Compare with the table in Step 13."},
+
+{tag:"Step 15 · Worked Example 13",title:"Pressure relief valve: design the damper",
+ what:"Given θ(s)/P(s) = 5×10⁻⁴/(s² + 8s + 160), with I<sub>O</sub> = 5 kg m² and c = 40 N m s/rad. Step pressure of 4 kN/m². Then find c so overshoot never exceeds 20%.",
+ mean:"Part c runs the overshoot formula backwards. Overshoot fixes ζ. ζ fixes c.",
+ aim:"Show that the four results are design tools as well as measuring tools.",
+ extra:`<div class="eq reveal" id="rev15">
+ <span class="line"><span class="why">Part b. Step input P(s) = 4000/s</span>θ(s) = ${F('5×10⁻⁴ × 4000','s(s² + 8s + 160)')} = ${F('2','s(s² + 8s + 160)')}</span>
+ <span class="line"><span class="why">System numbers: ωₙ² = 160, 2ζωₙ = 8</span>ωₙ = 12.65 rad/s, &nbsp; ζωₙ = 4, &nbsp; ζ = 0.316, &nbsp; ωd = √(160 − 16) = 12 rad/s</span>
+ <span class="line"><span class="why">Final value 2/160, then the same split as Example 10: s + 8 = (s + 4) + 4, and 4/12 = 1/3</span><span class="hl">θ(t) = 0.0125 [ 1 − e<sup>−4t</sup>( cos 12t + ⅓ sin 12t ) ]</span> rad</span>
+ <span class="line"><span class="why">Part c. Set M<sub>p</sub> = 0.2 and solve for ζ</span>e<sup>−πζ/√(1−ζ²)</sup> = 0.2 &nbsp;⇒&nbsp; ${F('πζ','√(1 − ζ²)')} = ln 5 = 1.609</span>
+ <span class="line"><span class="why">Square both sides and rearrange</span>ζ = ${F('ln 5','√(π² + (ln 5)²)')} = <span class="hl">0.456</span> <span class="note">so ζ ≥ 0.456</span></span>
+ <span class="line"><span class="why">Link ζ to c. With c = 40 the coefficient is 8, so the s coefficient = c/I<sub>O</sub>. ωₙ does not change</span>c/I<sub>O</sub> = 2ζωₙ &nbsp;⇒&nbsp; c = 5 × 2 × 0.456 × 12.65 = <span class="hl">57.7 N m s/rad</span></span>
+ <span class="line"><span class="why">Answer: overshoot stays at or below 20% when</span>c ≥ 57.7 N m s/rad</span></div>
+ <div class="nav"><button class="btn" id="rev15Btn">Reveal next line</button><button class="btn ghost" id="rev15Reset">Start again</button></div>
+ <p class="cap">Part a (deriving the transfer function from the crank geometry) needs the slide figure. Try it, then check your answer gives s² + 8s + 160.</p>`,
+ teach:"If the overshoot limit dropped to 10%, would c go up or down? Explain without calculating."},
+
+{tag:"Step 16 · Check yourself",title:"Feynman check: find the gaps",
+ what:"Answer each question. A wrong answer tells you which step to revisit.",
+ mean:"If you explain each answer in plain words, you own the chapter.",
+ aim:"Leave no confusion behind before the exam.",
+ extra:`<div class="quiz" id="quiz"></div>`,
+ teach:"Teach Chapter 7 in 60 seconds: transfer function, step response, the four numbers, the damping trade-off."}
+];
+steps.pop(); /* removed: Check yourself */
+
+const quiz=[
+ {q:"The transfer function G(s) depends on:",o:["The input force","The system (m, c, k) only","Both"],a:1,f:"G(s) is a property of the system and is independent of the input. See Step 2."},
+ {q:"F₀ = 45 N on a spring k = 160 N/m. The final displacement x(∞) is:",o:["0.281 m","3.56 m","0.45 m"],a:0,f:"x(∞) = F₀/k = 45/160 = 0.281 m. See Step 4."},
+ {q:"Laplace transform of a ramp with slope 3 N/s:",o:["3/s","3/s²","3/(s + 3)"],a:1,f:"Ramp at → a/s². See Step 3."},
+ {q:"Peak time formula:",o:["π/ωₙ","π/ωd","3/(ζωₙ)"],a:1,f:"sin ωd t_p = 0, first peak at ωd t_p = π. See Step 10."},
+ {q:"ζωₙ = 2 1/s. The 5% settling time is about:",o:["0.67 s","1.5 s","6 s"],a:1,f:"t_s ≈ 3/(ζωₙ) = 1.5 s. See Step 12."},
+ {q:"Increasing damping in an underdamped system gives:",o:["Higher overshoot, faster rise","Lower overshoot, slower rise","No change to overshoot"],a:1,f:"More damping: lower peak, faster decay, slower rise. See Step 13."},
+ {q:"The exam question says \"calculate from first principles\". You should:",o:["Quote the provided formula","Derive it from x(t)"],a:1,f:"First principles means derive. Otherwise the provided equation saves time."}
+];
+
+const stage=document.getElementById('stage'), rail=document.getElementById('rail');
+let cur=0, visited=new Set([0]), anims=[];
+try{const s=parseInt(localStorage.getItem('ch7step'));if(s>=0&&s<steps.length)cur=s;}catch(e){}
+steps.forEach((s,i)=>{const b=document.createElement('button');b.textContent=i+1;b.title=s.tag;b.onclick=()=>go(i);rail.appendChild(b);});
+function go(i){cur=Math.max(0,Math.min(steps.length-1,i));visited.add(cur);try{localStorage.setItem('ch7step',cur)}catch(e){}render();window.scrollTo({top:0});}
+document.getElementById('prev').onclick=()=>go(cur-1);
+document.getElementById('next').onclick=()=>go(cur+1);
+document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='ArrowRight')go(cur+1);if(e.key==='ArrowLeft')go(cur-1);});
+const stopAnims=()=>{anims.forEach(a=>a.stop=true);anims=[];};
+function loop(fn){const h={stop:false};anims.push(h);const f=ts=>{if(h.stop)return;fn(ts);requestAnimationFrame(f);};requestAnimationFrame(f);}
+const red=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function render(){
+ stopAnims();
+ const s=steps[cur];
+ stage.innerHTML=`<div class="tag">${s.tag}</div><h2>${s.title}</h2>
+ <div class="trio"><div class="cell what"><h3>What it is</h3><p>${s.what}</p></div>
+ <div class="cell mean"><h3>What it means</h3><p>${s.mean}</p></div>
+ <div class="cell aim"><h3>The aim</h3><p>${s.aim}</p></div></div>
+ ${s.eq?`<div class="eq">${s.eq}</div>`:''}${s.extra||''}
+`;
+ [...rail.children].forEach((b,i)=>{b.className=(i===cur?'on':visited.has(i)?'done':'');});
+ document.getElementById('bar').style.width=((cur+1)/steps.length*100)+'%';
+ document.getElementById('prev').disabled=cur===0;
+ document.getElementById('next').disabled=cur===steps.length-1;
+ setup();
+}
+
+/* ---------- physics ---------- */
+function freeR(zeta,w,t){
+ if(Math.abs(zeta-1)<0.005)return(1+w*t)*Math.exp(-w*t);
+ if(zeta<1){const r=Math.sqrt(1-zeta*zeta),d=w*r;return Math.exp(-zeta*w*t)*(Math.cos(d*t)+zeta/r*Math.sin(d*t));}
+ const r=Math.sqrt(zeta*zeta-1),A=(zeta+r)/(2*r),B=(-zeta+r)/(2*r);
+ return Math.exp(-zeta*w*t)*(A*Math.exp(w*r*t)+B*Math.exp(-w*r*t));
+}
+const stepR=(zeta,w,t)=>1-freeR(zeta,w,t);
+const caseOf=zeta=>Math.abs(zeta-1)<0.005?'crit':zeta<1?'under':'over';
+function metrics(zeta,w){
+ if(zeta>=1)return{ts:-Math.log(0.05)/(zeta*w)};
+ const r=Math.sqrt(1-zeta*zeta),d=w*r;
+ return{wd:d,tr:(Math.PI-Math.atan(r/zeta))/d,tp:Math.PI/d,Mp:Math.exp(-Math.PI*zeta/r),ts:3/(zeta*w)};
+}
+function sim(m,c,k,Ff,T,dt=0.002){let x=0,v=0;const out=[[0,0]];const a=(t,x,v)=>(Ff(t)-c*v-k*x)/m;
+ for(let t=0;t<T;t+=dt){const k1x=v,k1v=a(t,x,v),k2x=v+dt/2*k1v,k2v=a(t+dt/2,x+dt/2*k1x,v+dt/2*k1v),
+  k3x=v+dt/2*k2v,k3v=a(t+dt/2,x+dt/2*k2x,v+dt/2*k2v),k4x=v+dt*k3v,k4v=a(t+dt,x+dt*k3x,v+dt*k3v);
+  x+=dt/6*(k1x+2*k2x+2*k3x+k4x);v+=dt/6*(k1v+2*k2v+2*k3v+k4v);out.push([t+dt,x]);}return out;}
+
+/* ---------- drawing ---------- */
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const caseCol=k=>({under:css('--accent'),crit:css('--good'),over:css('--signal')}[k]);
+function prep(cv){const dpr=window.devicePixelRatio||1,w=cv.clientWidth;cv._h=cv._h||cv.height;
+ cv.width=w*dpr;cv.height=cv._h*dpr;cv.style.height=cv._h+'px';const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,cv._h);return[c,w,cv._h];}
+function nice(r){const p=Math.pow(10,Math.floor(Math.log10(r))),f=r/p;return(f<1.5?1:f<3?2:f<7?5:10)*p;}
+function fmt(v,st){const d=Math.max(0,-Math.floor(Math.log10(st)+1e-9));return v.toFixed(Math.min(d,3));}
+function axes(c,W,H,pad,tMax,yMin,yMax,ylab){
+ const X=t=>pad.l+(t/tMax)*(W-pad.l-pad.r), Y=v=>pad.t+(yMax-v)/(yMax-yMin)*(H-pad.t-pad.b);
+ c.strokeStyle=css('--grid');c.lineWidth=1;c.fillStyle=css('--muted');c.font='11px "JetBrains Mono", monospace';
+ const ys=nice((yMax-yMin)/4);
+ for(let v=Math.ceil(yMin/ys)*ys;v<=yMax+1e-9;v+=ys){c.beginPath();c.moveTo(pad.l,Y(v));c.lineTo(W-pad.r,Y(v));c.stroke();c.textAlign='right';c.textBaseline='middle';c.fillText(fmt(v,ys),pad.l-6,Y(v));}
+ const xs=nice(tMax/5);
+ for(let t=0;t<=tMax+1e-9;t+=xs){c.beginPath();c.moveTo(X(t),pad.t);c.lineTo(X(t),H-pad.b);c.stroke();c.textAlign='center';c.textBaseline='top';c.fillText(fmt(t,xs)+'s',X(t),H-pad.b+5);}
+ c.strokeStyle=css('--muted');c.beginPath();c.moveTo(pad.l,Y(0));c.lineTo(W-pad.r,Y(0));c.stroke();
+ if(ylab){c.textAlign='left';c.textBaseline='top';c.fillText(ylab,pad.l+4,pad.t+2);}
+ return[X,Y];
+}
+function curve(c,X,Y,f,tMax,col,lw,dash){c.strokeStyle=col;c.lineWidth=lw;c.setLineDash(dash||[]);c.beginPath();
+ for(let i=0;i<=500;i++){const t=tMax*i/500,v=f(t);i?c.lineTo(X(t),Y(v)):c.moveTo(X(t),Y(v));}c.stroke();c.setLineDash([]);}
+function hline(c,X,Y,T,v,col,dash){c.strokeStyle=col;c.lineWidth=1.2;c.setLineDash(dash||[5,4]);c.beginPath();c.moveTo(X(0),Y(v));c.lineTo(X(T),Y(v));c.stroke();c.setLineDash([]);}
+function dot(c,x,y,col){c.fillStyle=col;c.beginPath();c.arc(x,y,5.5,0,7);c.fill();c.strokeStyle=css('--panel');c.lineWidth=2;c.stroke();}
+function tag(c,x,y,txt,col,al){c.fillStyle=col;c.font='600 11px "JetBrains Mono", monospace';c.textAlign=al||'left';c.textBaseline='bottom';c.fillText(txt,x,y);}
+
+/* mass-spring-damper with step force; x in units of x(∞) */
+function drawMSD(c,W,cy,x,o={}){
+ const wall=24,eq0=W*0.36,amp=W*0.24,mx=eq0+x*amp,mw=54,mh=50,top=cy-40,bot=cy+40,zeta=o.zeta??0.1;
+ c.fillStyle=css('--muted');for(let y=top;y<bot;y+=8)c.fillRect(0,y,wall,1);c.fillRect(wall-2,top,3,bot-top);
+ c.lineWidth=1;c.setLineDash([4,4]);c.strokeStyle=css('--muted');c.beginPath();c.moveTo(eq0,top);c.lineTo(eq0,bot);c.stroke();
+ c.strokeStyle=css('--good');c.beginPath();c.moveTo(eq0+amp,top);c.lineTo(eq0+amp,bot);c.stroke();c.setLineDash([]);
+ const x0=wall,x1=mx-mw/2,y1=cy-12,n=12;
+ c.strokeStyle=css('--accent');c.lineWidth=2;c.beginPath();c.moveTo(x0,y1);for(let i=1;i<=n;i++)c.lineTo(x0+(x1-x0)*i/n,y1+(i===n?0:(i%2?-8:8)));c.stroke();
+ const y2=cy+14,g=4+Math.min(zeta,2.5)*4.5,cw=30,cx0=x0+14,pist=Math.max(cx0+6,Math.min(cx0+cw-4,x1-50));
+ c.strokeStyle=css('--signal');c.lineWidth=1.5+Math.min(zeta,2.5)*0.8;c.fillStyle=css('--accent-soft');c.fillRect(cx0,y2-g,cw,2*g);c.beginPath();
+ c.moveTo(x0,y2);c.lineTo(cx0,y2);c.moveTo(cx0,y2-g);c.lineTo(cx0+cw,y2-g);c.moveTo(cx0,y2+g);c.lineTo(cx0+cw,y2+g);c.moveTo(cx0,y2-g);c.lineTo(cx0,y2+g);
+ c.moveTo(pist,y2-g+3);c.lineTo(pist,y2+g-3);c.moveTo(pist,y2);c.lineTo(x1,y2);c.stroke();
+ c.fillStyle=o.col||css('--ink');c.fillRect(x1,cy-mh/2,mw,mh);
+ c.fillStyle=css('--panel');c.font='600 15px "Space Grotesk", sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('m',mx,cy);
+ if(o.force){const ay=cy-mh/2-9;c.strokeStyle=css('--warn');c.fillStyle=css('--warn');c.lineWidth=2.5;c.beginPath();c.moveTo(mx-22,ay);c.lineTo(mx+16,ay);c.stroke();
+  c.beginPath();c.moveTo(mx+22,ay);c.lineTo(mx+13,ay-5);c.lineTo(mx+13,ay+5);c.fill();c.font='600 11px "JetBrains Mono", monospace';c.textAlign='right';c.fillText('F₀',mx-26,ay+1);}
+ if(o.label){c.fillStyle=o.col||css('--ink');c.font='600 12px "JetBrains Mono", monospace';c.textAlign='left';c.textBaseline='top';c.fillText(o.label,wall+8,top);}
+ return[eq0,eq0+amp];
+}
+function msdFooter(c,W,H,eqs,t){c.font='11px "JetBrains Mono", monospace';c.textBaseline='alphabetic';c.textAlign='center';
+ c.fillStyle=css('--muted');c.fillText('x = 0',eqs[0],H-4);c.fillStyle=css('--good');c.fillText('x(∞) = F₀/k',eqs[1],H-4);
+ if(t!=null){c.fillStyle=css('--muted');c.textAlign='right';c.fillText('t = '+t.toFixed(2)+' s',W-4,H-4);}}
+/* time loop helper: hold 0.8 s at rest, then run T, then hold 1.2 s */
+function clock(t0,ts,T){const tt=((ts-t0)/1000)%(T+2);return tt<0.8?-1:Math.min(tt-0.8,T);}
+
+/* ---------- per-step setup ---------- */
+function setupReveal(id){const rb=document.getElementById(id+'Btn');if(!rb)return;const ls=[...document.querySelectorAll('#'+id+' .line')];let n=1;
+ const show=()=>{ls.forEach((l,i)=>l.classList.toggle('show',i<n));rb.disabled=n>=ls.length;rb.textContent=n>=ls.length?'All lines shown':'Reveal next line ('+n+'/'+ls.length+')';};
+ rb.onclick=()=>{n++;show();};document.getElementById(id+'Reset').onclick=()=>{n=1;show();};show();}
+
+function setup(){
+ ['rev4','rev6','rev7','rev14','rev15'].forEach(setupReveal);
+
+ const m1=document.getElementById('msd1');
+ if(m1){const z0=0.1,w0=8,T=4;let t0=null;const draw=ts=>{if(t0===null)t0=ts;const t=red?T:clock(t0,ts,T);
+   const[c,W,H]=prep(m1),eqs=drawMSD(c,W,H/2-8,t<0?0:stepR(z0,w0,t),{zeta:z0,force:t>=0});msdFooter(c,W,H,eqs,Math.max(0,t));};
+  red?draw(0):loop(draw);}
+
+ const sel=document.getElementById('inSel');
+ if(sel){const m=2.5,k=160,T=4;let cz=4;
+  const inputs={step:['Step 45 N',t=>45],ramp:['Ramp 15t N',t=>15*t],sr:['Step + ramp 20 + 10t',t=>20+10*t],exp:['Exponential 45e⁻ᵗ',t=>45*Math.exp(-t)]};
+  let curIn='step';
+  Object.entries(inputs).forEach(([key,[lab]])=>{const b=document.createElement('button');b.className='opt';b.textContent=lab;b.setAttribute('role','radio');b.onclick=()=>{curIn=key;draw();};b.dataset.k=key;sel.appendChild(b);});
+  const zc=document.createElement('div');zc.className='ctrl';zc.innerHTML='<label for="cz"><span>Damping c (N s/m)</span><span id="czv">4</span></label><input id="cz" type="range" min="1" max="60" step="1" value="4">';sel.appendChild(zc);
+  const draw=()=>{[...sel.querySelectorAll('.opt')].forEach(b=>{const on=b.dataset.k===curIn;b.classList.toggle('right',on);b.setAttribute('aria-checked',on);});
+   cz=+document.getElementById('cz').value;document.getElementById('czv').textContent=cz;
+   const Ff=inputs[curIn][1],data=sim(m,cz,k,Ff,T);
+   {const[c,W,H]=prep(document.getElementById('inCv')),fmax=Math.max(...[0,1,2,3,4].map(Ff),50);const[X,Y]=axes(c,W,H,{l:44,r:12,t:10,b:22},T,0,fmax*1.05);curve(c,X,Y,Ff,T,css('--warn'),2.5);}
+   {const[c,W,H]=prep(document.getElementById('outCv'));let mx=Math.max(...data.map(d=>d[1])),mn=Math.min(0,...data.map(d=>d[1]));
+    const[X,Y]=axes(c,W,H,{l:44,r:12,t:10,b:22},T,mn,mx*1.1);c.strokeStyle=css('--accent');c.lineWidth=2.5;c.beginPath();data.forEach(([t,x],i)=>{if(i%4)return;i?c.lineTo(X(t),Y(x)):c.moveTo(X(t),Y(x));});c.stroke();
+    if(curIn==='step'){hline(c,X,Y,T,45/k,css('--good'));tag(c,X(T)-4,Y(45/k)-4,'x(∞) = F₀/k = 0.281 m',css('--good'),'right');}}
+   const z=cz/(2*Math.sqrt(k*m));document.getElementById('outCap').textContent='Response x(t), m. m = 2.5 kg, k = 160 N/m, c = '+cz+' N s/m → ζ = '+z.toFixed(2)+'. Simulated directly from the equation of motion.';};
+  document.getElementById('cz').oninput=draw;draw();}
+
+ const race=document.getElementById('race');
+ if(race){const rows=[[0.2,'ζ = 0.2  under-damped','under'],[1,'ζ = 1  critical','crit'],[2,'ζ = 2  over-damped','over']],T=2.5;let t0=null;
+  const draw=ts=>{if(t0===null)t0=ts;const t=red?0.5:clock(t0,ts,T);const[c,W,H]=prep(race);let eqs;
+   rows.forEach(([zeta,label,k],i)=>{eqs=drawMSD(c,W,55+i*100,t<0?0:stepR(zeta,5,t),{zeta,col:caseCol(k),label,force:t>=0});});msdFooter(c,W,H,eqs,Math.max(0,t));};
+  red?draw(0):loop(draw);}
+
+ const zs=document.getElementById('zs');
+ if(zs){const ws=document.getElementById('ws'),pc=document.getElementById('perfCv'),mc=document.getElementById('msd8');let t0=null;
+  const win=(zeta,w)=>{const M=metrics(zeta,w);return Math.min(12,Math.max(M.ts*1.15,(M.tp||0)*3,1));};
+  const drawPerf=(zeta,w,tc)=>{const[c,W,H]=prep(pc),T=win(zeta,w),M=metrics(zeta,w),k=caseOf(zeta),col=caseCol(k);
+   const[X,Y]=axes(c,W,H,{l:40,r:14,t:16,b:24},T,0,Math.max(1.25,1+(M.Mp||0)+0.12));
+   c.fillStyle=css('--accent-soft');c.fillRect(X(0),Y(1.05),X(T)-X(0),Y(0.95)-Y(1.05));
+   hline(c,X,Y,T,1,css('--good'));tag(c,X(T)-2,Y(1.05)-2,'x(∞)  ±5%',css('--good'),'right');
+   curve(c,X,Y,t=>stepR(zeta,w,t),T,col,2.5);
+   if(M.tr!=null){const mk=(t,v,txt,cl)=>{c.strokeStyle=cl;c.lineWidth=1;c.setLineDash([3,3]);c.beginPath();c.moveTo(X(t),Y(0));c.lineTo(X(t),Y(v));c.stroke();c.setLineDash([]);dot(c,X(t),Y(v),cl);tag(c,X(t)+6,Y(0)-4,txt,cl);};
+    mk(M.tr,1,'tr',css('--accent'));mk(M.tp,1+M.Mp,'tp',css('--signal'));
+    c.strokeStyle=css('--signal');c.lineWidth=2;c.beginPath();c.moveTo(X(M.tp)+14,Y(1));c.lineTo(X(M.tp)+14,Y(1+M.Mp));c.stroke();tag(c,X(M.tp)+18,Y(1+M.Mp/2)+6,'Mp',css('--signal'));}
+   if(M.ts<T){c.strokeStyle=css('--warn');c.lineWidth=1.5;c.beginPath();c.moveTo(X(M.ts),Y(0));c.lineTo(X(M.ts),Y(1.05)-10);c.stroke();tag(c,X(M.ts)+4,Y(1.05)-10,'ts',css('--warn'));}
+   if(tc!=null&&tc>=0){c.strokeStyle=css('--muted');c.lineWidth=1;c.beginPath();c.moveTo(X(tc),Y(0));c.lineTo(X(tc),Y(1.2));c.stroke();dot(c,X(tc),Y(stepR(zeta,w,tc)),col);}
+   return T;};
+  const upd=()=>{const zeta=+zs.value,w=+ws.value,M=metrics(zeta,w),k=caseOf(zeta);
+   document.getElementById('zv').textContent=zeta.toFixed(2);document.getElementById('wv').textContent=w.toFixed(1);
+   const b=document.getElementById('caseBadge');b.textContent={under:'Under-damped · ζ < 1',crit:'Critically damped · ζ = 1',over:'Over-damped · ζ > 1'}[k];b.style.color=caseCol(k);
+   const card=(lab,val,f,cl)=>`<div class="mcard" style="border-color:${cl}"><small>${lab}</small><b>${val}</b><span>${f}</span></div>`;
+   document.getElementById('metrics').innerHTML=M.tr!=null?
+    card('Rise time tr',M.tr.toFixed(3)+' s','(π − tan⁻¹(√(1−ζ²)/ζ)) / ωd',css('--accent'))+card('Peak time tp',M.tp.toFixed(3)+' s','π / ωd',css('--signal'))+
+    card('Max overshoot Mp',(M.Mp*100).toFixed(1)+' %','100 e^(−πζ/√(1−ζ²))',css('--signal'))+card('Settling time ts',M.ts.toFixed(2)+' s','3 / (ζωₙ)',css('--warn'))
+    :card('Rise / peak / overshoot','none','ζ ≥ 1 never passes x(∞)',css('--muted'))+card('Settling time ts',M.ts.toFixed(2)+' s','time to enter ±5%',css('--warn'));
+   t0=null;if(red){const[c,W,H]=prep(mc),eqs=drawMSD(c,W,H/2-8,1,{zeta,col:caseCol(k),force:true});msdFooter(c,W,H,eqs);drawPerf(zeta,w);}};
+  zs.oninput=upd;ws.oninput=upd;upd();
+  if(!red)loop(ts=>{const zeta=+zs.value,w=+ws.value;if(t0===null)t0=ts;const T=win(zeta,w),t=clock(t0,ts,T);
+   const[c,W,H]=prep(mc),eqs=drawMSD(c,W,H/2-8,t<0?0:stepR(zeta,w,t),{zeta,col:caseCol(caseOf(zeta)),force:t>=0});msdFooter(c,W,H,eqs,Math.max(0,t));drawPerf(zeta,w,t);});}
+
+ const mp=document.getElementById('mpCv');
+ if(mp){const[c,W,H]=prep(mp),pad={l:44,r:14,t:12,b:26};const X=v=>pad.l+v*(W-pad.l-pad.r),Y=v=>pad.t+(100-v)/100*(H-pad.t-pad.b);
+  c.strokeStyle=css('--grid');c.fillStyle=css('--muted');c.font='11px "JetBrains Mono", monospace';c.lineWidth=1;
+  [0,25,50,75,100].forEach(v=>{c.beginPath();c.moveTo(pad.l,Y(v));c.lineTo(W-pad.r,Y(v));c.stroke();c.textAlign='right';c.textBaseline='middle';c.fillText(v+'%',pad.l-6,Y(v));});
+  [0,0.2,0.4,0.6,0.8,1].forEach(v=>{c.beginPath();c.moveTo(X(v),pad.t);c.lineTo(X(v),H-pad.b);c.stroke();c.textAlign='center';c.textBaseline='top';c.fillText('ζ='+v,X(v),H-pad.b+5);});
+  c.strokeStyle=css('--signal');c.lineWidth=2.5;c.beginPath();for(let i=0;i<=200;i++){const zz=i/200*0.999,v=100*Math.exp(-Math.PI*zz/Math.sqrt(1-zz*zz));i?c.lineTo(X(zz),Y(v)):c.moveTo(X(zz),Y(v));}c.stroke();
+  [[0.1,72.9],[0.25,44.4],[0.35,30.9]].forEach(([zz,v])=>{dot(c,X(zz),Y(v),css('--accent'));tag(c,X(zz)+8,Y(v)-2,v+'%',css('--accent'));});}
+
+ const eff=document.getElementById('effCv');
+ if(eff){const[c,W,H]=prep(eff),T=4;const[X,Y]=axes(c,W,H,{l:44,r:12,t:12,b:24},T,0,0.5);hline(c,X,Y,T,0.281,css('--good'));
+  [[0.1,'--signal'],[0.25,'--warn'],[0.35,'--accent']].forEach(([zz,cl])=>curve(c,X,Y,t=>0.281*stepR(zz,8,t),T,css(cl),2.2));}
+
+ const e12=document.getElementById('ex12Cv');
+ if(e12){const[c,W,H]=prep(e12),T=2,zeta=3/Math.sqrt(130),w=Math.sqrt(130),th=2/13,M=metrics(zeta,w);
+  const[X,Y]=axes(c,W,H,{l:48,r:12,t:12,b:24},T,0,0.25,'θ (rad)');
+  c.fillStyle=css('--accent-soft');c.fillRect(X(0),Y(th*1.05),X(T)-X(0),Y(th*0.95)-Y(th*1.05));hline(c,X,Y,T,th,css('--good'));
+  curve(c,X,Y,t=>th*stepR(zeta,w,t),T,css('--accent'),2.5);
+  dot(c,X(M.tr),Y(th),css('--accent'));tag(c,X(M.tr)+7,Y(th)+16,'tr = 0.167 s',css('--accent'));
+  dot(c,X(M.tp),Y(th*(1+M.Mp)),css('--signal'));tag(c,X(M.tp)+8,Y(th*(1+M.Mp))+4,'tp = 0.286 s, Mp = 0.0654 rad',css('--signal'));
+  c.strokeStyle=css('--warn');c.lineWidth=1.5;c.beginPath();c.moveTo(X(1),Y(0));c.lineTo(X(1),Y(th*1.05)-8);c.stroke();tag(c,X(1)+5,Y(th*1.05)-8,'ts = 1.0 s',css('--warn'));}
+
+ const qz=document.getElementById('quiz');if(qz){quiz.forEach((q,qi)=>{const d=document.createElement('div');d.className='q';
+  d.innerHTML=`<p>${qi+1}. ${q.q}</p><div class="opts"></div><div class="fb"></div>`;const os=d.querySelector('.opts'),fb=d.querySelector('.fb');
+  q.o.forEach((o,oi)=>{const b=document.createElement('button');b.className='opt';b.textContent=o;b.onclick=()=>{
+   [...os.children].forEach(x=>x.classList.remove('right','wrong'));b.classList.add(oi===q.a?'right':'wrong');
+   fb.textContent=(oi===q.a?'Correct. ':'Not quite. ')+q.f;};os.appendChild(b);});qz.appendChild(d);});}
+}
+const redraw=()=>{if(!anims.length&&stage.querySelector('canvas'))setup();};
+let rtm;addEventListener('resize',()=>{clearTimeout(rtm);rtm=setTimeout(()=>{if(!anims.length&&!document.getElementById('quiz')){render();}},150);});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(!anims.length)render();});
+render();
+</script>
+
+</body></html>

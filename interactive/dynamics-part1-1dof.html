@@ -1,0 +1,677 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>1DOF Vibration Walkthrough</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: a single "bench" panel, one step at a time, with a step rail on top and an instrument area per step */
+:root{
+  --bg:#f3f5f8; --panel:#ffffff; --ink:#152033; --muted:#5a6578; --line:#d7dde7;
+  --accent:#1f5fd1; --accent-soft:#e3ecfb; --signal:#d9480f; --good:#1d8a5b; --warn:#b7791f;
+  --grid:#e7ebf2;
+  --f-display:"Space Grotesk",system-ui,sans-serif;
+  --f-body:"Inter",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1420; --panel:#151d2c; --ink:#e6ebf4; --muted:#97a3b8; --line:#2a3548;
+  --accent:#6ea0ff; --accent-soft:#1c2a45; --signal:#ff8a4c; --good:#4cc38a; --warn:#e5b454; --grid:#1f2a3c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1420; --panel:#151d2c; --ink:#e6ebf4; --muted:#97a3b8; --line:#2a3548;
+  --accent:#6ea0ff; --accent-soft:#1c2a45; --signal:#ff8a4c; --good:#4cc38a; --warn:#e5b454; --grid:#1f2a3c; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-direction:column;gap:6px}
+.course{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-size:clamp(24px,4vw,34px);line-height:1.15;margin:0;text-wrap:balance}
+.rail{display:flex;gap:6px;flex-wrap:wrap}
+.rail button{font-family:var(--f-mono);font-size:12px;min-width:34px;height:30px;border-radius:6px;border:1px solid var(--line);
+  background:var(--panel);color:var(--muted);cursor:pointer}
+.rail button.done{color:var(--accent);border-color:var(--accent)}
+.rail button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.rail button:focus-visible,.btn:focus-visible,.opt:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.progress{height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:clamp(16px,3vw,28px);display:flex;flex-direction:column;gap:18px;min-width:0}
+.tag{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--signal)}
+h2{font-family:var(--f-display);font-size:clamp(21px,3vw,27px);line-height:1.2;margin:0;text-wrap:balance}
+.trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:760px){.trio{grid-template-columns:1fr}}
+.cell{border-top:3px solid var(--line);padding-top:10px;min-width:0}
+.cell h3{margin:0 0 4px;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.cell.what{border-color:var(--accent)} .cell.mean{border-color:var(--good)} .cell.aim{border-color:var(--signal)}
+.cell p{margin:0;max-width:65ch}
+.eq{font-family:var(--f-mono);font-size:clamp(14px,2.2vw,17px);background:var(--accent-soft);border-radius:8px;padding:14px 16px;overflow-x:auto;line-height:2.1;white-space:nowrap}
+.eq .row{display:block}
+.eq .note{font-family:var(--f-body);font-size:13px;color:var(--muted);margin-left:12px;white-space:normal}
+.fr{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;margin:0 .15em;line-height:1.35}
+.fr>span:first-child{border-bottom:1.5px solid currentColor;padding:0 .25em}
+.fr>span:last-child{padding:0 .25em}
+.hl{color:var(--signal);font-weight:600}
+.hb{color:var(--accent);font-weight:600}
+table.vars{border-collapse:collapse;width:100%;font-size:14px}
+.tablebox{overflow-x:auto}
+table.vars td,table.vars th{border-bottom:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+table.vars th{font-family:var(--f-mono);font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:400}
+table.vars td:first-child{font-family:var(--f-mono);font-weight:600;white-space:nowrap}
+.teach{border:1px dashed var(--good);border-radius:10px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start}
+.teach b{font-family:var(--f-mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--good);white-space:nowrap;padding-top:2px}
+.teach p{margin:0}
+.nav{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.btn{font-family:var(--f-body);font-weight:600;font-size:15px;padding:10px 18px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn:disabled{opacity:.4;cursor:default}
+.hint{font-size:13px;color:var(--muted)}
+canvas{display:block;width:100%;border-radius:8px;background:var(--bg)}
+.lab{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:14px}
+@media (max-width:760px){.lab{grid-template-columns:1fr}}
+.ctrls{display:flex;flex-wrap:wrap;gap:18px;align-items:center}
+.ctrl{display:flex;flex-direction:column;gap:4px;min-width:200px;flex:1}
+.ctrl label{font-family:var(--f-mono);font-size:13px;display:flex;justify-content:space-between}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.badge{font-family:var(--f-mono);font-size:13px;font-weight:600;padding:6px 12px;border-radius:999px;border:1.5px solid currentColor;display:inline-block}
+.cap{font-size:13px;color:var(--muted);margin-top:4px}
+.flow{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap}
+.box{flex:1;min-width:150px;border:1.5px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:4px}
+.box small{font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.box.s{border-color:var(--accent);background:var(--accent-soft)}
+.arrow{align-self:center;font-family:var(--f-mono);color:var(--signal);font-weight:600;font-size:14px;text-align:center}
+.recipe{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;counter-reset:r}
+@media (max-width:760px){.recipe{grid-template-columns:1fr 1fr}}
+.recipe div{border:1.5px solid var(--line);border-radius:10px;padding:12px;min-width:0}
+.recipe div.key{border-color:var(--signal)}
+.recipe b{font-family:var(--f-display);font-size:28px;color:var(--accent);display:block;line-height:1}
+.recipe span{font-weight:600;display:block;margin:6px 0 2px}
+.recipe p{margin:0;font-size:14px;color:var(--muted)}
+.reveal .line{display:none} .reveal .line.show{display:block}
+.reveal .line .why{font-family:var(--f-body);font-size:13px;color:var(--good);display:block;line-height:1.4;white-space:normal;margin-bottom:6px}
+.quiz{display:flex;flex-direction:column;gap:16px}
+.q{display:flex;flex-direction:column;gap:8px}
+.q p{margin:0;font-weight:600}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{font-family:var(--f-body);font-size:14px;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;text-align:left}
+.opt.right{border-color:var(--good);color:var(--good);font-weight:600}
+.opt.wrong{border-color:var(--signal);color:var(--signal)}
+.fb{font-size:14px;color:var(--muted);min-height:1em}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
+@media (prefers-reduced-motion: reduce){.progress i{transition:none}}
+.lab2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);gap:14px}
+@media (max-width:760px){.lab2{grid-template-columns:1fr}}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:760px){.metrics{grid-template-columns:1fr 1fr}}
+.mcard{border:1.5px solid var(--line);border-left-width:4px;border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.mcard small{font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.mcard b{font-family:var(--f-display);font-size:22px;font-variant-numeric:tabular-nums}
+.mcard span{font-family:var(--f-mono);font-size:11px;color:var(--muted);overflow-wrap:anywhere}
+.beamfig svg{width:100%;max-width:520px;display:block;margin:0 auto}
+.beamfig .b{stroke:var(--ink);stroke-width:7;stroke-linecap:round}
+.beamfig .pv{fill:var(--panel);stroke:var(--ink);stroke-width:2.5}
+.beamfig .d{stroke:var(--signal);stroke-width:2.5}
+.beamfig .dbox{fill:var(--accent-soft);stroke:var(--signal);stroke-width:2.5}
+.beamfig .f{stroke:var(--warn);stroke-width:3}
+.beamfig .fh{fill:var(--warn)}
+.beamfig .s{fill:none;stroke:var(--accent);stroke-width:2.5}
+.beamfig .g{stroke:var(--muted);stroke-width:2;stroke-dasharray:6 4}
+.beamfig .t{font-family:"JetBrains Mono",monospace;font-size:13px;fill:var(--muted)}
+.beamfig .dl{fill:var(--signal)} .beamfig .fl{fill:var(--warn)} .beamfig .sl{fill:var(--accent)} .beamfig .m{fill:var(--ink);font-weight:600}
+.opt[aria-checked="true"]{font-weight:600}
+.mat{display:inline-grid;grid-template-columns:repeat(var(--c),auto);gap:0 14px;padding:2px 9px;border-left:2px solid currentColor;border-right:2px solid currentColor;border-radius:7px;vertical-align:middle;line-height:1.6;text-align:center;margin:0 2px}
+.mat .off{color:var(--signal);font-weight:600;background:var(--panel);border-radius:4px;padding:0 4px}
+.cpl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:860px){.cpl{grid-template-columns:1fr}}
+.cpl .box{gap:8px;min-width:0}
+.cpl .eq{font-size:14px;padding:10px}
+.cpl .badge{font-size:11px;white-space:normal}
+.beamfig .dim{stroke:var(--muted);stroke-width:1.2}
+.beamfig .arc{fill:none;stroke:var(--warn);stroke-width:2}
+.beamfig .motor{fill:var(--accent-soft);stroke:var(--warn);stroke-width:2.5}
+.beamfig .s2{fill:none;stroke:var(--signal);stroke-width:2.5}
+.beamfig .mass{fill:var(--signal)}
+#modeSel{gap:8px}
+.lab2b{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+@media (max-width:760px){.lab2b{grid-template-columns:1fr}}
+.exh{font-family:var(--f-display);font-size:17px;margin:6px 0 0}
+.cpl canvas{background:var(--bg)}
+</style>
+<style>/* Aerosystems Notebook: site look, light only */
+:root,:root:not([data-theme="light"]),:root[data-theme="dark"]{
+  --bg:#f3f5f8; --panel:#ffffff; --ink:#152033; --muted:#5a6578; --line:#d7dde7;
+  --accent:#1f5fd1; --accent-soft:#e3ecfb; --signal:#d9480f; --good:#1d8a5b; --warn:#b7791f;
+  --grid:#e7ebf2;
+  --f-display:"Space Grotesk",system-ui,sans-serif;
+  --f-body:"Inter",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+--bg:#ffffff;--panel:#ffffff;--ink:#111111;--muted:#5a5a55;--line:#d4d4ce;--grid:#ececea;--f-display:"Helvetica Neue",Helvetica,Arial,sans-serif;--f-body:"Helvetica Neue",Helvetica,Arial,sans-serif;--f-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;color-scheme:light;}
+.nbk-back{display:block;max-width:980px;margin:0 auto 8px;padding:0 0 10px;border-bottom:2px solid #111;font:700 12px/16px "Helvetica Neue",Helvetica,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#111;text-decoration:none}
+.nbk-back:hover{text-decoration:underline}
+</style>
+<a class="nbk-back" href="../eng3039.html#s02">← Dynamics 3</a>
+<div class="wrap">
+  <header>
+    <div class="course">ENG3039 Dynamics 3 · Part 1 · Chapters 1 to 5</div>
+    <h1>Free and Forced Vibration of 1DOF Systems</h1>
+  </header>
+  <div class="rail" id="rail" aria-label="Steps"></div>
+  <div class="progress"><i id="bar"></i></div>
+  <main class="panel" id="stage" aria-live="polite"></main>
+  <div class="nav">
+    <button class="btn ghost" id="prev">← Back</button>
+    <span class="hint">Use ← → keys to move between steps</span>
+    <button class="btn" id="next">Next →</button>
+  </div>
+</div>
+
+<script>
+const F=(n,d)=>`<span class="fr"><span>${n}</span><span>${d}</span></span>`;
+const wn='ω<sub>n</sub>', wd='ω<sub>d</sub>', z='ζ';
+const MAG=`${F('X','F₀')} = ${F('1/k','√[ (1 − r²)² + (2ζr)² ]')}`;
+
+const steps=[
+{tag:"Step 1 · Course map",title:"Part 1 builds every tool the rest of the course uses",
+ what:"Part 1 (Chapters 1 to 5, weeks 1 to 5) solves vibration problems with the Euler approach: guess an exponential or a sinusoid, then substitute. Part 2 (Chapters 6 to 8) solves the same problems with Laplace transforms and matrices.",
+ mean:"Every later chapter starts from the same equation, mẍ + cẋ + kx = F. Part 1 teaches you what each term does and what the answer looks like.",
+ aim:"Two of the four exam questions come from Part 1. Master free vibration, damping, forced response, transmissibility and measurement.",
+ extra:`<div class="flow">
+  <div class="box s"><small>Ch 1</small><b>mẍ + kx = 0</b><span class="hint">Free, undamped. Natural frequency ωₙ.</span></div>
+  <div class="box s"><small>Ch 2</small><b>+ cẋ</b><span class="hint">Damping. ζ, three cases, log decrement.</span></div>
+  <div class="box s"><small>Ch 3</small><b>= F₀ cos ωt</b><span class="hint">Forced. Amplitude, phase, resonance.</span></div>
+  <div class="box s"><small>Ch 4</small><b>F<sub>t</sub> / F₀</b><span class="hint">Transmissibility. Isolation mounts.</span></div>
+  <div class="box s"><small>Ch 5</small><b>z = y − x</b><span class="hint">Base motion. Vibrometer, accelerometer.</span></div></div>
+ <div class="tablebox"><table class="vars"><tr><th>Assessment</th><th>Content</th><th>Weight</th></tr>
+ <tr><td>Exam (Part 1)</td><td>Two questions, Chapters 1 to 5</td><td rowspan="2">75%</td></tr>
+ <tr><td>Exam (Part 2)</td><td>Two questions, Chapters 6 to 8</td></tr>
+ <tr><td>Online quizzes</td><td>Tutorial-style questions</td><td>20%</td></tr>
+ <tr><td>Lab report</td><td>Mode shapes vs FEA</td><td>5%</td></tr></table></div>`,
+ teach:"Say what each of the five chapters adds to the equation mẍ + cẋ + kx = F."},
+
+{tag:"Step 2 · Ch 1 · Equation of motion",title:"Measure x from equilibrium and gravity disappears",
+ what:"Hang a mass on a spring. At rest the spring stretches δ<sub>st</sub>, so mg = kδ<sub>st</sub>. Now pull it a further x and let go. Newton's second law, taking down as positive, gives the equation of motion.",
+ mean:"The weight and the static spring stretch cancel exactly. Only the extra spring force −kx drives the motion. So you draw free-body diagrams with dynamic forces only.",
+ aim:"Write mẍ + kx = 0 for any spring-mass system, and know why gravity is missing.",
+ eq:`<span class="row">Static: &nbsp;mg = kδ<sub>st</sub> <span class="note">(1.1)</span></span>
+ <span class="row">Moving: &nbsp;mg − k(x + δ<sub>st</sub>) = mẍ <span class="note">(1.2)</span></span>
+ <span class="row">Cancel mg with kδ<sub>st</sub>: &nbsp;<span class="hl">mẍ + kx = 0</span> <span class="note">(1.3)</span></span>`,
+ extra:`<div class="tablebox"><table class="vars"><tr><th>Symbol</th><th>Meaning</th><th>Units</th></tr>
+ <tr><td>m</td><td>Mass</td><td>kg</td></tr>
+ <tr><td>k</td><td>Spring stiffness (Hooke's law F = kx)</td><td>N/m</td></tr>
+ <tr><td>δ<sub>st</sub></td><td>Static deflection under the weight</td><td>m</td></tr>
+ <tr><td>x, ẋ, ẍ</td><td>Displacement from equilibrium, velocity, acceleration</td><td>m, m/s, m/s²</td></tr>
+ <tr><td>${wn}</td><td>Natural frequency</td><td>rad/s</td></tr>
+ <tr><td>f<sub>n</sub> = ${wn}/2π</td><td>Natural frequency in hertz</td><td>Hz</td></tr>
+ <tr><td>T = 2π/${wn}</td><td>Natural period</td><td>s</td></tr></table></div>
+ <p class="cap">Useful link: since k = mg/δ<sub>st</sub>, the natural frequency is ωₙ = √(g/δ<sub>st</sub>). Measure how far a machine sinks on its mounts and you know its ωₙ.</p>`,
+ teach:"Explain to a friend why the weight mg never appears in mẍ + kx = 0."},
+
+{tag:"Step 3 · Ch 1 · Natural frequency",title:"Two routes to ωₙ = √(k/m)",
+ what:"Route 1: assume x = A sin ωt + B cos ωt, substitute, and you get −mω² + k = 0. Route 2 (the Euler way): assume x = Ae<sup>st</sup>, get s = ±iωₙ, then use Euler's equation e<sup>iθ</sup> = cos θ + i sin θ to turn the exponentials back into sin and cos.",
+ mean:"Both routes give the same answer. The Euler route matters because it works for damped systems too (Step 6), where guessing a sinusoid fails.",
+ aim:"Find ωₙ, then use initial conditions to find A and B. Move the sliders and watch the period change.",
+ eq:`<span class="row">x = Ae<sup>st</sup>: &nbsp;ms² + k = 0 &nbsp;⇒&nbsp; s = ±i√(k/m) = ±i${wn}</span>
+ <span class="row">x = A₁e<sup>i${wn}t</sup> + A₂e<sup>−i${wn}t</sup> = <span class="hl">A sin ${wn}t + B cos ${wn}t</span> <span class="note">with A = i(A₁ − A₂), B = A₁ + A₂ (1.6)</span></span>
+ <span class="row">Pulled to X and released: x(0) = X ⇒ B = X; ẋ(0) = 0 ⇒ A = 0 &nbsp;⇒&nbsp; <span class="hl">x(t) = X cos ${wn}t</span></span>`,
+ extra:`<div class="ctrls">
+  <div class="ctrl"><label for="m3"><span>Mass m (kg)</span><span id="m3v">2.0</span></label><input id="m3" type="range" min="0.5" max="8" step="0.1" value="2"></div>
+  <div class="ctrl"><label for="k3"><span>Stiffness k (N/m)</span><span id="k3v">80</span></label><input id="k3" type="range" min="10" max="300" step="5" value="80"></div></div>
+ <div class="lab2"><div><canvas id="v3" height="230"></canvas></div><div><canvas id="p3" height="230"></canvas></div></div>
+ <div class="metrics" id="met3"></div>`,
+ teach:"Double the mass. What happens to ωₙ and to the period? Check with the sliders."},
+
+{tag:"Step 4 · Ch 1 · Energy method",title:"Energy sloshes between the spring and the mass",
+ what:"Kinetic energy T = ½mẋ². Spring energy U = ½kx². With no damping, T + U = E stays constant, so d(T + U)/dt = 0.",
+ mean:"At the ends of the swing all the energy sits in the spring. At the centre all of it is kinetic. Nothing is lost, so the motion never stops.",
+ aim:"Get the equation of motion without drawing forces. This method is handy for awkward systems (pulleys, rolling bodies).",
+ eq:`<span class="row">${F('dT','dt')} = mẋẍ, &nbsp; ${F('dU','dt')} = kxẋ</span>
+ <span class="row">mẋẍ + kxẋ = 0 &nbsp;⇒&nbsp; (mẍ + kx)ẋ = 0 &nbsp;⇒&nbsp; <span class="hl">mẍ + kx = 0</span> <span class="note">ẋ is not always zero, so the bracket is</span></span>`,
+ extra:`<div class="lab2"><div><canvas id="v4" height="220"></canvas></div><div><canvas id="e4" height="220"></canvas></div></div>
+ <div class="cap">Left: the mass. Right: kinetic energy (blue), spring energy (red) and their sum (green), which stays flat.</div>`,
+ teach:"Where in the swing is the mass fastest? Answer using energy, not forces."},
+
+{tag:"Step 5 · Ch 2 · Viscous damping",title:"A dashpot turns motion into heat",
+ what:"A piston pushes oil through small holes. The resisting force is proportional to velocity: F = cẋ. Add it to the equation of motion and divide by m.",
+ mean:"ζ compares your damping to critical damping. ζ = 1 means c equals the critical value c₀ = 2mωₙ.",
+ aim:"Turn any damped system into standard form. Then read off ωₙ and ζ.",
+ eq:`<span class="row">−cẋ − kx = mẍ &nbsp;⇒&nbsp; <span class="hl">mẍ + cẋ + kx = 0</span> <span class="note">(2.1), the most important equation of the course</span></span>
+ <span class="row">${z} = ${F('c','2m'+wn)} = ${F('c','c₀')}, &nbsp; c₀ = 2m${wn} = 2√(km) <span class="note">(2.3), (2.11)</span></span>
+ <span class="row"><span class="hl">ẍ + 2${z}${wn}ẋ + ${wn}²x = 0</span> <span class="note">standard form (2.4)</span></span>`,
+ extra:`<div class="tablebox"><table class="vars"><tr><th>Dashpot unit check (notes Fig. 2.3)</th><th></th></tr>
+ <tr><td>Flow</td><td>Q = (p₁ − p₂)/R and Q = Aẋ (piston sweep rate = flow rate)</td></tr>
+ <tr><td>Equation</td><td>mẍ + RA²ẋ + 2kx = 0, so c = RA²</td></tr>
+ <tr><td>Units</td><td>R in N s/m⁵, A² in m⁴, so c in N s/m ✓ and cẋ in N ✓</td></tr></table></div>
+ <div class="tablebox"><table class="vars"><tr><th>New symbol</th><th>Meaning</th><th>Units</th></tr>
+ <tr><td>c</td><td>Damping coefficient</td><td>N s/m</td></tr>
+ <tr><td>c₀</td><td>Critical damping coefficient (the notes write c₀; some slides write c<sub>c</sub>)</td><td>N s/m</td></tr>
+ <tr><td>${z}</td><td>Damping ratio c/c₀</td><td>none</td></tr>
+ <tr><td>${wd} = ${wn}√(1 − ζ²)</td><td>Damped natural frequency</td><td>rad/s</td></tr></table></div>`,
+ teach:"A spring stores energy and a damper removes it. Use that to explain why only the damper makes the motion die out."},
+
+{tag:"Step 6 · Ch 2 · Three damping cases",title:"The characteristic equation decides the motion",
+ what:"Assume x = Ae<sup>pt</sup>. Substitute into the standard form to get the characteristic equation, a quadratic in p. The square root √(ζ² − 1) decides everything.",
+ mean:"ζ < 1: complex roots, so a decaying oscillation at ωd. ζ = 1: one repeated root, the fastest return with no overshoot. ζ > 1: two real roots, a slow creep back.",
+ aim:"Pick the right solution form from ζ, then fit the constants to the initial conditions. Drag ζ and watch the mass.",
+ eq:`<span class="row">p² + 2${z}${wn}p + ${wn}² = 0 &nbsp;⇒&nbsp; p = −${z}${wn} ± ${wn}√(ζ² − 1) <span class="note">(2.5)</span></span>
+ <span class="row">ζ &lt; 1: &nbsp;<span class="hl">x = e<sup>−ζ${wn}t</sup>[P cos ${wd}t + Q sin ${wd}t]</span> <span class="note">(2.8) via Euler, P = A + B, Q = i(A − B)</span></span>
+ <span class="row">ζ = 1: &nbsp;<span class="hl">x = (P + Qt)e<sup>−${wn}t</sup></span> <span class="note">repeated root needs the t</span></span>
+ <span class="row">ζ &gt; 1: &nbsp;<span class="hl">x = Ae<sup>(−ζ + √(ζ²−1))${wn}t</sup> + Be<sup>(−ζ − √(ζ²−1))${wn}t</sup></span> <span class="note">(2.10)</span></span>`,
+ extra:`<div class="ctrls"><div class="ctrl"><label for="z6"><span>Damping ratio ζ</span><span id="z6v">0.15</span></label><input id="z6" type="range" min="0" max="2.5" step="0.01" value="0.15"></div>
+ <span class="badge" id="b6">Sub-critical</span></div>
+ <div><canvas id="v6" height="130"></canvas><div class="cap" id="c6"></div></div>
+ <div><canvas id="p6" height="220"></canvas><div class="cap" id="r6">Released from x₀ at rest, ωₙ = 5 rad/s.</div></div>`,
+ teach:"At ζ = 1 the notes say the mass \"never really stops\". What do they mean?"},
+
+{tag:"Step 7 · Ch 2 · Harmonic addition",title:"P cos θ + Q sin θ is one wave, R sin(θ + ϕ)",
+ what:"Any cosine plus sine at the same frequency adds to a single sine with amplitude R and phase ϕ. So the under-damped answer becomes one decaying sine.",
+ mean:"The response is two parts multiplied: an oscillation R sin(ωd t + ϕ) and a decay envelope e<sup>−ζωₙt</sup>. The peaks follow the envelope.",
+ aim:"Convert between the two forms. The single-sine form is the key to the log decrement in Step 8.",
+ eq:`<span class="row">P cos θ + Q sin θ = R sin(θ + ϕ), &nbsp; <span class="hl">R = √(P² + Q²), &nbsp; tan ϕ = P/Q</span></span>
+ <span class="row">x = <span class="hl">e<sup>−ζ${wn}t</sup> · R sin(${wd}t + ϕ)</span> <span class="note">(2.9) envelope × oscillation</span></span>`,
+ extra:`<div class="ctrls">
+  <div class="ctrl"><label for="P7"><span>P (cos part)</span><span id="P7v">1.0</span></label><input id="P7" type="range" min="-2" max="2" step="0.1" value="1"></div>
+  <div class="ctrl"><label for="Q7"><span>Q (sin part)</span><span id="Q7v">1.0</span></label><input id="Q7" type="range" min="-2" max="2" step="0.1" value="1"></div></div>
+ <div><canvas id="p7" height="230"></canvas>
+ <div class="legend"><span><i style="background:var(--accent)"></i>P cos θ</span><span><i style="background:var(--warn)"></i>Q sin θ</span><span><i style="background:var(--signal)"></i>Sum = R sin(θ + ϕ)</span></div>
+ <div class="cap" id="c7"></div></div>`,
+ teach:"Set P = 0. What are R and ϕ? Does that match what you see?"},
+
+{tag:"Step 8 · Ch 2 · Logarithmic decrement",title:"Measure ζ from a decay you recorded",
+ what:"In a test you see peaks x̂₁, x̂₂, … shrinking. Each peak is one damped period 2π/ωd after the last. Their ratio is the same every time.",
+ mean:"The log of that ratio, δ, depends only on ζ. So a ruler and a stopwatch on a decay trace give you the damping ratio.",
+ aim:"Use n peaks to cut measurement error, then invert for ζ. This is \"simple system identification\" from the syllabus.",
+ eq:`<span class="row">δ = ln(${F('x̂₁','x̂₂')}) = ${F('2πζ'+wn,wd)} = <span class="hl">${F('2πζ','√(1 − ζ²)')}</span> <span class="note">(2.15)</span></span>
+ <span class="row">Over n cycles: &nbsp;<span class="hl">nδ = ln(${F('x̂<sub>p</sub>','x̂<sub>p+n</sub>')})</span> <span class="note">(2.16)</span></span>
+ <span class="row">Invert: &nbsp;<span class="hl">ζ = ${F('δ','√(4π² + δ²)')}</span> ≈ δ/2π for small ζ</span>`,
+ extra:`<div class="ctrls">
+  <div class="ctrl"><label for="z8"><span>True damping ratio ζ (hidden in a real test)</span><span id="z8v">0.050</span></label><input id="z8" type="range" min="0.01" max="0.3" step="0.005" value="0.05"></div>
+  <div class="ctrl"><label for="n8"><span>Cycles counted n</span><span id="n8v">5</span></label><input id="n8" type="range" min="1" max="8" step="1" value="5"></div></div>
+ <div><canvas id="p8" height="240"></canvas><div class="cap" id="c8"></div></div>`,
+ teach:"Why is counting 5 cycles more accurate than measuring just x̂₁/x̂₂ on a real trace?"},
+
+{tag:"Step 9 · Ch 3 · Harmonic forcing",title:"Push with F₀ cos ωt: transient plus steady state",
+ what:"Add a harmonic force. The full solution = complementary function (the Chapter 2 free motion, which dies away) + particular integral (the steady response at the forcing frequency ω).",
+ mean:"After the start-up wobble fades, the mass moves at the forcing frequency, with its own amplitude X and a lag ϕ behind the force.",
+ aim:"Find X and ϕ. Assume x = X cos(ωt − ϕ) and balance the four forces.",
+ eq:`<span class="row"><span class="hl">mẍ + cẋ + kx = F₀ cos ωt</span> <span class="note">(3.1)</span></span>
+ <span class="row">ẍ + 2${z}${wn}ẋ + ${wn}²x = ${F('F₀','m')} cos ωt <span class="note">(3.2)</span></span>
+ <span class="row">Steady state: x = X cos(ωt − ϕ), &nbsp; ẋ = −ωX sin(ωt − ϕ), &nbsp; ẍ = −ω²X cos(ωt − ϕ)</span>`,
+ extra:`<div><canvas id="p9" height="230"></canvas><div class="cap">m = 1 kg, k = 100 N/m, ζ = 0.1, forced at ω = 6 rad/s from rest. The dashed curve is the steady-state particular integral. The gap between the curves is the transient, which dies out.</div></div>
+ <div class="tablebox"><table class="vars"><tr><th>New symbol</th><th>Meaning</th><th>Units</th></tr>
+ <tr><td>F₀, ω</td><td>Force amplitude and forcing frequency (you choose ω)</td><td>N, rad/s</td></tr>
+ <tr><td>X</td><td>Steady-state amplitude</td><td>m</td></tr>
+ <tr><td>ϕ</td><td>Phase lag of x behind the force</td><td>rad or °</td></tr>
+ <tr><td>r = ω/ωₙ</td><td>Frequency ratio. The notes write this as φ, which looks almost the same as the phase ϕ. This page uses r to keep them apart.</td><td>none</td></tr></table></div>`,
+ teach:"Why does the transient die out but the steady state does not?"},
+
+{tag:"Step 10 · Ch 3 · Phasor diagram",title:"Four forces form a closed triangle",
+ what:"Draw each force as a rotating arrow (phasor): the applied force F₀, the spring kX, the damper cωX (90° ahead of x) and the inertia mω²X. They must add to zero.",
+ mean:"kX and mω²X lie on one line, pointing opposite ways. cωX sits at right angles. So F₀ is the hypotenuse of a right triangle. Pythagoras gives X, and the angle gives ϕ.",
+ aim:"Derive Eq. 3.7 and 3.8 from one triangle. Move r and watch the triangle reshape.",
+ eq:`<span class="row">F₀² = (cωX)² + (kX − mω²X)² &nbsp;⇒&nbsp; ${F('X','F₀')} = ${F('1','√[(k − mω²)² + (cω)²]')}</span>
+ <span class="row">Divide by k, use r = ω/ωₙ and c = 2mωₙζ: &nbsp;<span class="hl">${MAG}</span> <span class="note">(3.7)</span></span>
+ <span class="row"><span class="hl">tan ϕ = ${F('2ζr','1 − r²')}</span> <span class="note">(3.8)</span></span>`,
+ extra:`<div class="ctrls">
+  <div class="ctrl"><label for="r10"><span>Frequency ratio r</span><span id="r10v">0.60</span></label><input id="r10" type="range" min="0.05" max="2.5" step="0.01" value="0.6"></div>
+  <div class="ctrl"><label for="z10"><span>Damping ratio ζ</span><span id="z10v">0.20</span></label><input id="z10" type="range" min="0.05" max="1" step="0.01" value="0.2"></div></div>
+ <div class="ctrls" id="pv10"></div>
+ <div><canvas id="ph10" height="320"></canvas><div class="cap" id="c10"></div></div>`,
+ teach:"At r = 1 the spring and inertia arrows cancel. What is left to balance F₀?"},
+
+{tag:"Step 11 · Ch 3 · Frequency response",title:"Amplitude and phase across all forcing frequencies",
+ what:"Plot Xk/F₀ (the magnification factor) and ϕ against r for several ζ. The animation shows the mass and the force arrow, so you can see the lag.",
+ mean:"Low r: x follows the force (ϕ ≈ 0). r = 1: ϕ = 90° for every ζ. High r: x moves opposite to the force (ϕ → 180°) and the amplitude shrinks.",
+ aim:"Read amplitude and phase for any r and ζ. Spot resonance.",
+ extra:`<div class="ctrls">
+  <div class="ctrl"><label for="r11"><span>Frequency ratio r</span><span id="r11v">0.50</span></label><input id="r11" type="range" min="0.05" max="3" step="0.01" value="0.5"></div>
+  <div class="ctrl"><label for="z11"><span>Damping ratio ζ</span><span id="z11v">0.15</span></label><input id="z11" type="range" min="0.05" max="1" step="0.01" value="0.15"></div></div>
+ <div><canvas id="v11" height="130"></canvas></div>
+ <div class="lab2b"><div><canvas id="m11" height="240"></canvas><div class="cap">Magnification Xk/F₀ against r (cut at 6). Faint curves: ζ = 0.05, 0.1, 0.25, 0.5, 1.</div></div>
+ <div><canvas id="f11" height="240"></canvas><div class="cap">Phase lag ϕ in degrees.</div></div></div>
+ <div class="metrics" id="met11"></div>`,
+ teach:"Push r to 3. Is the mass moving with the force or against it? Use the animation to answer."},
+
+{tag:"Step 12 · Ch 3 · Resonance",title:"Why the peak happens, and where",
+ what:"Minimise the denominator of Eq. 3.7: differentiate (1 − r²)² + (2ζr)² with respect to r and set it to zero.",
+ mean:"Below resonance the spring absorbs your effort (spring-controlled, in phase). Above it the inertia absorbs it (mass-controlled, out of phase). At resonance spring and inertia cancel. Only damping limits the amplitude.",
+ aim:"Find ωr and the peak height. Explain resonance with forces, not just as \"the biggest amplitude\".",
+ eq:`<span class="row">${F('d','dr')}[(1 − r²)² + (2ζr)²] = 0 &nbsp;⇒&nbsp; <span class="hl">ω<sub>r</sub> = ${wn}√(1 − 2ζ²)</span> <span class="note">(3.9)</span></span>
+ <span class="row">Peak height: &nbsp;${F('X<sub>max</sub>k','F₀')} = ${F('1','2ζ√(1 − ζ²)')} ≈ ${F('1','2ζ')} for small ζ</span>
+ <span class="row"><span class="note">A peak exists only if 1 − 2ζ² &gt; 0, so ζ &lt; 0.707. The notes say "sub-critical", but between ζ = 0.707 and 1 there is no peak at all.</span></span>`,
+ extra:`<div class="cpl">
+  <div class="box"><small>Below resonance · r = 0.3</small><canvas id="q1" height="170"></canvas><span class="hint">Spring-controlled. Like pushing a sprung door slowly: your force follows how far it is open. Low amplitude, in phase.</span></div>
+  <div class="box"><small>At resonance · r = 1</small><canvas id="q2" height="170"></canvas><span class="hint">Spring and inertia cancel. Energy swaps between them. Only the damper resists. Huge amplitude, ϕ = 90°.</span></div>
+  <div class="box"><small>Above resonance · r = 3</small><canvas id="q3" height="170"></canvas><span class="hint">Mass-controlled. Like swinging the door fast: most effort stops and restarts it. Low amplitude, out of phase.</span></div></div>
+ <div class="legend"><span><i style="background:var(--ink)"></i>F₀</span><span><i style="background:var(--accent)"></i>spring kX</span><span><i style="background:var(--good)"></i>inertia mω²X</span><span><i style="background:var(--signal)"></i>damping cωX</span></div>`,
+ teach:"A soldier squad breaks step on a bridge. Explain why, using the three phasor pictures."},
+
+{tag:"Step 13 · Ch 4 · Transmissibility",title:"How much force reaches the floor?",
+ what:"The floor feels the spring and damper forces: F<sub>t</sub> = cẋ + kx. They are 90° apart, so F<sub>t</sub> = X√(k² + (cω)²). Divide by F₀.",
+ mean:"TR > 1 below r = √2: the mount makes things worse. TR < 1 above r = √2: the mount isolates. At r = √2, TR = 1 for every ζ.",
+ aim:"Design an isolator: soft springs (low ωₙ, so r is high) and light damping.",
+ eq:`<span class="row">F<sub>t</sub> = √[(kX)² + (cωX)²] = Xk√[1 + (2ζr)²] <span class="note">(4.1)</span></span>
+ <span class="row"><span class="hl">TR = ${F('F<sub>t</sub>','F₀')} = ${F('√[1 + (2ζr)²]','√[(1 − r²)² + (2ζr)²]')}</span> <span class="note">(4.3)</span></span>
+ <span class="row"><span class="note">Why √2: at r² = 2, (1 − r²)² = 1, so top and bottom are both √(1 + 8ζ²) and TR = 1.</span></span>`,
+ extra:`<div class="ctrls">
+  <div class="ctrl"><label for="r13"><span>Frequency ratio r</span><span id="r13v">2.50</span></label><input id="r13" type="range" min="0.05" max="4" step="0.01" value="2.5"></div>
+  <div class="ctrl"><label for="z13"><span>Damping ratio ζ</span><span id="z13v">0.10</span></label><input id="z13" type="range" min="0.02" max="1" step="0.01" value="0.1"></div>
+  <span class="badge" id="b13"></span></div>
+ <div><canvas id="t13" height="270"></canvas><div class="cap">Fig. 4.1 recreated. Shaded: isolation region r &gt; √2. Faint curves: ζ = 0.05, 0.1, 0.25, 0.5, 1.</div></div>
+ <div><canvas id="a13" height="90"></canvas><div class="cap">Arrow lengths to scale: force applied to the machine (amber) and force reaching the floor (red).</div></div>`,
+ teach:"Above r = √2, why does more damping make isolation worse? Look at the curves."},
+
+{tag:"Step 14 · Ch 5 · Vibration measurement",title:"A mass on a spring inside a box measures the box",
+ what:"The base moves x = X cos ωt. The sensor mass moves y. The instrument reads the relative motion z = y − x. The base motion acts like a force −mẍ on the mass.",
+ mean:"Same maths as Chapter 3 with F₀ replaced by mω²X. Soft sensor (r ≫ 1): z copies x, a vibrometer. Stiff sensor (r ≪ 1): z ∝ ω²X, the acceleration, an accelerometer.",
+ aim:"Choose ωₙ and ζ for the job. Accelerometers use a small mass, a stiff spring (piezo) and ζ ≈ 0.7.",
+ eq:`<span class="row">mÿ = −kz − cż, &nbsp; y = z + x &nbsp;⇒&nbsp; <span class="hl">mz̈ + cż + kz = −mẍ = mω²X cos ωt</span> <span class="note">(5.1)</span></span>
+ <span class="row"><span class="hl">${F('Z','X')} = ${F('r²','√[(1 − r²)² + (2ζr)²]')}</span>, &nbsp; tan ϕ = ${F('2ζr','1 − r²')} <span class="note">(5.2), (5.3)</span></span>
+ <span class="row">Vibrometer, r ≫ 1: Z/X → r²/r² = 1. &nbsp; Accelerometer, r ≪ 1: Z ≈ r²X = ω²X/ωₙ², proportional to acceleration.</span>`,
+ extra:`<div class="ctrls">
+  <div class="ctrl"><label for="z14"><span>Damping ratio ζ</span><span id="z14v">0.70</span></label><input id="z14" type="range" min="0.05" max="1" step="0.01" value="0.7"></div>
+  <div class="ctrls" id="view14"></div></div>
+ <div><canvas id="s14" height="260"></canvas><div class="cap" id="c14"></div></div>`,
+ teach:"Switch to the accelerometer view and slide ζ. Why is 0.7 the best choice?"},
+
+{tag:"Step 15 · Practice examples",title:"Four exam-style questions with full working",
+ what:"These are my own practice questions, written in the style of the course. Your notes have no worked examples for Part 1, so check against tutorial sheets too.",
+ mean:"Each one uses a single formula from this page. Read the objective, list the variables, then solve.",
+ aim:"Practise the routine: objective → known values → formula → numbers → sanity check.",
+ extra:`<h3 class="exh">A · Natural frequency (Ch 1)</h3>
+ <div class="eq reveal" id="ra"><span class="line"><span class="why">Objective: ωₙ, fₙ and T for m = 2 kg on k = 800 N/m, released from 5 mm</span>ωₙ = √(800/2) = <span class="hl">20 rad/s</span></span>
+ <span class="line"><span class="why">Hertz and period</span>fₙ = 20/2π = <span class="hl">3.18 Hz</span>, &nbsp; T = 2π/20 = <span class="hl">0.314 s</span></span>
+ <span class="line"><span class="why">Response with x(0) = 5 mm, ẋ(0) = 0</span>x(t) = 5 cos 20t mm</span></div>
+ <div class="nav"><button class="btn" id="raBtn">Reveal next line</button><button class="btn ghost" id="raReset">Start again</button></div>
+ <h3 class="exh">B · Log decrement (Ch 2)</h3>
+ <div class="eq reveal" id="rb"><span class="line"><span class="why">Objective: ζ. A test trace drops from 10 mm to 2 mm in 5 cycles</span>5δ = ln(10/2) = 1.609 &nbsp;⇒&nbsp; δ = 0.322</span>
+ <span class="line"><span class="why">Invert</span>ζ = 0.322/√(4π² + 0.322²) = <span class="hl">0.0512</span> &nbsp;<span class="note">(δ/2π gives 0.0512 too: small ζ)</span></span></div>
+ <div class="nav"><button class="btn" id="rbBtn">Reveal next line</button><button class="btn ghost" id="rbReset">Start again</button></div>
+ <h3 class="exh">C · Forced response and floor force (Ch 3 and 4)</h3>
+ <div class="eq reveal" id="rc"><span class="line"><span class="why">Known: m = 10 kg, k = 40 kN/m, c = 200 N s/m, F₀ = 100 N, ω = 50 rad/s</span>ωₙ = √(40 000/10) = 63.25 rad/s, &nbsp; r = 50/63.25 = 0.791</span>
+ <span class="line"><span class="why">Damping ratio</span>ζ = 200/(2 × 10 × 63.25) = 0.158</span>
+ <span class="line"><span class="why">Denominator</span>√[(1 − 0.625)² + (2 × 0.158 × 0.791)²] = √(0.1406 + 0.0625) = 0.4507</span>
+ <span class="line"><span class="why">Amplitude (3.7)</span>X = (100/40 000)/0.4507 = <span class="hl">5.55 mm</span></span>
+ <span class="line"><span class="why">Phase (3.8)</span>ϕ = tan⁻¹(0.25/0.375) = <span class="hl">33.7°</span></span>
+ <span class="line"><span class="why">Transmissibility (4.3)</span>TR = √(1 + 0.0625)/0.4507 = 2.29 &nbsp;⇒&nbsp; F<sub>t</sub> = <span class="hl">229 N</span> &nbsp;<span class="note">r &lt; √2, so the mount amplifies</span></span></div>
+ <div class="nav"><button class="btn" id="rcBtn">Reveal next line</button><button class="btn ghost" id="rcReset">Start again</button></div>
+ <h3 class="exh">D · Isolator design (Ch 4)</h3>
+ <div class="eq reveal" id="rd"><span class="line"><span class="why">Objective: a machine runs at 1500 rpm. Undamped mounts must pass at most 10% of the force. Find the static deflection</span>ω = 1500 × 2π/60 = 157.1 rad/s</span>
+ <span class="line"><span class="why">Undamped, r &gt; √2: TR = 1/(r² − 1) = 0.1</span>r² = 11 &nbsp;⇒&nbsp; ωₙ = 157.1/√11 = 47.4 rad/s</span>
+ <span class="line"><span class="why">Use ωₙ = √(g/δst) from Step 2</span>δst = 9.81/47.4² = <span class="hl">4.4 mm</span> &nbsp;<span class="note">choose mounts that sag at least this much</span></span></div>
+ <div class="nav"><button class="btn" id="rdBtn">Reveal next line</button><button class="btn ghost" id="rdReset">Start again</button></div>`,
+ teach:"Example C: the mount makes the floor force bigger than F₀. Suggest one change that fixes it, and check it with Step 13."},
+
+{tag:"Step 16 · Check yourself",title:"Feynman check: find the gaps",
+ what:"Answer each question. A wrong answer tells you which step to revisit.",
+ mean:"If you explain each answer in plain words, you own Part 1.",
+ aim:"Leave no confusion behind before the exam.",
+ extra:`<div class="quiz" id="quiz"></div>`,
+ teach:"Teach Part 1 in 90 seconds: ωₙ, ζ and the three cases, log decrement, X/F₀ and ϕ, resonance, TR, vibrometer vs accelerometer."}
+];
+steps.pop(); /* removed: Check yourself */
+
+const quiz=[
+ {q:"m = 4 kg, k = 400 N/m. ωₙ is:",o:["10 rad/s","100 rad/s","1.59 rad/s"],a:0,f:"ωₙ = √(k/m) = √100 = 10 rad/s. See Step 3."},
+ {q:"Why does gravity vanish from mẍ + kx = 0?",o:["It is too small","The static spring stretch cancels it","Vibration is horizontal"],a:1,f:"mg = kδst, measured from equilibrium. See Step 2."},
+ {q:"c = 40 N s/m, m = 2 kg, k = 200 N/m. ζ is:",o:["0.2","1.0","0.5"],a:1,f:"c₀ = 2√(km) = 2√400 = 40 N s/m, so ζ = 40/40 = 1, critically damped. See Step 5."},
+ {q:"Peaks fall by half every cycle. δ is:",o:["0.5","ln 2 = 0.693","2"],a:1,f:"δ = ln(x̂₁/x̂₂) = ln 2. See Step 8."},
+ {q:"At r = 1 the phase lag is:",o:["0°","90° for any ζ","180°"],a:1,f:"tan ϕ = 2ζr/0 → ∞, so ϕ = 90°. See Step 11."},
+ {q:"For good isolation you want:",o:["Stiff mounts, heavy damping","Soft mounts, light damping","r < √2"],a:1,f:"High r (low ωₙ) and low ζ. See Step 13."},
+ {q:"An accelerometer needs:",o:["Low ωₙ (soft, heavy)","High ωₙ (stiff, light), ζ ≈ 0.7"],a:1,f:"r ≪ 1 makes Z ∝ ω²X. See Step 14."}
+];
+
+const stage=document.getElementById('stage'), rail=document.getElementById('rail');
+let cur=0, visited=new Set([0]), anims=[];
+try{const s=parseInt(localStorage.getItem('p1step'));if(s>=0&&s<steps.length)cur=s;}catch(e){}
+steps.forEach((s,i)=>{const b=document.createElement('button');b.textContent=i+1;b.title=s.tag;b.onclick=()=>go(i);rail.appendChild(b);});
+function go(i){cur=Math.max(0,Math.min(steps.length-1,i));visited.add(cur);try{localStorage.setItem('p1step',cur)}catch(e){}render();window.scrollTo({top:0});}
+document.getElementById('prev').onclick=()=>go(cur-1);
+document.getElementById('next').onclick=()=>go(cur+1);
+document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='ArrowRight')go(cur+1);if(e.key==='ArrowLeft')go(cur-1);});
+const stopAnims=()=>{anims.forEach(a=>a.stop=true);anims=[];};
+function loop(fn){const h={stop:false};anims.push(h);const f=ts=>{if(h.stop)return;fn(ts);requestAnimationFrame(f);};requestAnimationFrame(f);}
+const red=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function render(){
+ stopAnims();
+ const s=steps[cur];
+ stage.innerHTML=`<div class="tag">${s.tag}</div><h2>${s.title}</h2>
+ <div class="trio"><div class="cell what"><h3>What it is</h3><p>${s.what}</p></div>
+ <div class="cell mean"><h3>What it means</h3><p>${s.mean}</p></div>
+ <div class="cell aim"><h3>The aim</h3><p>${s.aim}</p></div></div>
+ ${s.eq?`<div class="eq">${s.eq}</div>`:''}${s.extra||''}
+`;
+ [...rail.children].forEach((b,i)=>{b.className=(i===cur?'on':visited.has(i)?'done':'');});
+ document.getElementById('bar').style.width=((cur+1)/steps.length*100)+'%';
+ document.getElementById('prev').disabled=cur===0;
+ document.getElementById('next').disabled=cur===steps.length-1;
+ setup();
+}
+
+/* ---------- helpers ---------- */
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function prep(cv){const dpr=window.devicePixelRatio||1,w=cv.clientWidth;cv._h=cv._h||cv.height;
+ cv.width=w*dpr;cv.height=cv._h*dpr;cv.style.height=cv._h+'px';const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,cv._h);return[c,w,cv._h];}
+function nice(r){const p=Math.pow(10,Math.floor(Math.log10(r))),f=r/p;return(f<1.5?1:f<3?2:f<7?5:10)*p;}
+function fmt(v,st){const d=Math.max(0,-Math.floor(Math.log10(st)+1e-9));return v.toFixed(Math.min(d,3));}
+function axes(c,W,H,pad,xMax,yMin,yMax,xu,xMin=0,yt){
+ const X=t=>pad.l+((t-xMin)/(xMax-xMin))*(W-pad.l-pad.r), Y=v=>pad.t+(yMax-v)/(yMax-yMin)*(H-pad.t-pad.b);
+ c.strokeStyle=css('--grid');c.lineWidth=1;c.fillStyle=css('--muted');c.font='11px "JetBrains Mono", monospace';
+ const ys=yt||nice((yMax-yMin)/4);
+ for(let v=Math.ceil(yMin/ys-1e-9)*ys;v<=yMax+1e-9;v+=ys){c.beginPath();c.moveTo(pad.l,Y(v));c.lineTo(W-pad.r,Y(v));c.stroke();c.textAlign='right';c.textBaseline='middle';c.fillText(fmt(v,ys),pad.l-6,Y(v));}
+ const xs=nice((xMax-xMin)/5);
+ for(let t=Math.ceil(xMin/xs-1e-9)*xs;t<=xMax+1e-9;t+=xs){c.beginPath();c.moveTo(X(t),pad.t);c.lineTo(X(t),H-pad.b);c.stroke();c.textAlign='center';c.textBaseline='top';c.fillText(fmt(t,xs)+(xu||''),X(t),H-pad.b+5);}
+ if(yMin<0){c.strokeStyle=css('--muted');c.beginPath();c.moveTo(pad.l,Y(0));c.lineTo(W-pad.r,Y(0));c.stroke();}
+ return[X,Y];
+}
+function curve(c,X,Y,f,x0,x1,col,lw,dash,clip){c.strokeStyle=col;c.lineWidth=lw;c.setLineDash(dash||[]);c.beginPath();let pen=false;
+ for(let i=0;i<=600;i++){const t=x0+(x1-x0)*i/600;const v=f(t);if(!isFinite(v)||(clip!=null&&Math.abs(v)>clip)){pen=false;continue;}pen?c.lineTo(X(t),Y(v)):c.moveTo(X(t),Y(v));pen=true;}c.stroke();c.setLineDash([]);}
+function dot(c,x,y,col){c.fillStyle=col;c.beginPath();c.arc(x,y,5.5,0,7);c.fill();c.strokeStyle=css('--panel');c.lineWidth=2;c.stroke();}
+function tag(c,x,y,txt,col,al){c.fillStyle=col;c.font='600 11px "JetBrains Mono", monospace';c.textAlign=al||'left';c.textBaseline='bottom';c.fillText(txt,x,y);}
+function vline(c,x,y0,y1,col){c.strokeStyle=col;c.lineWidth=1;c.setLineDash([3,3]);c.beginPath();c.moveTo(x,y0);c.lineTo(x,y1);c.stroke();c.setLineDash([]);}
+function card(lab,val,f,cl){return`<div class="mcard" style="border-color:${cl}"><small>${lab}</small><b>${val}</b><span>${f}</span></div>`;}
+
+/* vertical spring-mass(-damper) hanging from a ceiling; x positive downward, in units of amp px */
+function hang(c,W,H,x,o={}){
+ const cx=W/2,top=14,eqY=H*0.55,amp=H*0.22,my=eqY+x*amp,mw=56,mh=40,zeta=o.zeta||0;
+ c.fillStyle=css('--muted');c.fillRect(cx-60,top-3,120,3);for(let i=-60;i<60;i+=8)c.fillRect(cx+i,top-10,1,7);
+ const sx=o.damper?cx-14:cx;c.strokeStyle=css('--accent');c.lineWidth=2;c.beginPath();c.moveTo(sx,top);const y1=my-mh/2,n=12;
+ for(let i=1;i<=n;i++)c.lineTo(sx+(i===n?0:(i%2?-9:9)),top+(y1-top)*i/n);c.stroke();
+ if(o.damper){const dx=cx+16,g=4+Math.min(zeta,2.5)*4,cl=(top+y1)/2;c.strokeStyle=css('--signal');c.lineWidth=1.5+Math.min(zeta,2.5)*0.8;c.fillStyle=css('--accent-soft');
+  c.fillRect(dx-g,top+6,2*g,cl-top);c.beginPath();c.moveTo(dx,top);c.lineTo(dx,top+6);c.moveTo(dx-g,top+6);c.lineTo(dx-g,cl+6);c.moveTo(dx+g,top+6);c.lineTo(dx+g,cl+6);c.moveTo(dx-g+3,cl);c.lineTo(dx+g-3,cl);c.moveTo(dx,cl);c.lineTo(dx,y1);c.stroke();}
+ c.fillStyle=o.col||css('--ink');c.fillRect(cx-mw/2,my-mh/2,mw,mh);c.fillStyle=css('--panel');c.font='600 14px "Space Grotesk", sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('m',cx,my);
+ vline(c,cx-70,eqY,eqY,css('--muted'));c.strokeStyle=css('--muted');c.setLineDash([4,4]);c.lineWidth=1;c.beginPath();c.moveTo(cx-80,eqY);c.lineTo(cx-mw/2-6,eqY);c.moveTo(cx+mw/2+6,eqY);c.lineTo(cx+80,eqY);c.stroke();c.setLineDash([]);
+ c.font='11px "JetBrains Mono", monospace';c.fillStyle=css('--muted');c.textAlign='left';c.fillText('x = 0',cx+mw/2+12,eqY-8);
+ if(o.force!=null){const L=o.force*30,ax=cx-mw/2-26;c.strokeStyle=css('--warn');c.fillStyle=css('--warn');c.lineWidth=2.5;c.beginPath();c.moveTo(ax,my);c.lineTo(ax,my+L);c.stroke();
+  if(Math.abs(L)>3){c.beginPath();c.moveTo(ax,my+L+Math.sign(L)*7);c.lineTo(ax-5,my+L);c.lineTo(ax+5,my+L);c.fill();}c.font='600 11px "JetBrains Mono", monospace';c.textAlign='right';c.fillText('F',ax-8,my);}
+}
+function freeR(zeta,w,t){
+ if(Math.abs(zeta-1)<0.005)return(1+w*t)*Math.exp(-w*t);
+ if(zeta<1){const r=Math.sqrt(1-zeta*zeta),d=w*r;return Math.exp(-zeta*w*t)*(Math.cos(d*t)+zeta/r*Math.sin(d*t));}
+ const r=Math.sqrt(zeta*zeta-1),A=(zeta+r)/(2*r),B=(-zeta+r)/(2*r);return Math.exp(-zeta*w*t)*(A*Math.exp(w*r*t)+B*Math.exp(-w*r*t));}
+const caseOf=zeta=>Math.abs(zeta-1)<0.005?'crit':zeta<1?'under':'over';
+const caseCol=k=>({under:css('--accent'),crit:css('--good'),over:css('--signal')}[k]);
+const Dn=(r,zz)=>Math.sqrt((1-r*r)**2+(2*zz*r)**2);
+const mag=(r,zz)=>1/Dn(r,zz), phase=(r,zz)=>Math.atan2(2*zz*r,1-r*r);
+const TR=(r,zz)=>Math.sqrt(1+(2*zz*r)**2)/Dn(r,zz);
+
+/* phasor polygon: k=m=1, omega=r, c=2zeta */
+function drawPhasor(cv,r,zz,mini,mode){
+ mode=mode||'notes';
+ const[c,W,H]=prep(cv),X=mag(r,zz),ph=phase(r,zz);
+ const rot=mode==='notes'?0.7:0,R=p=>[p[0]*Math.cos(rot)-p[1]*Math.sin(rot),p[0]*Math.sin(rot)+p[1]*Math.cos(rot)];
+ const e=R([Math.cos(-ph),Math.sin(-ph)]);/* displacement direction */
+ const F0=[R([1,0]),css('--ink'),'F₀'],KX=[[-X*e[0],-X*e[1]],css('--accent'),'kX'],MX_=[[r*r*X*e[0],r*r*X*e[1]],css('--good'),'mω²X'],CX=[[2*zz*r*X*e[1],-2*zz*r*X*e[0]],css('--signal'),'cωX'];
+ const v=mode==='notes'?[F0,KX,CX,MX_]:[F0,KX,MX_,CX];
+ let pts=[[0,0]];v.forEach(q=>{const p=pts[pts.length-1];pts.push([p[0]+q[0][0],p[1]+q[0][1]]);});
+ const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);let mnx=Math.min(...xs),mxx=Math.max(...xs),mny=Math.min(...ys),mxy=Math.max(...ys);
+ const pad=mini?18:40,s=Math.min((W-2*pad)/(mxx-mnx||1),(H-2*pad)/(mxy-mny||1)),ox=pad-mnx*s+((W-2*pad)-(mxx-mnx)*s)/2,oy=H-pad+mny*s-((H-2*pad)-(mxy-mny)*s)/2;
+ const P=p=>[ox+p[0]*s,oy-p[1]*s];
+ if(mode==='tri'&&!mini){const A=P(pts[0]),B=P(pts[1]),C=P(pts[3]);c.fillStyle=css('--accent-soft');c.beginPath();c.moveTo(A[0],A[1]);c.lineTo(B[0],B[1]);c.lineTo(C[0],C[1]);c.closePath();c.fill();
+  const u=(p,q)=>{const d=Math.hypot(q[0]-p[0],q[1]-p[1])||1;return[(q[0]-p[0])/d,(q[1]-p[1])/d];};const ua=u(C,B),ub=u(C,A),sz=12;
+  if(Math.hypot(B[0]-C[0],B[1]-C[1])>sz*2){c.strokeStyle=css('--ink');c.lineWidth=1.2;c.beginPath();c.moveTo(C[0]+ua[0]*sz,C[1]+ua[1]*sz);c.lineTo(C[0]+(ua[0]+ub[0])*sz,C[1]+(ua[1]+ub[1])*sz);c.lineTo(C[0]+ub[0]*sz,C[1]+ub[1]*sz);c.stroke();}
+  c.strokeStyle=css('--muted');c.lineWidth=1.5;c.setLineDash([6,4]);c.beginPath();c.moveTo(B[0],B[1]);c.lineTo(C[0],C[1]);c.stroke();c.setLineDash([]);}
+ if(mode==='notes'&&!mini){/* phase angle between F0 and kX at the shared corner */
+  const V=P(pts[1]),A=P(pts[0]),B=P(pts[2]),a1=Math.atan2(A[1]-V[1],A[0]-V[0]),a2=Math.atan2(B[1]-V[1],B[0]-V[0]);
+  let d=a2-a1;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;const rr=26;
+  c.strokeStyle=css('--warn');c.lineWidth=2;c.beginPath();c.arc(V[0],V[1],rr,a1,a1+d,d<0);c.stroke();
+  const am=a1+d/2;c.fillStyle=css('--warn');c.font='600 15px "JetBrains Mono", monospace';c.textAlign='center';c.textBaseline='middle';c.fillText('ϕ',V[0]+Math.cos(am)*(rr+13),V[1]+Math.sin(am)*(rr+13));}
+ const cen=pts.slice(0,4).reduce((m,p)=>[m[0]+p[0]/4,m[1]+p[1]/4],[0,0]),Cc=P(cen);
+ [3,2,1,0].forEach(i=>{const q=v[i];const a=P(pts[i]),b=P(pts[i+1]);const L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(L<1)return;c.strokeStyle=q[1];c.fillStyle=q[1];c.lineWidth=mini?2.5:3;
+  c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke();const ang=Math.atan2(b[1]-a[1],b[0]-a[0]),hs=Math.min(10,L/2);
+  c.beginPath();c.moveTo(b[0],b[1]);c.lineTo(b[0]-hs*Math.cos(ang-0.45),b[1]-hs*Math.sin(ang-0.45));c.lineTo(b[0]-hs*Math.cos(ang+0.45),b[1]-hs*Math.sin(ang+0.45));c.fill();
+  if(!mini){const mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;let n=[-(b[1]-a[1])/L,(b[0]-a[0])/L];if(n[0]*(mx-Cc[0])+n[1]*(my-Cc[1])<0)n=[-n[0],-n[1]];
+   c.font='600 13px "JetBrains Mono", monospace';c.textAlign='center';c.textBaseline='middle';c.fillText(q[2],mx+n[0]*18,my+n[1]*18);}});
+ return[X,ph];
+}
+
+function setupReveal(id){const rb=document.getElementById(id+'Btn');if(!rb)return;const ls=[...document.querySelectorAll('#'+id+' .line')];let n=1;
+ const show=()=>{ls.forEach((l,i)=>l.classList.toggle('show',i<n));rb.disabled=n>=ls.length;rb.textContent=n>=ls.length?'All lines shown':'Reveal next line ('+n+'/'+ls.length+')';};
+ rb.onclick=()=>{n++;show();};document.getElementById(id+'Reset').onclick=()=>{n=1;show();};show();}
+
+/* ---------- per-step setup ---------- */
+function setup(){
+ ['ra','rb','rc','rd'].forEach(setupReveal);
+
+ const m3=document.getElementById('m3');
+ if(m3){const k3=document.getElementById('k3');let t0=null;
+  const upd=()=>{const m=+m3.value,k=+k3.value,w=Math.sqrt(k/m);document.getElementById('m3v').textContent=m.toFixed(1);document.getElementById('k3v').textContent=k;
+   document.getElementById('met3').innerHTML=card('ωₙ = √(k/m)',w.toFixed(2)+' rad/s','',css('--accent'))+card('fₙ = ωₙ/2π',(w/2/Math.PI).toFixed(2)+' Hz','',css('--good'))+card('T = 2π/ωₙ',(2*Math.PI/w).toFixed(3)+' s','',css('--signal'))+card('δst = mg/k',(m*9.81/k*1000).toFixed(0)+' mm','',css('--warn'));};
+  m3.oninput=upd;k3.oninput=upd;upd();
+  const draw=ts=>{if(t0===null)t0=ts;const m=+m3.value,k=+k3.value,w=Math.sqrt(k/m),T=4,t=red?0:((ts-t0)/1000)%T;
+   {const[c,W,H]=prep(document.getElementById('v3'));hang(c,W,H,Math.cos(w*t));}
+   {const[c,W,H]=prep(document.getElementById('p3'));const[X,Y]=axes(c,W,H,{l:34,r:10,t:10,b:22},T,-1.1,1.1,'s');curve(c,X,Y,s=>Math.cos(w*s),0,T,css('--accent'),2.4);
+    const Tp=2*Math.PI/w;if(Tp<T){c.strokeStyle=css('--signal');c.lineWidth=2;c.beginPath();c.moveTo(X(0),Y(1.05));c.lineTo(X(Tp),Y(1.05));c.stroke();tag(c,X(Tp)+4,Y(1.05)+5,'T',css('--signal'));}
+    vline(c,X(t),10,H-22,css('--muted'));dot(c,X(t),Y(Math.cos(w*t)),css('--accent'));tag(c,X(0)+4,H-26,'x/X',css('--muted'));}};
+  red?draw(0):loop(draw);}
+
+ const e4=document.getElementById('e4');
+ if(e4){let t0=null;const w=4,T=2*Math.PI/w*2;const draw=ts=>{if(t0===null)t0=ts;const t=red?0.3:((ts-t0)/1000)%T,x=Math.cos(w*t);
+   {const[c,W,H]=prep(document.getElementById('v4'));hang(c,W,H,x);}
+   const[c,W,H]=prep(e4);const[X,Y]=axes(c,W,H,{l:34,r:10,t:10,b:22},T,0,1.1,'s');
+   curve(c,X,Y,s=>Math.sin(w*s)**2,0,T,css('--accent'),2.2);curve(c,X,Y,s=>Math.cos(w*s)**2,0,T,css('--signal'),2.2);curve(c,X,Y,s=>1,0,T,css('--good'),2.4);
+   vline(c,X(t),10,H-22,css('--muted'));dot(c,X(t),Y(Math.sin(w*t)**2),css('--accent'));dot(c,X(t),Y(x*x),css('--signal'));
+   tag(c,X(0)+4,Y(1)-3,'E = T + U',css('--good'));};red?draw(0):loop(draw);}
+
+ const z6=document.getElementById('z6');
+ if(z6){let t0=null;const w=5,T=4;const txt={zero:'No damper (ζ = 0): energy never leaves, so the mass swings forever.',under:'Sub-critical (ζ < 1): complex roots. The mass overshoots and oscillates at ωd inside a shrinking envelope.',crit:'Critical (ζ = 1): repeated root. Fastest return to x = 0 without crossing it.',over:'Over-damped (ζ > 1): two real roots. No oscillation, a slow creep back.'};
+  const upd=()=>{const zeta=+z6.value,k=caseOf(zeta);document.getElementById('z6v').textContent=zeta.toFixed(2);const b=document.getElementById('b6');
+   b.textContent={under:zeta===0?'Undamped':'Sub-critical · ζ < 1',crit:'Critical · ζ = 1',over:'Over-damped · ζ > 1'}[k];b.style.color=caseCol(k);
+   document.getElementById('c6').textContent=zeta===0?txt.zero:txt[k];
+   const r=zeta<1?`p = ${(-zeta*w).toFixed(2)} ± ${(w*Math.sqrt(1-zeta*zeta)).toFixed(2)}i  (ωd = ${(w*Math.sqrt(1-zeta*zeta)).toFixed(2)} rad/s)`:k==='crit'?`p = ${(-w).toFixed(2)} (repeated)`:`p = ${(-w*(zeta-Math.sqrt(zeta*zeta-1))).toFixed(2)} and ${(-w*(zeta+Math.sqrt(zeta*zeta-1))).toFixed(2)} (both real)`;
+   document.getElementById('r6').textContent='Released from x₀ at rest, ωₙ = 5 rad/s. Roots: '+r;t0=null;};
+  z6.oninput=upd;upd();
+  const draw=ts=>{if(t0===null)t0=ts;const zeta=+z6.value,tt=red?0:((ts-t0)/1000)%(T+1),t=tt<0.6?0:Math.min(tt-0.6,T),col=caseCol(caseOf(zeta));
+   {const[c,W,H]=prep(document.getElementById('v6'));const cy=H/2,amp=W*0.16,eq=W*0.55,mx=eq+freeR(zeta,w,t)*amp;
+    c.fillStyle=css('--muted');c.fillRect(22,cy-36,3,72);spring(c,24,mx-28,cy-12);
+    const g=4+Math.min(zeta,2.5)*4.5;c.strokeStyle=css('--signal');c.lineWidth=1.5+Math.min(zeta,2.5)*0.8;c.fillStyle=css('--accent-soft');c.fillRect(40,cy+14-g,32,2*g);
+    c.beginPath();c.moveTo(24,cy+14);c.lineTo(40,cy+14);c.moveTo(40,cy+14-g);c.lineTo(72,cy+14-g);c.moveTo(40,cy+14+g);c.lineTo(72,cy+14+g);c.moveTo(40,cy+14-g);c.lineTo(40,cy+14+g);c.moveTo(60,cy+14);c.lineTo(mx-28,cy+14);c.stroke();
+    c.fillStyle=col;c.fillRect(mx-28,cy-24,56,48);c.fillStyle=css('--panel');c.font='600 14px "Space Grotesk", sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('m',mx,cy);
+    vline(c,eq,cy-36,cy+36,css('--muted'));}
+   {const[c,W,H]=prep(document.getElementById('p6'));const[X,Y]=axes(c,W,H,{l:34,r:10,t:10,b:22},T,-1.05,1.05,'s');
+    if(zeta<1&&zeta>0){curve(c,X,Y,s=>Math.exp(-zeta*w*s),0,T,css('--muted'),1,[4,4]);curve(c,X,Y,s=>-Math.exp(-zeta*w*s),0,T,css('--muted'),1,[4,4]);}
+    curve(c,X,Y,s=>freeR(zeta,w,s),0,T,col,2.5);vline(c,X(t),10,H-22,css('--muted'));dot(c,X(t),Y(freeR(zeta,w,t)),col);}};
+  red?draw(0):loop(draw);}
+
+ const P7=document.getElementById('P7');
+ if(P7){const Q7=document.getElementById('Q7');const draw=()=>{const P=+P7.value,Q=+Q7.value,R=Math.hypot(P,Q),ph=Math.atan2(P,Q);
+   document.getElementById('P7v').textContent=P.toFixed(1);document.getElementById('Q7v').textContent=Q.toFixed(1);
+   const[c,W,H]=prep(document.getElementById('p7'));const T=4*Math.PI;const[X,Y]=axes(c,W,H,{l:34,r:10,t:10,b:22},T,-3,3,'',0,1);
+   c.fillStyle=css('--muted');c.font='11px "JetBrains Mono", monospace';c.textAlign='left';c.fillText('θ (rad) →',X(T)-70,Y(-3)-6);
+   curve(c,X,Y,s=>P*Math.cos(s),0,T,css('--accent'),1.6,[5,4]);curve(c,X,Y,s=>Q*Math.sin(s),0,T,css('--warn'),1.6,[5,4]);curve(c,X,Y,s=>R*Math.sin(s+ph),0,T,css('--signal'),2.8);
+   c.strokeStyle=css('--signal');c.lineWidth=1;c.setLineDash([2,3]);[R,-R].forEach(v=>{c.beginPath();c.moveTo(X(0),Y(v));c.lineTo(X(T),Y(v));c.stroke();});c.setLineDash([]);
+   document.getElementById('c7').textContent=`R = √(${P.toFixed(1)}² + ${Q.toFixed(1)}²) = ${R.toFixed(3)}, ϕ = tan⁻¹(P/Q) = ${ph.toFixed(3)} rad (${(ph*180/Math.PI).toFixed(1)}°). Dotted lines: ±R. Use atan2 on a calculator, or check the quadrant by hand.`;};
+  P7.oninput=draw;Q7.oninput=draw;draw();}
+
+ const z8=document.getElementById('z8');
+ if(z8){const n8=document.getElementById('n8'),w=6;const draw=()=>{const zeta=+z8.value,n=+n8.value;document.getElementById('z8v').textContent=zeta.toFixed(3);document.getElementById('n8v').textContent=n;
+   const wdd=w*Math.sqrt(1-zeta*zeta),Td=2*Math.PI/wdd,T=Td*9.5;const[c,W,H]=prep(document.getElementById('p8'));const[X,Y]=axes(c,W,H,{l:34,r:10,t:16,b:22},T,-1.05,1.05,'s');
+   curve(c,X,Y,s=>Math.exp(-zeta*w*s),0,T,css('--muted'),1,[4,4]);curve(c,X,Y,s=>freeR(zeta,w,s),0,T,css('--accent'),2.2);
+   const pk=i=>{const t=i*Td;return[t,freeR(zeta,w,t)];};const a=pk(0),b=pk(n);
+   for(let i=0;i<=9;i++){const p=pk(i);dot(c,X(p[0]),Y(p[1]),i===0||i===n?css('--signal'):css('--muted'));}
+   tag(c,X(a[0])+8,Y(a[1])+4,'x̂ₚ',css('--signal'));tag(c,X(b[0])+6,Y(b[1])-4,'x̂ₚ₊'+n,css('--signal'));
+   const d=Math.log(a[1]/b[1])/n,zb=d/Math.sqrt(4*Math.PI**2+d*d);
+   document.getElementById('c8').textContent=`Measured: x̂ₚ = ${a[1].toFixed(3)}, x̂ₚ₊${n} = ${b[1].toFixed(3)}. δ = ln(${a[1].toFixed(3)}/${b[1].toFixed(3)})/${n} = ${d.toFixed(4)}. Back-calculated ζ = δ/√(4π² + δ²) = ${zb.toFixed(4)}. Peaks taken where the decay curve peaks; with a cos start these sit one damped period apart.`;};
+  z8.oninput=draw;n8.oninput=draw;draw();}
+
+ const p9=document.getElementById('p9');
+ if(p9){const m=1,k=100,zz=0.1,w=6,wnn=10,c_=2*zz*wnn*m,T=8,dt=0.002;let x=0,v=0,data=[[0,0]];
+  for(let t=0;t<T;t+=dt){const a=(Math.cos(w*t)-c_*v-k*x)/m;v+=a*dt;x+=v*dt;data.push([t+dt,x]);}
+  const Xs=mag(w/wnn,zz)/k,ph=phase(w/wnn,zz);const[c,W,H]=prep(p9);const ymax=Math.max(...data.map(d=>Math.abs(d[1])))*1.15;
+  const[X,Y]=axes(c,W,H,{l:50,r:10,t:10,b:22},T,-ymax,ymax,'s');curve(c,X,Y,t=>Xs*Math.cos(w*t-ph),0,T,css('--good'),1.6,[5,4]);
+  c.strokeStyle=css('--accent');c.lineWidth=2.4;c.beginPath();data.forEach(([t,x],i)=>{if(i%3)return;i?c.lineTo(X(t),Y(x)):c.moveTo(X(t),Y(x));});c.stroke();
+  tag(c,X(T)-4,Y(ymax)+14,'total = transient + steady',css('--accent'),'right');tag(c,X(T)-4,Y(-ymax)-2,'steady state X cos(ωt − ϕ)',css('--good'),'right');}
+
+ const r10=document.getElementById('r10');
+ if(r10){const z10=document.getElementById('z10'),pv=document.getElementById('pv10');let mode='notes';
+  [['Notes view: 4 forces','notes'],['Rearranged: right triangle','tri']].forEach(([l,m])=>{const b=document.createElement('button');b.className='opt';b.textContent=l;b.dataset.m=m;b.onclick=()=>{mode=m;draw();};pv.appendChild(b);});const draw=()=>{const r=+r10.value,zz=+z10.value;document.getElementById('r10v').textContent=r.toFixed(2);document.getElementById('z10v').textContent=zz.toFixed(2);
+   [...pv.children].forEach(b=>b.classList.toggle('right',b.dataset.m===mode));const[X,ph]=drawPhasor(document.getElementById('ph10'),r,zz,false,mode);
+   const regime=r<0.85?'Spring-controlled: kX is the big arrow, x nearly in phase with F₀.':r>1.2?'Mass-controlled: mω²X is the big arrow, x nearly opposite to F₀.':'Near resonance: kX and mω²X almost cancel, so F₀ is balanced mainly by damping.';
+   document.getElementById('c10').textContent=`Xk/F₀ = ${X.toFixed(3)}, phase lag ϕ = ${(ph*180/Math.PI).toFixed(1)}°. ${regime} ${mode==='notes'?'Notes view: F₀ → kX → cωX → mω²X head to tail. kX and mω²X are parallel and opposite, cωX is at 90° to both, and ϕ sits between F₀ and kX. ':'Rearranged: put kX and mω²X end to end and they make one side (dashed, kX − mω²X). With cωX and F₀ that is a right triangle, so Pythagoras gives X. '}Drawn with k = 1, m = 1, so lengths are relative to F₀.`;};
+  r10.oninput=draw;z10.oninput=draw;draw();}
+
+ const r11=document.getElementById('r11');
+ if(r11){const z11=document.getElementById('z11');let ph0=0,last=null;
+  const plots=()=>{const r=+r11.value,zz=+z11.value;document.getElementById('r11v').textContent=r.toFixed(2);document.getElementById('z11v').textContent=zz.toFixed(2);
+   {const[c,W,H]=prep(document.getElementById('m11'));const[X,Y]=axes(c,W,H,{l:34,r:10,t:10,b:22},3,0,6,'');
+    [0.05,0.1,0.25,0.5,1].forEach(q=>curve(c,X,Y,s=>mag(s,q),0.0,3,css('--grid'),1.4,null,6.2));
+    curve(c,X,Y,s=>mag(s,zz),0,3,css('--accent'),2.6,null,6.2);vline(c,X(1),10,H-22,css('--good'));dot(c,X(r),Y(Math.min(6,mag(r,zz))),css('--accent'));tag(c,X(3)-2,H-26,'r',css('--muted'),'right');}
+   {const[c,W,H]=prep(document.getElementById('f11'));const[X,Y]=axes(c,W,H,{l:40,r:10,t:10,b:22},3,0,180,'',0,45);
+    [0.05,0.1,0.25,0.5,1].forEach(q=>curve(c,X,Y,s=>phase(s,q)*180/Math.PI,0,3,css('--grid'),1.4));
+    curve(c,X,Y,s=>phase(s,zz)*180/Math.PI,0,3,css('--signal'),2.6);vline(c,X(1),10,H-22,css('--good'));dot(c,X(r),Y(phase(r,zz)*180/Math.PI),css('--signal'));tag(c,X(1)+4,Y(90)-3,'90° at r = 1',css('--good'));}
+   const wr=zz<0.7071?Math.sqrt(1-2*zz*zz):null;
+   document.getElementById('met11').innerHTML=card('Xk/F₀',mag(r,zz).toFixed(3),'(3.7)',css('--accent'))+card('Phase lag ϕ',(phase(r,zz)*180/Math.PI).toFixed(1)+'°','(3.8)',css('--signal'))+
+    card('Resonance r = ωr/ωₙ',wr?wr.toFixed(3):'none','√(1 − 2ζ²)',css('--good'))+card('Peak Xk/F₀',wr?(1/(2*zz*Math.sqrt(1-zz*zz))).toFixed(2):'no peak','1/(2ζ√(1 − ζ²))',css('--warn'));};
+  r11.oninput=plots;z11.oninput=plots;plots();
+  const draw=ts=>{const r=+r11.value,zz=+z11.value;if(last===null)last=ts;ph0+=(ts-last)/1000*2*Math.PI*0.8*Math.min(r,2);last=ts;if(red)ph0=0;
+   const A=Math.min(2.2,mag(r,zz)),p=phase(r,zz);const[c,W,H]=prep(document.getElementById('v11'));
+   const cy=H/2,amp=W*0.11,eq=W*0.55,mx=eq+A*Math.cos(ph0-p)*amp*0.8;c.fillStyle=css('--muted');c.fillRect(22,cy-36,3,72);spring(c,24,mx-28,cy-10);
+   c.strokeStyle=css('--signal');c.lineWidth=2;c.beginPath();c.moveTo(24,cy+16);c.lineTo(50,cy+16);c.moveTo(50,cy+8);c.lineTo(76,cy+8);c.moveTo(50,cy+24);c.lineTo(76,cy+24);c.moveTo(50,cy+8);c.lineTo(50,cy+24);c.moveTo(66,cy+16);c.lineTo(mx-28,cy+16);c.stroke();
+   c.fillStyle=css('--accent');c.fillRect(mx-28,cy-24,56,48);c.fillStyle=css('--panel');c.font='600 14px "Space Grotesk", sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText('m',mx,cy);
+   const L=Math.cos(ph0)*34,ay=cy-34;c.strokeStyle=css('--warn');c.fillStyle=css('--warn');c.lineWidth=2.5;c.beginPath();c.moveTo(mx,ay);c.lineTo(mx+L,ay);c.stroke();
+   if(Math.abs(L)>3){c.beginPath();c.moveTo(mx+L+Math.sign(L)*7,ay);c.lineTo(mx+L,ay-5);c.lineTo(mx+L,ay+5);c.fill();}
+   vline(c,eq,cy-36,cy+36,css('--muted'));tag(c,W-4,H-4,'F₀ cos ωt (amber arrow) · amplitude capped for display · slowed',css('--muted'),'right');};
+  red?draw(0):loop(draw);}
+
+ if(document.getElementById('q1')){drawPhasor(document.getElementById('q1'),0.3,0.2,true);drawPhasor(document.getElementById('q2'),1,0.2,true);drawPhasor(document.getElementById('q3'),3,0.2,true);}
+
+ const r13=document.getElementById('r13');
+ if(r13){const z13=document.getElementById('z13');let ph0=0,last=null;
+  const plot=()=>{const r=+r13.value,zz=+z13.value;document.getElementById('r13v').textContent=r.toFixed(2);document.getElementById('z13v').textContent=zz.toFixed(2);
+   const t=TR(r,zz),b=document.getElementById('b13');b.textContent=`TR = ${t.toFixed(3)} · ${t<1?'isolating':'amplifying'}`;b.style.color=t<1?css('--good'):css('--signal');
+   const[c,W,H]=prep(document.getElementById('t13'));const[X,Y]=axes(c,W,H,{l:34,r:10,t:10,b:22},4,0,5,'');
+   c.fillStyle=css('--accent-soft');c.fillRect(X(Math.SQRT2),Y(5),X(4)-X(Math.SQRT2),Y(0)-Y(5));tag(c,X(Math.SQRT2)+6,Y(5)+16,'isolation: r > √2',css('--good'));
+   [0.05,0.1,0.25,0.5,1].forEach(q=>curve(c,X,Y,s=>TR(s,q),0,4,css('--grid'),1.4,null,5.2));
+   c.strokeStyle=css('--muted');c.setLineDash([4,4]);c.lineWidth=1;c.beginPath();c.moveTo(X(0),Y(1));c.lineTo(X(4),Y(1));c.stroke();c.setLineDash([]);
+   curve(c,X,Y,s=>TR(s,zz),0,4,css('--accent'),2.6,null,5.2);dot(c,X(Math.SQRT2),Y(1),css('--good'));dot(c,X(r),Y(Math.min(5,t)),css('--accent'));tag(c,X(4)-2,H-26,'r',css('--muted'),'right');};
+  r13.oninput=plot;z13.oninput=plot;plot();
+  const draw=ts=>{const r=+r13.value,zz=+z13.value;const[c,W,H]=prep(document.getElementById('a13'));const t=Math.min(TR(r,zz),5),u=(W-180)/5;
+   const bar=(y,len,col,lab)=>{c.fillStyle=col;c.fillRect(150,y-6,Math.max(2,len),12);c.beginPath();c.moveTo(150+len,y-11);c.lineTo(150+len+12,y);c.lineTo(150+len,y+11);c.fill();c.font='600 12px "JetBrains Mono", monospace';c.textAlign='left';c.textBaseline='middle';c.fillText(lab,8,y);};
+   bar(28,u,css('--warn'),'Applied F₀');bar(64,t*u,css('--signal'),'To the floor F_t');};
+  draw();}
+
+ const z14=document.getElementById('z14');
+ if(z14){const vw=document.getElementById('view14');let view='vib';
+  [['Vibrometer view: Z/X','vib'],['Accelerometer view: Z/(r²X)','acc']].forEach(([l,v])=>{const b=document.createElement('button');b.className='opt';b.textContent=l;b.dataset.v=v;b.onclick=()=>{view=v;draw();};vw.appendChild(b);});
+  const draw=()=>{const zz=+z14.value;document.getElementById('z14v').textContent=zz.toFixed(2);[...vw.children].forEach(b=>b.classList.toggle('right',b.dataset.v===view));
+   const[c,W,H]=prep(document.getElementById('s14'));
+   if(view==='vib'){const[X,Y]=axes(c,W,H,{l:34,r:10,t:10,b:22},5,0,4,'');c.fillStyle=css('--accent-soft');c.fillRect(X(3),Y(4),X(5)-X(3),Y(0)-Y(4));tag(c,X(3)+6,Y(4)+16,'vibrometer zone',css('--good'));
+    [0.05,0.1,0.25,0.5,1].forEach(q=>curve(c,X,Y,s=>s*s*mag(s,q),0,5,css('--grid'),1.4,null,4.2));curve(c,X,Y,s=>s*s*mag(s,zz),0,5,css('--accent'),2.6,null,4.2);
+    c.strokeStyle=css('--good');c.setLineDash([4,4]);c.beginPath();c.moveTo(X(0),Y(1));c.lineTo(X(5),Y(1));c.stroke();c.setLineDash([]);tag(c,X(5)-2,H-26,'r',css('--muted'),'right');
+    document.getElementById('c14').textContent='Z/X against r. For r well above 1 (a soft, heavy sensor with low ωₙ), Z/X → 1: the reading equals the base displacement.';}
+   else{const[X,Y]=axes(c,W,H,{l:34,r:10,t:10,b:22},1.2,0,2,'');c.fillStyle=css('--accent-soft');c.fillRect(X(0),Y(1.05),X(1.2)-X(0),Y(0.95)-Y(1.05));tag(c,X(0)+6,Y(1.05)-3,'±5% band',css('--good'));
+    [0.05,0.25,0.5,0.7,1].forEach(q=>curve(c,X,Y,s=>mag(s,q),0,1.2,css('--grid'),1.4,null,2.1));curve(c,X,Y,s=>mag(s,zz),0,1.2,css('--accent'),2.6,null,2.1);
+    let lim=0;for(let s=0.001;s<1.2;s+=0.001){if(Math.abs(mag(s,zz)-1)>0.05){lim=s;break;}}vline(c,X(lim),10,H-22,css('--signal'));tag(c,X(lim)+4,Y(0)-4,'accurate up to r ≈ '+lim.toFixed(2),css('--signal'));tag(c,X(1.2)-2,H-26,'r',css('--muted'),'right');
+    document.getElementById('c14').textContent=`Z/(r²X) against r. Accurate when this stays at 1. With ζ = ${zz.toFixed(2)} the reading stays within 5% up to r ≈ ${lim.toFixed(2)}. Try ζ = 0.7: the flat band is widest, which is why the notes call it optimum.`;}};
+  z14.oninput=draw;draw();}
+
+ const qz=document.getElementById('quiz');if(qz){quiz.forEach((q,qi)=>{const d=document.createElement('div');d.className='q';
+  d.innerHTML=`<p>${qi+1}. ${q.q}</p><div class="opts"></div><div class="fb"></div>`;const os=d.querySelector('.opts'),fb=d.querySelector('.fb');
+  q.o.forEach((o,oi)=>{const b=document.createElement('button');b.className='opt';b.textContent=o;b.onclick=()=>{
+   [...os.children].forEach(x=>x.classList.remove('right','wrong'));b.classList.add(oi===q.a?'right':'wrong');
+   fb.textContent=(oi===q.a?'Correct. ':'Not quite. ')+q.f;};os.appendChild(b);});qz.appendChild(d);});}
+}
+function spring(c,x0,x1,y){c.strokeStyle=css('--accent');c.lineWidth=2;c.beginPath();c.moveTo(x0,y);const n=12;for(let i=1;i<=n;i++)c.lineTo(x0+(x1-x0)*i/n,y+(i===n?0:(i%2?-8:8)));c.stroke();}
+let rtm;addEventListener('resize',()=>{clearTimeout(rtm);rtm=setTimeout(()=>{if(!anims.length&&!document.getElementById('quiz')&&!document.querySelector('.reveal'))render();},150);});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(!anims.length)render();});
+render();
+</script>
+
+</body></html>

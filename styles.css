@@ -121,3 +121,4 @@ a{color:inherit}
 }
 .hero,.hero p{max-width:none}
 @media (prefers-reduced-motion:reduce){.folder__sheet{transition:none}}
+.lab-link+.lab-link{margin-top:10px}

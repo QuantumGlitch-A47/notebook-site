@@ -1,0 +1,970 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>PT3 Turbo Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout concept: a lab bench. Sticky 3D stage on the left, notes and live equations on the right. One color per vector type, used everywhere. */
+:root{
+  --bg:#EDF1F5; --panel:#FFFFFF; --ink:#15222E; --muted:#566676; --line:#D3DCE5;
+  --accent:#0A6C8A; --accent-ink:#FFFFFF; --stage:#E3E9EF; --eq:#F3F6F9;
+  --c-abs:#D9480F; --c-rel:#1971C2; --c-u:#5F6B77; --c-ax:#2F9E44; --c-wh:#7048E8;
+  --warn:#C92A2A; --ok:#2B8A3E;
+  --f-head:"Space Grotesk",system-ui,sans-serif; --f-body:Inter,system-ui,sans-serif; --f-mono:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0D141C; --panel:#141E29; --ink:#E4ECF3; --muted:#93A4B4; --line:#263545;
+  --accent:#4FC3E0; --accent-ink:#06222B; --stage:#0A1118; --eq:#101923;
+  --c-abs:#FF8A4C; --c-rel:#5CAEFF; --c-u:#ADB5BD; --c-ax:#5FD07A; --c-wh:#A48BFF;
+  --warn:#FF7A7A; --ok:#6FD38A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D141C; --panel:#141E29; --ink:#E4ECF3; --muted:#93A4B4; --line:#263545;
+  --accent:#4FC3E0; --accent-ink:#06222B; --stage:#0A1118; --eq:#101923;
+  --c-abs:#FF8A4C; --c-rel:#5CAEFF; --c-u:#ADB5BD; --c-ax:#5FD07A; --c-wh:#A48BFF;
+  --warn:#FF7A7A; --ok:#6FD38A; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body);
+  padding-block:14px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1360px;margin:0 auto}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 24px;margin-bottom:12px}
+h1{font:700 24px/1.1 var(--f-head);margin:0;letter-spacing:-.01em}
+.sub{margin:4px 0 0;color:var(--muted);font-size:13px}
+nav#tabs{display:flex;gap:2px;overflow-x:auto;max-width:100%;border-bottom:1px solid var(--line);scrollbar-width:thin}
+nav#tabs button{flex:0 0 auto;background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);padding:6px 12px 7px;text-align:left;cursor:pointer;font:500 13px var(--f-body)}
+nav#tabs button small{display:block;font:500 10px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;opacity:.8}
+nav#tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+nav#tabs button:focus-visible,.btn:focus-visible,input:focus-visible,summary:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main#app{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:22px;align-items:start}
+.stage{position:sticky;top:12px;height:min(80vh,740px);min-height:360px;background:var(--stage);border:1px solid var(--line);border-radius:10px;overflow:hidden;touch-action:none;cursor:grab}
+.stage:active{cursor:grabbing}
+.stage canvas{display:block;width:100%;height:100%}
+.labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.lbl{position:absolute;left:0;top:0;font:500 12px var(--f-mono);color:var(--ink);padding:1px 5px;border-radius:4px;white-space:nowrap;background:var(--stage);background:color-mix(in srgb,var(--stage) 72%,transparent)}
+.lbl.abs{color:var(--c-abs)}.lbl.rel{color:var(--c-rel)}.lbl.u{color:var(--c-u)}.lbl.ax{color:var(--c-ax)}.lbl.wh{color:var(--c-wh)}
+.lbl.big{font:700 13px var(--f-head)}
+.tools{position:absolute;top:8px;right:10px;display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;z-index:2}
+.tools button{background:var(--panel);color:var(--muted);border:0;padding:5px 12px;font:500 12px var(--f-body);cursor:pointer}
+.tools button+button{border-left:1px solid var(--line)}
+.tools button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.tools button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.hint{position:absolute;top:8px;left:10px;max-width:calc(100% - 150px);line-height:1.35;font:11px var(--f-mono);color:var(--muted);pointer-events:none}
+.legend{position:absolute;left:10px;bottom:8px;right:10px;display:flex;flex-wrap:wrap;gap:4px 12px;font:500 11px var(--f-mono);pointer-events:none}
+.legend span{display:inline-flex;align-items:center;gap:5px;color:var(--ink)}
+.legend i{width:14px;height:4px;border-radius:2px;display:inline-block}
+.nogl{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:var(--muted)}
+.panel{min-width:0}
+.tabpanel[hidden]{display:none}
+.tabpanel>section{padding:16px 0;border-top:1px solid var(--line)}
+.tabpanel>section:first-child{border-top:0;padding-top:2px}
+h2{font:700 12px var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+h3.t{font:700 22px/1.2 var(--f-head);margin:0 0 6px;text-wrap:balance}
+p{margin:0 0 8px;max-width:68ch}
+.feyn{font-size:16px}
+.ctls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px}
+.ctl{min-width:0}
+.ctl label{display:flex;justify-content:space-between;gap:8px;font-size:13px;font-weight:500}
+.ctl output{font:500 13px var(--f-mono);color:var(--accent)}
+.ctl input[type=range]{width:100%;accent-color:var(--accent);margin:4px 0 0}
+.ctl .d{font-size:12px;color:var(--muted);line-height:1.35}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.btn{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 11px;font:500 13px var(--f-body);cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.eq{background:var(--eq);border-radius:8px;padding:10px 12px;font:400 13px/1.9 var(--f-mono);overflow-x:auto;margin:0 0 8px}
+.eq b{font-weight:500;color:var(--accent)}
+.eq .n{color:var(--muted);font-family:var(--f-body);font-size:12px}
+.v{font-weight:500;color:var(--accent)}
+.vt{width:100%;border-collapse:collapse;font-size:13px}
+.vt th{font:500 11px var(--f-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:4px 8px 4px 0}
+.vt td{padding:5px 8px 5px 0;border-top:1px solid var(--line);vertical-align:top}
+.vt td:first-child{font:500 13px var(--f-mono);white-space:nowrap;padding-right:12px}
+.vt td:last-child{font:500 12px var(--f-mono);text-align:right;white-space:nowrap;color:var(--accent)}
+.tw{overflow-x:auto}
+details{border-top:1px solid var(--line);padding:8px 0}
+details:last-of-type{border-bottom:1px solid var(--line)}
+summary{cursor:pointer;font-weight:600;font-size:14px}
+details>div{padding-top:6px;font-size:14px}
+details ul,.goals{margin:6px 0 0;padding-left:20px}
+.goals{list-style:none;padding:0}
+.goals li{display:flex;gap:8px;margin:5px 0;font-size:14px}
+.goals input{margin-top:4px;accent-color:var(--accent)}
+.bar{display:flex;height:22px;border-radius:5px;overflow:hidden;background:var(--eq);font:500 11px var(--f-mono);margin:6px 0 2px}
+.bar div{display:grid;place-items:center;color:#fff;white-space:nowrap;overflow:hidden;transition:width .2s}
+.chk{display:flex;flex-wrap:wrap;gap:6px 14px;font:500 12px var(--f-mono)}
+.ok{color:var(--ok)}.bad{color:var(--warn)}
+svg.chart{width:100%;height:auto;display:block;background:var(--eq);border-radius:8px}
+svg.chart text{fill:var(--muted);font:11px var(--f-mono)}
+.warn{color:var(--warn);font-size:13px;min-height:1.3em}
+textarea{width:100%;min-height:70px;background:var(--eq);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px;font:14px var(--f-body);resize:vertical}
+@media (max-width:900px){
+  main#app{grid-template-columns:minmax(0,1fr);gap:12px}
+  .stage{top:max(6px,env(safe-area-inset-top,0px));height:42vh;min-height:260px;z-index:5}
+  .ctls{grid-template-columns:minmax(0,1fr)}
+}
+@media (prefers-reduced-motion:reduce){.bar div{transition:none}}
+</style>
+<div class="wrap">
+<style>/* Aerosystems Notebook: site look, light only */
+:root,:root:not([data-theme="light"]),:root[data-theme="dark"]{
+  --bg:#EDF1F5; --panel:#FFFFFF; --ink:#15222E; --muted:#566676; --line:#D3DCE5;
+  --accent:#0A6C8A; --accent-ink:#FFFFFF; --stage:#E3E9EF; --eq:#F3F6F9;
+  --c-abs:#D9480F; --c-rel:#1971C2; --c-u:#5F6B77; --c-ax:#2F9E44; --c-wh:#7048E8;
+  --warn:#C92A2A; --ok:#2B8A3E;
+  --f-head:"Space Grotesk",system-ui,sans-serif; --f-body:Inter,system-ui,sans-serif; --f-mono:"JetBrains Mono",ui-monospace,monospace;
+--bg:#ffffff;--panel:#ffffff;--ink:#111111;--muted:#5a5a55;--line:#d4d4ce;--accent:#111111;--accent-ink:#ffffff;--stage:#f4f4f2;--eq:#f7f7f5;--f-head:"Helvetica Neue",Helvetica,Arial,sans-serif;--f-body:"Helvetica Neue",Helvetica,Arial,sans-serif;--f-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;color-scheme:light;}
+.nbk-back{display:block;padding:12px 24px;border-bottom:2px solid #111;font:700 12px/16px "Helvetica Neue",Helvetica,Arial,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#111;text-decoration:none;background:#fff}
+.nbk-back:hover{text-decoration:underline}
+</style>
+<a class="nbk-back" href="../eng3042.html#s02">← Propulsion and Turbomach 3</a>
+<header class="top">
+  <div><h1>PT3 Turbo Lab</h1><p class="sub">Propulsion and Turbomachinery 3. One 3D model for each notes set. Change a number and watch the equations answer.</p></div>
+  <nav id="tabs" role="tablist" aria-label="Notes sets"></nav>
+</header>
+<main id="app">
+  <div class="stage" id="stage"><div class="hint">drag: orbit · Slide button, right drag or shift drag: move · wheel or pinch: zoom · double click: reset</div><div class="labels" id="labels"></div><div class="legend" id="legend"></div></div>
+  <div class="panel" id="panel"></div>
+</main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+var T=window.THREE;
+var D2R=Math.PI/180,R2D=180/Math.PI,GAM=1.4,CP=1005,RG=287;
+var COL={abs:0xE8590C,rel:0x228BE6,u:0x7B8794,ax:0x2F9E44,wh:0x7950F2};
+function $(s,r){return (r||document).querySelector(s)}
+function el(tag,cls,html){var e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e}
+function fmt(x,d){return isFinite(x)?x.toFixed(d==null?2:d):'n/a'}
+function clamp(x,a,b){return Math.min(b,Math.max(a,x))}
+
+/* ---------- stage: one renderer, one camera, many scenes ---------- */
+var stageEl=$('#stage'),labelsEl=$('#labels'),legendEl=$('#legend');
+var camera=new T.PerspectiveCamera(38,1,0.05,300),renderer=null;
+try{renderer=new T.WebGLRenderer({antialias:true,alpha:true})}catch(e){renderer=null}
+if(renderer){renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));stageEl.insertBefore(renderer.domElement,stageEl.firstChild)}
+else stageEl.appendChild(el('div','nogl','3D needs WebGL and this browser blocked it. The controls and equations still work.'));
+var orbit={th:0.6,ph:1.2,dist:10,tx:0,ty:0,tz:0},active=null;
+function applyCam(){var sp=Math.sin(orbit.ph);
+  camera.position.set(orbit.tx+orbit.dist*sp*Math.cos(orbit.th),orbit.ty+orbit.dist*Math.cos(orbit.ph),orbit.tz+orbit.dist*sp*Math.sin(orbit.th));
+  camera.lookAt(orbit.tx,orbit.ty,orbit.tz)}
+function setCam(c){for(var k in c)orbit[k]=c[k]}
+var ptrs={};
+var panMode=false,tools=el('div','tools'),bOrb=el('button',null,'Orbit'),bPan=el('button',null,'Slide');
+bOrb.type='button';bPan.type='button';tools.appendChild(bOrb);tools.appendChild(bPan);stageEl.appendChild(tools);
+function setMode(m){panMode=m;bOrb.setAttribute('aria-pressed',m?'false':'true');bPan.setAttribute('aria-pressed',m?'true':'false')}
+bOrb.addEventListener('click',function(){setMode(false)});bPan.addEventListener('click',function(){setMode(true)});
+['pointerdown','dblclick','wheel'].forEach(function(n){tools.addEventListener(n,function(e){e.stopPropagation()})});
+setMode(false);
+function panBy(dx,dy){
+  var h=Math.max(stageEl.clientHeight,1),s=2*orbit.dist*Math.tan(camera.fov*D2R/2)/h;
+  camera.updateMatrixWorld();
+  var rt=new T.Vector3().setFromMatrixColumn(camera.matrixWorld,0),up=new T.Vector3().setFromMatrixColumn(camera.matrixWorld,1);
+  orbit.tx+=(-dx*rt.x+dy*up.x)*s;orbit.ty+=(-dx*rt.y+dy*up.y)*s;orbit.tz+=(-dx*rt.z+dy*up.z)*s}
+function zoomAt(cx,cy,f){
+  var r=stageEl.getBoundingClientRect(),w=Math.max(r.width,1),h=Math.max(r.height,1);
+  var nx=((cx-r.left)/w)*2-1,ny=1-((cy-r.top)/h)*2,nd=clamp(orbit.dist*f,0.8,60),k=nd/orbit.dist;
+  camera.updateMatrixWorld();
+  var rt=new T.Vector3().setFromMatrixColumn(camera.matrixWorld,0),up=new T.Vector3().setFromMatrixColumn(camera.matrixWorld,1);
+  var th=Math.tan(camera.fov*D2R/2),ox=nx*orbit.dist*th*camera.aspect,oy=ny*orbit.dist*th;
+  orbit.tx+=(rt.x*ox+up.x*oy)*(1-k);orbit.ty+=(rt.y*ox+up.y*oy)*(1-k);orbit.tz+=(rt.z*ox+up.z*oy)*(1-k);
+  orbit.dist=nd}
+stageEl.addEventListener('contextmenu',function(e){e.preventDefault()});
+stageEl.addEventListener('pointerdown',function(e){
+  ptrs[e.pointerId]={x:e.clientX,y:e.clientY,pan:panMode||e.button===2||e.button===1||e.shiftKey};
+  try{stageEl.setPointerCapture(e.pointerId)}catch(_){}});
+stageEl.addEventListener('pointermove',function(e){
+  var p=ptrs[e.pointerId];if(!p)return;var ids=Object.keys(ptrs);
+  if(ids.length===1){var dx=e.clientX-p.x,dy=e.clientY-p.y;
+    if(p.pan)panBy(dx,dy);else{orbit.th-=dx*0.008;orbit.ph=clamp(orbit.ph-dy*0.008,0.08,3.05)}}
+  else if(ids.length===2){var q=ptrs[ids[0]==String(e.pointerId)?ids[1]:ids[0]];
+    var d0=Math.hypot(p.x-q.x,p.y-q.y),d1=Math.hypot(e.clientX-q.x,e.clientY-q.y);
+    panBy(((e.clientX+q.x)-(p.x+q.x))/2,((e.clientY+q.y)-(p.y+q.y))/2);
+    if(d1>5)zoomAt((e.clientX+q.x)/2,(e.clientY+q.y)/2,d0/d1)}
+  p.x=e.clientX;p.y=e.clientY});
+function endPtr(e){delete ptrs[e.pointerId]}
+stageEl.addEventListener('pointerup',endPtr);stageEl.addEventListener('pointercancel',endPtr);
+stageEl.addEventListener('wheel',function(e){e.preventDefault();zoomAt(e.clientX,e.clientY,Math.exp(e.deltaY*0.0012))},{passive:false});
+stageEl.addEventListener('dblclick',function(){if(active)setCam(active.cam)});
+function resize(){if(!renderer)return;var w=stageEl.clientWidth,h=stageEl.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/Math.max(h,1);camera.updateProjectionMatrix()}
+if(window.ResizeObserver)new ResizeObserver(resize).observe(stageEl);else window.addEventListener('resize',resize);
+resize();
+
+function lights(sc){sc.add(new T.HemisphereLight(0xffffff,0x5a6b7a,0.9));
+  var d=new T.DirectionalLight(0xffffff,0.85);d.position.set(3,6,5);sc.add(d);
+  var d2=new T.DirectionalLight(0xffffff,0.3);d2.position.set(-4,-2,-3);sc.add(d2)}
+function mat(c,o){var m={color:c,roughness:0.55,metalness:0.25};for(var k in o)m[k]=o[k];return new T.MeshStandardMaterial(m)}
+function disposeTree(o){o.traverse(function(n){if(n.geometry)n.geometry.dispose()})}
+
+/* ---------- 3D arrow (shaft + head), set from point a to point b ---------- */
+var UP=new T.Vector3(0,1,0);
+function Arrow(color,r,head){
+  this.r=r||0.035;this.head=head||0.16;
+  var m=new T.MeshBasicMaterial({color:color});
+  this.g=new T.Group();
+  this.shaft=new T.Mesh(new T.CylinderGeometry(1,1,1,10),m);
+  this.cone=new T.Mesh(new T.ConeGeometry(1,1,14),m);
+  this.g.add(this.shaft);this.g.add(this.cone)}
+Arrow.prototype.set=function(a,b){
+  var d=b.clone().sub(a),L=d.length();
+  if(L<1e-3){this.g.visible=false;return}
+  this.g.visible=true;
+  var hl=Math.min(this.head,L*0.45),dir=d.clone().normalize(),q=new T.Quaternion().setFromUnitVectors(UP,dir);
+  this.shaft.scale.set(this.r,Math.max(L-hl,1e-4),this.r);
+  this.shaft.position.copy(a).addScaledVector(dir,(L-hl)/2);this.shaft.quaternion.copy(q);
+  this.cone.scale.set(this.r*2.8,hl,this.r*2.8);
+  this.cone.position.copy(a).addScaledVector(dir,L-hl/2);this.cone.quaternion.copy(q)};
+function V3(x,y,z){return new T.Vector3(x,y,z)}
+
+/* ---------- blade profile in the x-y plane. x is blade motion, flow runs toward -y.
+   sgn=-1: rotor metal follows relative flow. sgn=+1: stator or NGV metal follows absolute flow. ---------- */
+function foilT(s){return 5*(0.2969*Math.sqrt(s)-0.1260*s-0.3516*s*s+0.2843*s*s*s-0.1036*s*s*s*s)}
+function bladeGeom(psi1,psi2,sgn,chord,thick,span){
+  var N=30,pts=[],x=0,y=0,i,sp=0;
+  for(i=0;i<=N;i++){var s=(1-Math.cos(Math.PI*i/N))/2,psi=psi1+(psi2-psi1)*s;
+    if(i>0){var ds=s-sp;x+=sgn*Math.sin(psi)*chord*ds;y-=Math.cos(psi)*chord*ds}sp=s;
+    var tx=sgn*Math.sin(psi),ty=-Math.cos(psi);
+    pts.push({x:x,y:y,nx:-ty,ny:tx,t:thick*foilT(s)})}
+  var sh=new T.Shape();
+  sh.moveTo(pts[0].x+pts[0].nx*pts[0].t,pts[0].y+pts[0].ny*pts[0].t);
+  for(i=1;i<=N;i++)sh.lineTo(pts[i].x+pts[i].nx*pts[i].t,pts[i].y+pts[i].ny*pts[i].t);
+  for(i=N;i>=0;i--)sh.lineTo(pts[i].x-pts[i].nx*pts[i].t,pts[i].y-pts[i].ny*pts[i].t);
+  sh.closePath();
+  var g=new T.ExtrudeGeometry(sh,{depth:span,bevelEnabled:false});
+  g.translate(0,0,-span/2);g.computeBoundingBox();return g}
+/* cambered aerofoil blade for the 3D machines. chord along x, thickness along z, span along y from 0 to span */
+function foilGeom(chord,span,tr,camber){
+  var N=24,up=[],lo=[],i,m=camber||0;
+  for(i=0;i<=N;i++){var s=(1-Math.cos(Math.PI*i/N))/2,yt=tr*foilT(s)*chord,yc=m*4*s*(1-s)*chord,sl=m*4*(1-2*s),th=Math.atan(sl),c=Math.cos(th),sn=Math.sin(th);
+    up.push([s*chord-chord/2-yt*sn,yc+yt*c]);lo.push([s*chord-chord/2+yt*sn,yc-yt*c])}
+  var sh=new T.Shape();sh.moveTo(up[0][0],up[0][1]);
+  for(i=1;i<=N;i++)sh.lineTo(up[i][0],up[i][1]);
+  for(i=N-1;i>=0;i--)sh.lineTo(lo[i][0],lo[i][1]);
+  sh.closePath();
+  var g=new T.ExtrudeGeometry(sh,{depth:span,bevelEnabled:false});
+  g.rotateX(-Math.PI/2);return g}
+
+/* faint motion trails: reads the particle position buffer of pg every frame and draws a fading tail behind each particle */
+function trailPoints(pg,hex,hist){
+  hist=hist||22;var pa=pg.attributes.position,n=Math.floor(pa.array.length/3),H=new Float32Array(n*hist*3),init=false,i,k;
+  var ca=pg.attributes.color,nv=n*(hist-1)*2,pos=new Float32Array(nv*3),al=new Float32Array(nv),vc=new Float32Array(nv*3),g=new T.BufferGeometry();
+  g.setAttribute('position',new T.BufferAttribute(pos,3));g.setAttribute('alpha',new T.BufferAttribute(al,1));g.setAttribute('vcol',new T.BufferAttribute(vc,3));
+  var c=new T.Color(hex);
+  var m=new T.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{col:{value:new T.Vector3(c.r,c.g,c.b)},useV:{value:ca?1:0}},
+    vertexShader:'attribute float alpha;attribute vec3 vcol;varying float vA;varying vec3 vC;void main(){vA=alpha;vC=vcol;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+    fragmentShader:'uniform vec3 col;uniform float useV;varying float vA;varying vec3 vC;void main(){gl_FragColor=vec4(mix(col,vC,useV),0.25+0.75*vA);}'});
+  var ls=new T.LineSegments(g,m);ls.frustumCulled=false;
+  var hd=new T.Points(pg,new T.PointsMaterial({color:ca?0xffffff:hex,vertexColors:!!ca,size:4.5,sizeAttenuation:false}));hd.frustumCulled=false;ls.add(hd);
+  ls.onBeforeRender=function(){var a=pa.array,v=0;
+    for(i=0;i<n;i++){var b=i*hist*3,x=a[i*3],y=a[i*3+1],z=a[i*3+2];
+      var jump=!init||Math.abs(x-H[b])+Math.abs(y-H[b+1])+Math.abs(z-H[b+2])>1.5;
+      for(k=hist-1;k>0;k--){var d=b+k*3,s=jump?b:b+(k-1)*3;H[d]=jump?x:H[s];H[d+1]=jump?y:H[s+1];H[d+2]=jump?z:H[s+2]}
+      H[b]=x;H[b+1]=y;H[b+2]=z;
+      for(k=0;k<hist-1;k++){var p0=b+k*3,p1=b+(k+1)*3,q=v*3;
+        pos[q]=H[p0];pos[q+1]=H[p0+1];pos[q+2]=H[p0+2];pos[q+3]=H[p1];pos[q+4]=H[p1+1];pos[q+5]=H[p1+2];
+        al[v]=1-k/(hist-1);al[v+1]=1-(k+1)/(hist-1);
+        if(ca){var cc=ca.array,r0=cc[i*3],g0=cc[i*3+1],b0=cc[i*3+2];vc[q]=r0;vc[q+1]=g0;vc[q+2]=b0;vc[q+3]=r0;vc[q+4]=g0;vc[q+5]=b0}
+        v+=2}}
+    init=true;g.attributes.position.needsUpdate=true;g.attributes.alpha.needsUpdate=true;if(ca)g.attributes.vcol.needsUpdate=true};
+  return ls}
+
+/* ---------- panel helpers ---------- */
+var panelRoot=$('#panel');
+function sec(host,title,html){var s=el('section');if(title)s.appendChild(el('h2',null,title));if(html)s.insertAdjacentHTML('beforeend',html);if(title!=='Study goals')host.appendChild(s);return s}
+function det(host,title,html){var d=el('details');d.innerHTML='<summary>'+title+'</summary><div>'+html+'</div>';host.appendChild(d);return d}
+function slider(parent,sp,state,onChange){
+  var w=el('div','ctl'),id='c'+Math.random().toString(36).slice(2,8);
+  w.innerHTML='<label for="'+id+'"><span>'+sp.label+'</span><output></output></label><input id="'+id+'" type="range" min="'+sp.min+'" max="'+sp.max+'" step="'+sp.step+'">'+(sp.desc?'<div class="d">'+sp.desc+'</div>':'');
+  var inp=$('input',w),out=$('output',w);inp.value=state[sp.k];
+  function show(){out.textContent=fmt(state[sp.k],sp.dec)+(sp.unit?' '+sp.unit:'')}
+  inp.addEventListener('input',function(){state[sp.k]=parseFloat(inp.value);show();onChange(sp.k)});
+  show();parent.appendChild(w);
+  return {set:function(v){state[sp.k]=v;inp.value=v;show()}}}
+function btn(parent,label,fn){var b=el('button','btn',label);b.type='button';b.addEventListener('click',function(){fn(b)});parent.appendChild(b);return b}
+function fill(root,vals){var n=root.querySelectorAll('[data-k]');for(var i=0;i<n.length;i++){var v=vals[n[i].getAttribute('data-k')];if(v!=null)n[i].textContent=v}}
+function varTable(rows){var h='<div class="tw"><table class="vt"><thead><tr><th>Symbol</th><th>Meaning</th><th>Unit</th><th>Now</th></tr></thead><tbody>';
+  rows.forEach(function(r){h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td data-k="'+(r[3]||'')+'">'+(r[3]?'':'')+'</td></tr>'});
+  return h+'</tbody></table></div>'}
+function goals(items){return '<ul class="goals">'+items.map(function(t){return '<li><input type="checkbox" aria-label="done"><span>'+t+'</span></li>'}).join('')+'</ul>'}
+function selfTest(host,prompt,points){}
+
+/* ---------- tab registry ---------- */
+var defs=[],tabs=[];
+function addTab(d){defs.push(d)}
+function mkTab(d){
+  var t={def:d,scene:new T.Scene(),labels:[],legend:d.legend||[],cam:d.cam,panel:el('div','tabpanel'),update:null,refresh:null};
+  t.panel.hidden=true;panelRoot.appendChild(t.panel);lights(t.scene);
+  t.label=function(text,cls){var e=el('div','lbl '+(cls||''),text);e.style.display='none';labelsEl.appendChild(e);var o={e:e,pos:new T.Vector3(),hidden:false};t.labels.push(o);return o};
+  return t}
+function showLegend(t){legendEl.innerHTML=t.legend.map(function(l){return '<span><i style="background:var('+l[0]+')"></i>'+l[1]+'</span>'}).join('')}
+var tabBar=$('#tabs');
+function activate(i){
+  if(!tabs[i]){tabs[i]=mkTab(defs[i]);defs[i].build(tabs[i]);if(tabs[i].refresh)tabs[i].refresh()}
+  if(active){active.panel.hidden=true;active.labels.forEach(function(l){l.e.style.display='none'})}
+  active=tabs[i];active.panel.hidden=false;setCam(active.cam);showLegend(active);
+  Array.prototype.forEach.call(tabBar.children,function(b,j){b.setAttribute('aria-selected',j===i?'true':'false')});
+  try{history.replaceState(null,'','#set'+(i+1))}catch(e){}}
+function boot(){
+  defs.forEach(function(d,i){var b=el('button',null,'<small>'+(d.tag||('Set '+d.num))+'</small>'+d.name);b.setAttribute('role','tab');b.addEventListener('click',function(){activate(i)});tabBar.appendChild(b)});
+  var m=/^#set(\d)$/.exec(location.hash),idx=m?clamp(parseInt(m[1],10)-1,0,defs.length-1):0;
+  activate(idx);
+  window.addEventListener('hashchange',function(){var m2=/^#set(\d)$/.exec(location.hash);if(m2){var j=clamp(parseInt(m2[1],10)-1,0,defs.length-1);if(tabs[j]!==active)activate(j)}});
+  var last=performance.now(),clock=0;
+  (function frame(now){requestAnimationFrame(frame);var dt=Math.min(0.05,(now-last)/1000);last=now;
+    if(document.hidden||!active)return;clock+=dt;
+    if(active.update)active.update(dt,clock);
+    if(renderer){applyCam();renderer.render(active.scene,camera);
+      var w=stageEl.clientWidth,h=stageEl.clientHeight,v=new T.Vector3();
+      active.labels.forEach(function(l){if(l.hidden){l.e.style.display='none';return}
+        v.copy(l.pos).project(camera);
+        if(v.z>1){l.e.style.display='none';return}
+        l.e.style.display='block';l.e.style.transform='translate('+((v.x*0.5+0.5)*w)+'px,'+((-v.y*0.5+0.5)*h)+'px) translate(-50%,-50%)'})}
+  })(last)}
+
+/* shared handle for the other script parts */
+window.PT={T:T,D2R:D2R,R2D:R2D,GAM:GAM,CP:CP,RG:RG,COL:COL,$:$,el:el,fmt:fmt,clamp:clamp,Arrow:Arrow,V3:V3,bladeGeom:bladeGeom,foilGeom:foilGeom,trailPoints:trailPoints,mat:mat,disposeTree:disposeTree,
+  sec:sec,det:det,slider:slider,btn:btn,fill:fill,varTable:varTable,goals:goals,selfTest:selfTest,addTab:addTab,boot:boot,setCam:setCam};
+})();
+(function(P){
+'use strict';
+var T=P.T;
+
+/* ---------- axial flow machine along +x: hub, casing, rotor and stator rows, flow particles ---------- */
+P.axialMachine=function(o){
+  var g=new T.Group(),rot=new T.Group(),i;g.add(rot);
+  var cas=new T.Mesh(new T.CylinderGeometry(o.rTip,o.rTip,o.L,48,1,true),
+    new T.MeshStandardMaterial({color:0x9fb3c4,transparent:true,opacity:0.12,side:T.DoubleSide,roughness:0.4,depthWrite:false}));
+  cas.rotation.z=Math.PI/2;cas.position.x=o.L/2;g.add(cas);
+  var pr=[new T.Vector2(0,0)];
+  for(i=0;i<=40;i++){var x=o.L*i/40;pr.push(new T.Vector2(o.hubAt(x),-x))}
+  pr.push(new T.Vector2(0,-o.L));
+  var hub=new T.Mesh(new T.LatheGeometry(pr,48),P.mat(0x7D8EA0,{side:T.DoubleSide}));hub.rotation.z=Math.PI/2;rot.add(hub);
+  var cone=new T.Mesh(new T.ConeGeometry(o.hubAt(0),0.55,32),P.mat(0x7D8EA0));cone.rotation.z=Math.PI/2;cone.position.x=-0.27;rot.add(cone);
+  var mk=new T.Mesh(new T.BoxGeometry(0.16,0.05,0.05),P.mat(0xF08C00));mk.position.set(-0.12,o.hubAt(0)*0.92,0);rot.add(mk);
+  o.rows.forEach(function(r){
+    var n=r.t==='R'?o.nR:o.nS,rh=o.hubAt(r.x),span=o.rTip-rh-0.012;
+    var geo=P.foilGeom(r.chord,span,0.14,r.t==='R'?0.05:-0.05);geo.rotateY((r.t==='R'?1:-1)*(r.stagger||0.62));geo.translate(0,rh,0);
+    var im=new T.InstancedMesh(geo,P.mat(r.t==='R'?0x5C8DB5:0x9AA6B2),n),d=new T.Object3D();
+    for(var k=0;k<n;k++){d.position.set(r.x,0,0);d.rotation.set(2*Math.PI*k/n,0,0);d.updateMatrix();im.setMatrixAt(k,d.matrix)}
+    (r.t==='R'?rot:g).add(im)});
+  var N=o.nP||150,pos=new Float32Array(N*3),st=[];
+  for(i=0;i<N;i++)st.push({x:Math.random()*o.L,f:0.1+0.8*Math.random(),th:Math.random()*6.283});
+  var pg=new T.BufferGeometry();pg.setAttribute('position',new T.BufferAttribute(pos,3));
+  var pts=P.trailPoints(pg,0x2D8BE0);pts.frustumCulled=false;g.add(pts);
+  function step(dt){
+    for(var j=0;j<N;j++){var p=st[j];p.x+=(o.vAx||1.6)*dt;
+      if(p.x>o.L){p.x=0;p.th=Math.random()*6.283}
+      var h0=o.hubAt(p.x),r=h0+(o.rTip-h0)*p.f;
+      p.th+=(o.whirl?o.whirl(p.x):0)/r*dt;
+      pos[j*3]=p.x;pos[j*3+1]=r*Math.cos(p.th);pos[j*3+2]=r*Math.sin(p.th)}
+    pg.attributes.position.needsUpdate=true}
+  step(0);
+  return {group:g,rot:rot,update:function(dt,omega){rot.rotation.x+=omega*dt;step(dt)}}};
+
+/* ---------- centrifugal compressor, axis along +y: impeller, shroud, vaneless gap, diffuser vanes ---------- */
+P.centrifugal=function(o){
+  var g=new T.Group(),rot=new T.Group(),i,r2=o.r2,rh0=0.09,re=o.rEye,b2=o.b2,zt=o.zTop,rOut=o.rOut;g.add(rot);
+  function hubPt(t){var a=t*Math.PI/2;return [rh0+(r2-rh0)*(1-Math.cos(a)),zt*(1-Math.sin(a))]}
+  function shrPt(t){var a=t*Math.PI/2;return [re+(r2-re)*(1-Math.cos(a)),zt*(1-Math.sin(a))+b2*Math.sin(a)]}
+  function lag(t){return 0.7*Math.pow(t,1.4)}
+  var pr=[new T.Vector2(0,zt+0.14)],M=28;
+  for(i=0;i<=M;i++){var h=hubPt(i/M);pr.push(new T.Vector2(h[0],h[1]))}
+  pr.push(new T.Vector2(r2,-0.16));pr.push(new T.Vector2(0,-0.16));
+  rot.add(new T.Mesh(new T.LatheGeometry(pr,56),P.mat(0x7D8EA0,{side:T.DoubleSide})));
+  var vp=[],idx=[];
+  for(i=0;i<=M;i++){var t=i/M,a=hubPt(t),b=shrPt(t),th=lag(t);
+    vp.push(a[0]*Math.cos(th),a[1],a[0]*Math.sin(th),b[0]*Math.cos(th),b[1],b[0]*Math.sin(th));
+    if(i>0){var k=(i-1)*2;idx.push(k,k+1,k+2,k+1,k+3,k+2)}}
+  var vg=new T.BufferGeometry();vg.setAttribute('position',new T.Float32BufferAttribute(vp,3));vg.setIndex(idx);vg.computeVertexNormals();
+  var vm=P.mat(0x5C8DB5,{side:T.DoubleSide});
+  for(i=0;i<o.nV;i++){var m=new T.Mesh(vg,vm);m.rotation.y=2*Math.PI*i/o.nV;rot.add(m)}
+  var sp=[];for(i=0;i<=M;i++){var s=shrPt(i/M);sp.push(new T.Vector2(s[0],s[1]))}
+  var shroud=new T.Mesh(new T.LatheGeometry(sp,56),new T.MeshStandardMaterial({color:0x9fb3c4,transparent:true,opacity:0.2,side:T.DoubleSide,depthWrite:false}));
+  g.add(shroud);
+  var diff=new T.Group();g.add(diff);
+  var gap=null;
+  var st={rIn:r2*1.12,tanA:0.4};
+  function plate(rin,rout,z,color,op){var m=new T.Mesh(new T.RingGeometry(rin,rout,72),new T.MeshStandardMaterial({color:color,transparent:true,opacity:op,side:T.DoubleSide,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.y=z;return m}
+  function buildDiffuser(rIn,tanA){
+    st.rIn=rIn;st.tanA=tanA;
+    while(diff.children.length){var c=diff.children.pop();if(c.geometry)c.geometry.dispose()}
+    diff.add(plate(r2,rOut,-0.01,0x9fb3c4,0.16));diff.add(plate(r2,rOut,b2+0.01,0x9fb3c4,0.1));
+    diff.add(plate(r2,rIn,b2/2,0xF59F00,0.38));
+    var Mv=22,pp=[],ix=[],j;
+    for(j=0;j<=Mv;j++){var rr=rIn*Math.pow(rOut/rIn,j/Mv),th=-Math.log(rr/rIn)/tanA;
+      pp.push(rr*Math.cos(th),0,rr*Math.sin(th),rr*Math.cos(th),b2,rr*Math.sin(th));
+      if(j>0){var q=(j-1)*2;ix.push(q,q+1,q+2,q+1,q+3,q+2)}}
+    var dg=new T.BufferGeometry();dg.setAttribute('position',new T.Float32BufferAttribute(pp,3));dg.setIndex(ix);dg.computeVertexNormals();
+    var dm=P.mat(0x9AA6B2,{side:T.DoubleSide});
+    for(j=0;j<o.nD;j++){var mm=new T.Mesh(dg,dm);mm.rotation.y=2*Math.PI*j/o.nD;diff.add(mm)}}
+  buildDiffuser(st.rIn,st.tanA);
+  var N=70,pos=new Float32Array(N*3),ps=[];
+  for(i=0;i<N;i++)ps.push({p:Math.random()*2,u:Math.random(),tl:0,done:false});
+  var pg=new T.BufferGeometry();pg.setAttribute('position',new T.BufferAttribute(pos,3));
+  var pts=P.trailPoints(pg,0xFF922B);pts.frustumCulled=false;g.add(pts);
+  function place(p){
+    var x,y,z;
+    if(p.p<1){var t=p.p,a=hubPt(t),b=shrPt(t),r=a[0]+(b[0]-a[0])*p.u,zz=a[1]+(b[1]-a[1])*p.u,th=-rot.rotation.y+lag(t);x=r*Math.cos(th);y=zz;z=r*Math.sin(th)}
+    else{var f=p.p-1,rr=r2*Math.pow(rOut/r2,f),th2=p.tl-Math.log(rr/r2)/st.tanA;x=rr*Math.cos(th2);y=b2*p.u;z=rr*Math.sin(th2)}
+    return [x,y,z]}
+  function step(dt){
+    for(var j=0;j<N;j++){var p=ps[j],was=p.p;p.p+=dt*(p.p<1?0.38:0.34);
+      if(was<1&&p.p>=1)p.tl=-rot.rotation.y+lag(1);
+      if(p.p>=2){p.p=0;p.u=Math.random()}
+      var q=place(p);pos[j*3]=q[0];pos[j*3+1]=q[1];pos[j*3+2]=q[2]}
+    pg.attributes.position.needsUpdate=true}
+  step(0);
+  return {group:g,rot:rot,shroud:shroud,setDiffuser:buildDiffuser,update:function(dt,omega){rot.rotation.y+=omega*dt;step(dt)}}};
+})(window.PT);
+(function(P){
+'use strict';
+var T=P.T,el=P.el,fmt=P.fmt,V3=P.V3,CP=P.CP,GAM=P.GAM,Arrow=P.Arrow,COL=P.COL;
+function sm(a,b,x){var u=P.clamp((x-a)/(b-a),0,1);return u*u*(3-2*u)}
+P.whirlFn=function(rows,W){return function(x){var s=0;rows.forEach(function(r){if(!r.ig)s+=(r.t==='R'?1:-1)*W*sm(r.x-0.1,r.x+0.25,x)});return s}};
+
+function blSVG(lam){
+  var x0=70,yw=165,dl=120,s=118,i,e,u,h='';
+  function prof(e){return 2*e-2*e*e*e+e*e*e*e+(lam/6)*e*Math.pow(1-e,3)}
+  var pts=[];for(i=0;i<=40;i++){e=i/40;pts.push((x0+prof(e)*s).toFixed(1)+' '+(yw-e*dl).toFixed(1))}
+  h+='<line x1="'+(x0-50)+'" y1="'+yw+'" x2="'+(x0+s+60)+'" y2="'+yw+'" stroke="var(--ink)" stroke-width="3"/>';
+  h+='<line x1="'+x0+'" y1="'+(yw-dl)+'" x2="'+(x0+s+55)+'" y2="'+(yw-dl)+'" stroke="var(--muted)" stroke-dasharray="4 4"/>';
+  h+='<line x1="'+x0+'" y1="'+(yw+4)+'" x2="'+x0+'" y2="'+(yw-dl-8)+'" stroke="var(--muted)" stroke-width="1"/>';
+  [0.07,0.17,0.3,0.45,0.62,0.8,0.95].forEach(function(e){
+    u=prof(e)*s;var y=yw-e*dl,xe=x0+u,col=u<0?'var(--warn)':'var(--c-rel)',d=u<0?-1:1;
+    h+='<line x1="'+x0+'" y1="'+y.toFixed(1)+'" x2="'+xe.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="'+col+'" stroke-width="2"/>';
+    if(Math.abs(u)>4)h+='<polygon points="'+xe.toFixed(1)+','+y.toFixed(1)+' '+(xe-6*d).toFixed(1)+','+(y-3.5).toFixed(1)+' '+(xe-6*d).toFixed(1)+','+(y+3.5).toFixed(1)+'" fill="'+col+'"/>'});
+  h+='<polyline points="'+pts.join(' ')+'" fill="none" stroke="var(--c-rel)" stroke-width="2"/>';
+  h+='<text x="'+(x0+s+8)+'" y="'+(yw-dl-5)+'">edge of boundary layer</text><text x="'+(x0-48)+'" y="'+(yw+16)+'">wall</text><text x="'+(x0+4)+'" y="14">gas speed u across the layer</text>';
+  return '<svg class="chart" viewBox="0 0 330 190" role="img" aria-label="Boundary layer velocity profile">'+h+'</svg>'}
+
+P.addTab({num:1,name:'Intro',legend:[['--c-ax','axial: flow stays along the axis'],['--c-abs','centrifugal: flow turns 90 degrees']],
+  cam:{th:0.5,ph:1.15,dist:15,tx:-1,ty:0,tz:0},
+  build:function(t){
+    var S={speed:1.6,lam:-4,pr:8,etac:0.85,etat:0.88},sc=t.scene;
+    var rows=[{t:'R',x:0.6,chord:0.3},{t:'S',x:1.1,chord:0.3},{t:'R',x:1.8,chord:0.3},{t:'S',x:2.3,chord:0.3},{t:'R',x:3.0,chord:0.3},{t:'S',x:3.5,chord:0.3}];
+    var am=P.axialMachine({L:4.4,rTip:0.9,hubAt:function(x){return 0.45+0.07*x},rows:rows,nR:14,nS:18,whirl:P.whirlFn(rows,0.9)});
+    am.group.position.set(-6,0,0);sc.add(am.group);
+    var cm=P.centrifugal({r2:1.5,rEye:0.7,b2:0.28,zTop:1.2,nV:12,nD:18,rOut:2.5});
+    cm.group.position.set(4,-0.2,0);sc.add(cm.group);
+    var a1=new Arrow(COL.ax,0.04,0.25);a1.set(V3(-6.8,1.45,0),V3(-1.0,1.45,0));sc.add(a1.g);
+    var a2=new Arrow(COL.abs,0.04,0.22);a2.set(V3(4,2.9,0),V3(4,1.55,0));sc.add(a2.g);
+    for(var k=0;k<4;k++){var th=k*Math.PI/2+0.5,ar=new Arrow(COL.abs,0.04,0.2);
+      ar.set(V3(4+1.75*Math.cos(th),-0.05,1.75*Math.sin(th)),V3(4+2.95*Math.cos(th),-0.05,2.95*Math.sin(th)));sc.add(ar.g)}
+    function L(txt,cls,x,y,z){var l=t.label(txt,cls);l.pos.set(x,y,z);return l}
+    L('Axial compressor','big',-3.8,2.0,0);L('Centrifugal compressor','big',4,3.4,0);
+    L('flow stays parallel to the axis','ax',-3.8,1.7,0);L('flow turns 90°','abs',5.2,1.0,0);
+    L('rotor','',-5.4,1.2,0);L('stator','',-4.9,-1.2,0);
+    L('eye','',4,1.75,0);L('impeller','',4,-0.65,0);L('vaneless gap','',5.7,-0.5,0);L('diffuser vanes','',6.6,0.55,0);
+    t.update=function(dt){am.update(dt,S.speed);cm.update(dt,S.speed*1.4)};
+
+    var p=t.panel;
+    var s0=P.sec(p,null,'<h3 class="t">Two ways to squeeze air</h3><p class="feyn">A compressor pushes gas into a smaller space. A turbine lets gas push on blades. Both use rows of blades. Spinning rows trade work with the gas. Fixed rows steer the gas and slow it down or speed it up.</p><p>Axial machines keep the flow along the shaft. Centrifugal machines fling the gas outward, so the flow turns 90 degrees.</p>');
+    var s1=P.sec(p,'Controls');var c=el('div','ctls');s1.appendChild(c);
+    P.slider(c,{k:'speed',label:'Rotor speed',min:0,max:4,step:0.1,unit:'rad/s',dec:1,desc:'Visual speed only.'},S,function(){});
+    var r=el('div','row');s1.appendChild(r);
+    P.btn(r,'Both',function(){P.setCam({tx:-1,ty:0,dist:15})});P.btn(r,'Axial',function(){P.setCam({tx:-4,ty:0,dist:8})});P.btn(r,'Centrifugal',function(){P.setCam({tx:4,ty:0,dist:8.5})});
+    P.btn(r,'Show or hide shroud',function(){cm.shroud.visible=!cm.shroud.visible});
+
+    var s2=P.sec(p,'Why a compressor needs many rows');
+    s2.insertAdjacentHTML('beforeend','<p>Gas sticks to blade walls and forms a thin slow layer. If pressure rises along the wall, the layer slows down and flips. Backflow starts. Efficiency drops and the compressor may surge. A turbine drops pressure along the flow, so the layer stays attached.</p><div id="bl"></div><div class="warn" id="blmsg"></div>');
+    var c2=el('div','ctls');s2.appendChild(c2);
+    P.slider(c2,{k:'lam',label:'Pressure change along the wall',min:-14,max:12,step:0.1,dec:1,desc:'Positive: pressure falls (turbine). Negative: pressure rises (compressor).'},S,function(){t.refresh()});
+    var r2=el('div','row');s2.appendChild(r2);
+    P.btn(r2,'Turbine passage',function(){S.lam=8;sl.set(8);t.refresh()});
+    P.btn(r2,'Compressor stage',function(){S.lam=-6;sl.set(-6);t.refresh()});
+    P.btn(r2,'Too much rise',function(){S.lam=-13;sl.set(-13);t.refresh()});
+    var sl=P.slider(el('div'),{k:'lam',label:'x',min:-14,max:12,step:0.1},S,function(){});
+    sl=null;
+    /* keep a handle on the real slider */
+    var inp=c2.querySelector('input');sl={set:function(v){inp.value=v;inp.dispatchEvent(new Event('input'))}};
+
+    var s3=P.sec(p,'Thermo link: efficiency and work');
+    s3.insertAdjacentHTML('beforeend','<p>Cycle numbering 1-2-3-4. Compressor 1 to 2, turbine 3 to 4. Inlet air 288 K. Turbine inlet 1400 K. Perfect gas, Cp = 1005 J/kgK, γ = 1.4.</p>');
+    var c3=el('div','ctls');s3.appendChild(c3);
+    P.slider(c3,{k:'pr',label:'Pressure ratio PR',min:2,max:40,step:0.5,dec:1},S,function(){t.refresh()});
+    P.slider(c3,{k:'etac',label:'Compressor ηc',min:0.6,max:0.95,step:0.01,dec:2},S,function(){t.refresh()});
+    P.slider(c3,{k:'etat',label:'Turbine ηt',min:0.6,max:0.95,step:0.01,dec:2},S,function(){t.refresh()});
+    s3.insertAdjacentHTML('beforeend','<div class="eq">T<sub>02s</sub> = T<sub>01</sub> · PR<sup>(γ−1)/γ</sup> = <b data-k="t2s"></b> K<br>η<sub>c</sub> = (T<sub>02s</sub> − T<sub>01</sub>) / (T<sub>02</sub> − T<sub>01</sub>) → T<sub>02</sub> = <b data-k="t2"></b> K<br>w<sub>c</sub> = C<sub>p</sub>(T<sub>02</sub> − T<sub>01</sub>) = <b data-k="wc"></b> kJ/kg in<br>T<sub>04s</sub> = T<sub>03</sub> / PR<sup>(γ−1)/γ</sup> = <b data-k="t4s"></b> K<br>η<sub>t</sub> = (T<sub>03</sub> − T<sub>04</sub>) / (T<sub>03</sub> − T<sub>04s</sub>) → T<sub>04</sub> = <b data-k="t4"></b> K<br>w<sub>t</sub> = C<sub>p</sub>(T<sub>03</sub> − T<sub>04</sub>) = <b data-k="wt"></b> kJ/kg out<br><span class="n">Each kg of hot gas gives more work than each kg of cold air takes. That is why one turbine stage can do a lot.</span></div>');
+    var s4=P.sec(p,'Variables');
+    s4.insertAdjacentHTML('beforeend',P.varTable([
+      ['PR','pressure ratio across the component','–','pr'],['T<sub>01</sub>','compressor inlet stagnation temperature','K','t1'],['T<sub>02s</sub>','exit temperature if the process were isentropic','K','t2s'],
+      ['T<sub>02</sub>','real compressor exit temperature','K','t2'],['η<sub>c</sub>, η<sub>t</sub>','isentropic efficiency, ideal work over real work (compressor) or real over ideal (turbine)','–','eta'],
+      ['γ','ratio of specific heats','–','gam'],['C<sub>p</sub>','specific heat at constant pressure','J/kgK','cp'],['λ','pressure gradient parameter in the wall layer (Pohlhausen)','–','lam']]));
+    var s5=P.sec(p,'Prior knowledge');
+    P.det(s5,'Thermodynamics: Brayton cycle','<p>Compression 1-2, heat addition 2-3, expansion 3-4. Component work uses the stagnation temperature change. Isentropic efficiency compares real work with the ideal isentropic work for the same pressure ratio. Revise your 2nd year cycle notes.</p>');
+    P.det(s5,'Fluids: boundary layer','<p>Viscosity creates a slow layer next to every wall. A favourable pressure gradient (falling pressure) pushes the layer along. An adverse gradient (rising pressure) slows it. When wall shear reaches zero, the flow separates.</p>');
+    P.det(s5,'Fluids: momentum theory','<p>Same method as the propeller blade element tutorial. Torque equals the rate of change of angular momentum. Set 2 builds on this.</p>');
+    var s6=P.sec(p,'Study goals');s6.insertAdjacentHTML('beforeend',P.goals(['State the difference between axial and centrifugal flow devices.','Compare a Trent XWB with an RB211 and a turbojet. Count blade rows in compressor and turbine.','Revise cycle analysis and component isentropic efficiencies.']));
+    P.selfTest(p,'Why does a compressor need many blade pairs while a turbine can use one?',['Rising pressure slows the wall layer and risks separation.','Falling pressure keeps the layer attached.','So each compressor row adds a small rise and many rows share the total.']);
+
+    t.refresh=function(){
+      var q=(GAM-1)/GAM,t1=288,t3=1400;
+      var t2s=t1*Math.pow(S.pr,q),t2=t1+(t2s-t1)/S.etac,t4s=t3/Math.pow(S.pr,q),t4=t3-S.etat*(t3-t4s);
+      var e=2+S.lam/6,msg,cls='ok';
+      if(e<=0){msg='Separated. Wall shear is below zero, so gas near the wall flows backward.';cls='bad'}
+      else if(e<0.5){msg='Close to separation. Wall shear is almost zero.';cls='bad'}
+      else if(S.lam>0.5){msg='Attached and healthy. Falling pressure pushes the layer along.'}
+      else msg='Attached. Wall shear is positive.';
+      p.querySelector('#bl').innerHTML=blSVG(S.lam);
+      var m=p.querySelector('#blmsg');m.className='warn '+cls;m.textContent=msg+' Wall shear factor 2 + λ/6 = '+fmt(e,2)+'.';
+      P.fill(p,{t2s:fmt(t2s,0),t2:fmt(t2,0),wc:fmt(CP*(t2-t1)/1000,0),t4s:fmt(t4s,0),t4:fmt(t4,0),wt:fmt(CP*(t3-t4)/1000,0),pr:fmt(S.pr,1),t1:'288',eta:fmt(S.etac,2)+' / '+fmt(S.etat,2),gam:'1.4',cp:'1005',lam:fmt(S.lam,1)})};
+  }});
+})(window.PT);
+(function(P){
+'use strict';
+var T=P.T,el=P.el,fmt=P.fmt,V3=P.V3,CP=P.CP,Arrow=P.Arrow,COL=P.COL;
+
+P.addTab({num:2,name:'Euler equation',legend:[['--c-wh','whirl velocity Cw'],['--c-u','blade speed U = rω'],['--c-ax','moment arm r']],
+  cam:{th:0.9,ph:1.1,dist:12,tx:0,ty:0,tz:0},
+  build:function(t){
+    var S={om:700,r1:0.3,r2:0.45,cw1:0,cw2:200,md:10},sc=t.scene,KR=3,KV=0.006,X1=-2.2,X2=2.2,TWO=Math.PI*2;
+    var axis=new T.Mesh(new T.CylinderGeometry(0.02,0.02,8,8),P.mat(0x8896A3));axis.rotation.z=Math.PI/2;sc.add(axis);
+    var dyn=new T.Group();sc.add(dyn);var curve=null;
+    var aCw1=new Arrow(COL.wh,0.04,0.2),aU1=new Arrow(COL.u,0.03,0.18),aCw2=new Arrow(COL.wh,0.04,0.2),aU2=new Arrow(COL.u,0.03,0.18),aR1=new Arrow(COL.ax,0.02,0.1),aR2=new Arrow(COL.ax,0.02,0.1);
+    [aCw1,aU1,aCw2,aU2,aR1,aR2].forEach(function(a){sc.add(a.g)});
+    var spokes=[],ringMat=new T.LineDashedMaterial({color:0x7D8EA0,dashSize:0.14,gapSize:0.09}),arrMat=new T.MeshBasicMaterial({color:0x7D8EA0});
+    function ring(x,r){var pts=[];for(var i=0;i<=64;i++){var a=TWO*i/64;pts.push(V3(0,r*Math.cos(a),r*Math.sin(a)))}
+      var l=new T.Line(new T.BufferGeometry().setFromPoints(pts),ringMat);l.computeLineDistances();l.position.x=x;
+      var ah=2.3,cn=new T.Mesh(new T.ConeGeometry(0.08,0.24,12),arrMat);cn.position.set(0,r*Math.cos(ah),r*Math.sin(ah));cn.quaternion.setFromUnitVectors(V3(0,1,0),V3(0,-Math.sin(ah),Math.cos(ah)));l.add(cn);return l}
+    function rebuild(){
+      while(dyn.children.length){var c=dyn.children.pop();if(c.geometry)c.geometry.dispose()}
+      spokes.length=0;
+      var r1=S.r1*KR,r2=S.r2*KR,pts=[],i;
+      for(i=0;i<=60;i++){var s=i/60,u=s*s*(3-2*s),x=X1+(X2-X1)*s,r=r1+(r2-r1)*u,th=0;pts.push(V3(x,r*Math.cos(th),r*Math.sin(th)))}
+      curve=new T.CatmullRomCurve3(pts);
+      dyn.add(new T.Mesh(new T.TubeGeometry(curve,80,0.07,10,false),new T.MeshStandardMaterial({color:0x4FA3D9,transparent:true,opacity:0.35,roughness:0.4})));
+      dyn.add(ring(0,r1+(r2-r1)*0.5));
+      [[X1,r1],[X2,r2]].forEach(function(p){
+        dyn.add(ring(p[0],p[1]));
+        var sg=new T.Group();sg.position.x=p[0];
+        for(var k=0;k<8;k++){var b=new T.Mesh(new T.BoxGeometry(0.03,p[1],0.03),P.mat(0x9AA6B2));b.position.y=p[1]/2;var h=new T.Group();h.rotation.x=TWO*k/8;h.add(b);sg.add(h)}
+        dyn.add(sg);spokes.push(sg)});
+      var kvv=function(v){return v*KV};
+      aR1.set(V3(X1,0,0),V3(X1,r1,0));aR2.set(V3(X2,0,0),V3(X2,r2,0));
+      aCw1.set(V3(X1,r1,0),V3(X1,r1,kvv(S.cw1)));aU1.set(V3(X1,r1+0.22,0),V3(X1,r1+0.22,kvv(S.om*S.r1)));
+      aCw2.set(V3(X2,r2,0),V3(X2,r2,kvv(S.cw2)));aU2.set(V3(X2,r2+0.22,0),V3(X2,r2+0.22,kvv(S.om*S.r2)));
+      L.cw1.pos.set(X1,r1-0.25,kvv(S.cw1)+0.2);L.u1.pos.set(X1,r1+0.5,kvv(S.om*S.r1)+0.25);
+      L.cw2.pos.set(X2,r2-0.25,kvv(S.cw2)+0.2);L.u2.pos.set(X2,r2+0.5,kvv(S.om*S.r2)+0.25);
+      L.r1.pos.set(X1,r1/2,-0.25);L.r2.pos.set(X2,r2/2,-0.25);
+      L.p1.pos.set(X1,-r1-0.3,0);L.p2.pos.set(X2,-r2-0.3,0);
+      var tq=S.cw2*S.r2-S.cw1*S.r1;arc.scale.y=tq<0?-1:1;
+      var Ra=((S.r1+S.r2)/2)*KR+0.5,a=4.4;
+      arc.children.forEach(function(c){c.visible=true});
+      torus.geometry.dispose();torus.geometry=new T.TorusGeometry(Ra,0.035,8,48,a);
+      var cp=V3(Ra*Math.cos(a),Ra*Math.sin(a),0),td=V3(-Math.sin(a),Math.cos(a),0);
+      head.position.copy(cp);head.quaternion.setFromUnitVectors(UPV,td);
+      L.tau.pos.set(0,(tq<0?-1:1)*Ra*Math.sin(a/2),-Ra*Math.cos(a/2))}
+    var UPV=V3(0,1,0),arc=new T.Group();arc.rotation.y=Math.PI/2;
+    var torus=new T.Mesh(new T.TorusGeometry(1,0.035,8,48,4.4),new T.MeshBasicMaterial({color:0x0CA8C9}));
+    var head=new T.Mesh(new T.ConeGeometry(0.11,0.3,14),new T.MeshBasicMaterial({color:0x0CA8C9}));arc.add(torus);arc.add(head);sc.add(arc);
+    var L={};
+    function mk(k,txt,cls){L[k]=t.label(txt,cls)}
+    mk('cw1','Cw1','wh');mk('u1','U1','u');mk('cw2','Cw2','wh');mk('u2','U2','u');mk('r1','r1','ax');mk('r2','r2','ax');mk('p1','1 entry','big');mk('p2','2 exit','big');mk('tau','torque τ','big');
+    var lw=t.label('rotation axis','u');lw.pos.set(-3.9,0.1,0);
+    var pg=new T.BufferGeometry(),NP=36,pp=new Float32Array(NP*3),ps=[];
+    for(var i=0;i<NP;i++)ps.push(i/NP);
+    pg.setAttribute('position',new T.BufferAttribute(pp,3));
+    var pts=P.trailPoints(pg,0xFF922B);pts.frustumCulled=false;sc.add(pts);
+    t.update=function(dt){
+      for(var j=0;j<NP;j++){ps[j]=(ps[j]+dt*0.1)%1;var q=curve.getPoint(ps[j]);pp[j*3]=q.x;pp[j*3+1]=q.y;pp[j*3+2]=q.z}
+      pg.attributes.position.needsUpdate=true;
+      spokes.forEach(function(s){s.rotation.x+=S.om*0.004*dt*60/60})};
+
+    var p=t.panel;
+    P.sec(p,null,'<h3 class="t">How a spinning blade row trades work</h3><p class="feyn">Picture gas spiraling through a spinning tube. The gas enters with a little sideways speed and leaves with more. Making gas swirl faster takes a twist. The twist times the spin speed is the power.</p><p>The sideways speed is the whirl velocity Cw. The blade moves at U = rω. They are not the same speed.</p>');
+    var s1=P.sec(p,'Controls'),c=el('div','ctls');s1.appendChild(c);
+    var sync=function(){rebuild();t.refresh()};
+    var sl={};
+    sl.om=P.slider(c,{k:'om',label:'Spin speed ω',min:100,max:1500,step:10,unit:'rad/s',dec:0},S,sync);
+    sl.md=P.slider(c,{k:'md',label:'Mass flow ṁ',min:1,max:50,step:1,unit:'kg/s',dec:0},S,sync);
+    sl.r1=P.slider(c,{k:'r1',label:'Entry radius r1',min:0.1,max:0.6,step:0.01,unit:'m',dec:2},S,sync);
+    sl.r2=P.slider(c,{k:'r2',label:'Exit radius r2',min:0.1,max:0.8,step:0.01,unit:'m',dec:2},S,sync);
+    sl.cw1=P.slider(c,{k:'cw1',label:'Entry whirl Cw1',min:0,max:400,step:5,unit:'m/s',dec:0},S,sync);
+    sl.cw2=P.slider(c,{k:'cw2',label:'Exit whirl Cw2',min:0,max:400,step:5,unit:'m/s',dec:0},S,sync);
+    var r=el('div','row');s1.appendChild(r);
+    function preset(v){for(var k in v){S[k]=v[k];sl[k].set(v[k])}sync()}
+    P.btn(r,'Axial compressor (r1 = r2)',function(){preset({r1:0.4,r2:0.4,cw1:0,cw2:120})});
+    P.btn(r,'Centrifugal (Cw1 = 0, r grows)',function(){preset({r1:0.2,r2:0.45,cw1:0,cw2:300})});
+    P.btn(r,'Turbine (Cw drops)',function(){preset({r1:0.4,r2:0.4,cw1:300,cw2:40})});
+    var s2=P.sec(p,'Live equations');
+    s2.insertAdjacentHTML('beforeend','<div class="eq">U<sub>1</sub> = r<sub>1</sub>ω = <b data-k="u1"></b> m/s &nbsp; U<sub>2</sub> = r<sub>2</sub>ω = <b data-k="u2"></b> m/s<br>τ = C<sub>w2</sub>r<sub>2</sub> − C<sub>w1</sub>r<sub>1</sub> = <b data-k="tau"></b> m²/s<br>w = τω = <b data-k="w1"></b> J/kg<br>w = C<sub>w2</sub>U<sub>2</sub> − C<sub>w1</sub>U<sub>1</sub> = <b data-k="w2"></b> J/kg &nbsp;<span class="n">(Euler equation, same answer)</span><br>P = ṁw = <b data-k="pw"></b> kW<br>ΔT<sub>0</sub> = w/C<sub>p</sub> = <b data-k="dt"></b> K</div><div class="warn" id="m2"></div>');
+    var d=P.det(s2,'Derive it in four steps','<ol><li>Angular momentum per kg is r·Cw. Entry: r1Cw1. Exit: r2Cw2.</li><li>Torque per unit mass flow equals the change: τ = Cw2r2 − Cw1r1.</li><li>Work per kg is torque times spin speed: w = τω.</li><li>Put U = rω inside: w = Cw2U2 − Cw1U1. This is equation 1 in your notes.</li></ol>');
+    var s3=P.sec(p,'Variables');
+    s3.insertAdjacentHTML('beforeend',P.varTable([
+      ['ω','spin speed of the machine','rad/s','om'],['r<sub>1</sub>, r<sub>2</sub>','streamtube radius at entry and exit','m','rr'],['C<sub>w</sub>','whirl velocity: gas speed along the blade motion, seen by a fixed observer','m/s','cw'],
+      ['U','blade speed, U = rω','m/s','u'],['τ','torque per unit mass flow','m²/s','tq'],['w','work per unit mass. Positive: gas gains energy','J/kg','wk'],['ṁ','mass flow rate through the streamtube','kg/s','md'],['C<sub>p</sub>','specific heat, 1005 J/kgK','J/kgK','cp']]));
+    var s4=P.sec(p,'Prior knowledge');
+    P.det(s4,'Fluids: angular momentum','<p>Torque equals the rate of change of angular momentum flux. You used this for the propeller. Here the flux is ṁ·r·Cw.</p>');
+    P.det(s4,'Mechanics: power','<p>Power equals torque times angular speed. Divide by ṁ to get work per kg.</p>');
+    P.det(s4,'Reference frames','<p>C is measured by a fixed observer. U is the speed of the moving blade. Later, V = C − U is what the blade sees.</p>');
+    var s5=P.sec(p,'Study goals');s5.insertAdjacentHTML('beforeend',P.goals(['Draw the streamtube diagram yourself.','Know what whirl velocity is. It is not the blade velocity.','Transcribe the derivation of w = Cw2U2 − Cw1U1.']));
+    P.selfTest(p,'Explain the Euler equation without symbols.',['Twisting the gas flow changes its angular momentum.','Work per kg equals torque per kg times spin speed.','Whirl velocity is gas speed along the blade direction, not the blade speed.']);
+    t.refresh=function(){
+      var u1=S.r1*S.om,u2=S.r2*S.om,tq=S.cw2*S.r2-S.cw1*S.r1,w1=tq*S.om,w2=S.cw2*u2-S.cw1*u1;
+      var m=p.querySelector('#m2');m.className='warn '+(w2>=0?'ok':'bad');
+      m.textContent=w2>=0?'Positive work: the blades put energy into the gas (compressor).':'Negative work: the gas gives energy to the blades (turbine).';
+      P.fill(p,{u1:fmt(u1,0),u2:fmt(u2,0),tau:fmt(tq,1),w1:fmt(w1,0),w2:fmt(w2,0),pw:fmt(S.md*w2/1000,1),dt:fmt(w2/CP,1),om:fmt(S.om,0),rr:fmt(S.r1,2)+' / '+fmt(S.r2,2),cw:fmt(S.cw1,0)+' / '+fmt(S.cw2,0),u:fmt(u1,0)+' / '+fmt(u2,0),tq:fmt(tq,1),wk:fmt(w2,0),md:fmt(S.md,0),cp:'1005'})};
+    rebuild();
+  }});
+})(window.PT);
+(function(P){
+'use strict';
+var T=P.T,el=P.el,fmt=P.fmt,V3=P.V3,GAM=P.GAM,Arrow=P.Arrow,COL=P.COL;
+function sm(a,b,x){var u=P.clamp((x-a)/(b-a),0,1);return u*u*(3-2*u)}
+var ROWS=[{t:'S',x:0.35,chord:0.36,ig:true,stagger:0.25,n:'IGV'},{t:'R',x:1.2,chord:0.36,n:'R1'},{t:'S',x:1.8,chord:0.36,n:'S1'},{t:'R',x:2.8,chord:0.36,n:'R2'},{t:'S',x:3.4,chord:0.36,n:'S2'},{t:'R',x:4.4,chord:0.36,n:'R3'},{t:'S',x:5.0,chord:0.36,n:'S3'}];
+var LEN=6.0,RTIP=1.0,RH0=0.45,SCALE=0.5;
+
+function pChart(S){
+  var W=340,H=175,l=36,r=8,tp=14,b=28,pw=W-l-r,ph=H-tp-b,pmax=Math.pow(S.pr,3),i,h='';
+  function X(x){return l+x/LEN*pw}function Y(v){return tp+ph-(v-1)/(pmax-1)*ph}
+  ROWS.forEach(function(rw){if(rw.ig)return;
+    h+='<rect x="'+X(rw.x-0.12).toFixed(1)+'" y="'+tp+'" width="'+(X(rw.x+0.25)-X(rw.x-0.12)).toFixed(1)+'" height="'+ph+'" fill="'+(rw.t==='R'?'var(--c-rel)':'var(--c-u)')+'" opacity="0.14"/><text x="'+(X(rw.x+0.07)-6).toFixed(1)+'" y="'+(H-14)+'">'+rw.n+'</text>'});
+  var a=[],bb=[];
+  for(i=0;i<=120;i++){var x=LEN*i/120,e0=0,e1=0;
+    ROWS.forEach(function(rw){if(rw.ig)return;var u=sm(rw.x-0.12,rw.x+0.25,x);if(rw.t==='R'){e0+=u;e1+=S.lam*u}else e1+=(1-S.lam)*u});
+    a.push(X(x).toFixed(1)+' '+Y(Math.pow(S.pr,e0)).toFixed(1));bb.push(X(x).toFixed(1)+' '+Y(Math.pow(S.pr,e1)).toFixed(1))}
+  h+='<polyline points="'+a.join(' ')+'" fill="none" stroke="var(--c-abs)" stroke-width="2.4"/><polyline points="'+bb.join(' ')+'" fill="none" stroke="var(--c-rel)" stroke-width="2.4"/>';
+  h+='<line x1="'+l+'" y1="'+(tp+ph)+'" x2="'+(W-r)+'" y2="'+(tp+ph)+'" stroke="var(--muted)"/><line x1="'+l+'" y1="'+tp+'" x2="'+l+'" y2="'+(tp+ph)+'" stroke="var(--muted)"/>';
+  h+='<text x="2" y="'+(tp+8)+'">'+fmt(pmax,1)+'</text><text x="12" y="'+(tp+ph)+'">1</text>';
+  h+='<text x="'+(l+8)+'" y="'+(tp+10)+'" style="fill:var(--c-abs)">stagnation p0</text><text x="'+(l+8)+'" y="'+(tp+24)+'" style="fill:var(--c-rel)">static p</text>';
+  return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Pressure along the compressor">'+h+'</svg>'}
+
+P.addTab({num:3,name:'Axial compressor',legend:[['--c-rel','rotor rows (spin)'],['--c-u','stator rows (fixed)'],['--c-ax','flow path']],
+  cam:{th:0.7,ph:1.15,dist:11,tx:3,ty:0,tz:0},
+  build:function(t){
+    var S={pr:1.3,lam:0.5,speed:1.2,slice:0},sc=t.scene,m=null,extra=new T.Group(),dims=[],i;sc.add(extra);
+    var A0=Math.PI*(RTIP*RTIP-RH0*RH0);
+    function dens(x){return Math.pow(S.pr,Math.max(0,(x-0.2)/1.6)/GAM)}
+    function hubAt(x){var A=A0/dens(x);return Math.min(Math.sqrt(Math.max(RTIP*RTIP-A/Math.PI,0.04)),0.95)}
+    var rl={};
+    function lab(k,txt,cls){if(!rl[k])rl[k]=t.label(txt,cls);return rl[k]}
+    ROWS.forEach(function(r){lab(r.n,r.n,r.t==='R'?'rel':'u')});
+    lab('hin','h in','ax');lab('hout','h out','ax');lab('rm','Rm','ax');lab('ro','ro','ax');lab('flow','gas flow →','big');
+    var arr=[new Arrow(0x8896A3,0.015,0.1),new Arrow(0x8896A3,0.015,0.1),new Arrow(0x8896A3,0.015,0.1),new Arrow(0x2F9E44,0.03,0.2)];
+    arr.forEach(function(a){sc.add(a.g)});
+    function build(){
+      if(m){sc.remove(m.group);P.disposeTree(m.group)}
+      while(extra.children.length){var c=extra.children.pop();if(c.geometry)c.geometry.dispose()}
+      m=P.axialMachine({L:LEN,rTip:RTIP,hubAt:hubAt,rows:ROWS,nR:16,nS:20,whirl:P.whirlFn(ROWS,0.9),nP:170});sc.add(m.group);
+      var pr=[],k;for(k=0;k<=30;k++){var x=LEN*k/30;pr.push(new T.Vector2((hubAt(x)+RTIP)/2,-x))}
+      var sl=new T.Mesh(new T.LatheGeometry(pr,48),new T.MeshBasicMaterial({color:0x0CA8C9,transparent:true,opacity:0.3,side:T.DoubleSide,depthWrite:false}));
+      sl.rotation.z=Math.PI/2;sl.visible=!!S.slice;extra.add(sl);
+      ROWS.forEach(function(r){rl[r.n].pos.set(r.x,RTIP+0.28,0)});
+      var xi=0.1,xo=LEN-0.1;
+      arr[0].set(V3(xi,hubAt(xi),0),V3(xi,RTIP,0));arr[1].set(V3(xo,hubAt(xo),0),V3(xo,RTIP,0));arr[2].set(V3(xi+0.18,0,0),V3(xi+0.18,(hubAt(xi)+RTIP)/2,0));
+      arr[3].set(V3(-0.9,-1.3,0),V3(LEN+0.5,-1.3,0));
+      rl.hin.pos.set(xi,(hubAt(xi)+RTIP)/2+0.2,0);rl.hout.pos.set(xo,(hubAt(xo)+RTIP)/2+0.2,0);rl.rm.pos.set(xi+0.45,(hubAt(xi)+RTIP)/4,0);rl.ro.pos.set(xi-0.1,hubAt(xi)-0.12,0);rl.flow.pos.set(LEN/2,-1.6,0);
+      extra.userData.sl=sl}
+    build();
+    t.update=function(dt){m.update(dt,S.speed)};
+
+    var p=t.panel;
+    P.sec(p,null,'<h3 class="t">A stack of spinning and fixed blade rows</h3><p class="feyn">Rotor blades sit on the spinning hub. They push the gas sideways and add energy. Stator blades sit on the casing. They straighten the swirl and slow the gas, which raises pressure. Gas gets denser as it goes, so the passage narrows to keep the same axial speed.</p>');
+    var s1=P.sec(p,'Controls'),c=el('div','ctls');s1.appendChild(c);
+    P.slider(c,{k:'pr',label:'Pressure ratio per stage',min:1.05,max:1.6,step:0.01,dec:2,desc:'Squeezes the passage as density rises.'},S,function(){build();t.refresh()});
+    P.slider(c,{k:'lam',label:'Share of static rise in rotor (Λ)',min:0.2,max:0.8,step:0.05,dec:2,desc:'0.5 shares it evenly between rotor and stator.'},S,function(){t.refresh()});
+    P.slider(c,{k:'speed',label:'Rotor speed',min:0,max:4,step:0.1,unit:'rad/s',dec:1},S,function(){});
+    var r=el('div','row');s1.appendChild(r);
+    P.btn(r,'Show or hide mid-height slice',function(){S.slice=S.slice?0:1;extra.userData.sl.visible=!!S.slice});
+    s1.insertAdjacentHTML('beforeend','<p class="ctl"><span class="d">The cyan slice unrolls into the flat blade pair of set 4.</span></p>');
+    var s2=P.sec(p,'Pressure along the machine');
+    s2.insertAdjacentHTML('beforeend','<p>All stagnation pressure rise happens in rotors. Static pressure rises in both rows.</p><div id="pc"></div>');
+    var s3=P.sec(p,'Live equations');
+    s3.insertAdjacentHTML('beforeend','<div class="eq">A = π D<sub>m</sub> h = π (r<sub>tip</sub>² − r<sub>o</sub>²)<br>ṁ = ρ C<sub>a</sub> A &nbsp;<span class="n">C<sub>a</sub> stays constant, so ρA stays constant</span><br>ρ<sub>out</sub>/ρ<sub>in</sub> = PR<sup>1/γ</sup> = <b data-k="rho"></b> &nbsp;<span class="n">(PR = total, <b data-k="pr3"></b>)</span><br>A<sub>out</sub>/A<sub>in</sub> = ρ<sub>in</sub>/ρ<sub>out</sub> = <b data-k="ar"></b><br>h<sub>in</sub> = <b data-k="hin"></b> m &nbsp; h<sub>out</sub> = <b data-k="hout"></b> m<br>A<sub>in</sub> = <b data-k="ain"></b> m² &nbsp; A<sub>out</sub> = <b data-k="aout"></b> m²<br><span class="n">Model: r<sub>tip</sub> = 0.50 m, three stages.</span></div>');
+    var s4=P.sec(p,'Variables');
+    s4.insertAdjacentHTML('beforeend',P.varTable([
+      ['h','blade height, r<sub>tip</sub> − r<sub>o</sub>','m','hh'],['r<sub>o</sub>','radius of the rotor root at the hub','m','ro'],['r<sub>tip</sub>','radius of the blade tip','m','rt'],
+      ['D<sub>m</sub>','diameter at mid blade height','m','dm'],['R<sub>m</sub>','radius at mid blade height','m','rm'],['A','annulus flow area, π D<sub>m</sub> h','m²','aa'],
+      ['C<sub>a</sub>','axial gas velocity, constant through the blade pair','m/s','–'],['ρ','gas density, rises with compression','kg/m³','–'],['Λ','share of the static rise taken by the rotor','–','lam'],['PR','pressure ratio','–','prs']]));
+    var s5=P.sec(p,'Prior knowledge');
+    P.det(s5,'Fluids: continuity','<p>Mass flow ṁ = ρ C A is the same at every station. Denser gas with the same axial speed needs less area.</p>');
+    P.det(s5,'Thermo: stagnation enthalpy','<p>h0 = h + C²/2. Work raises h0 only across the rotor. A stator adds no work, so h0 stays constant there.</p>');
+    P.det(s5,'Fluids: diffusion','<p>A stator passage widens. Slower gas has less kinetic energy, so static pressure rises (Bernoulli idea, with real losses).</p>');
+    P.det(s5,'Thermo: isentropic relation','<p>p/ρ<sup>γ</sup> = constant for an ideal process. So ρ ratio = PR<sup>1/γ</sup>.</p>');
+    var s6=P.sec(p,'Study goals');s6.insertAdjacentHTML('beforeend',P.goals(['Describe rotor, stator and inlet guide vane roles.','Know that ALL work transfer happens across the rotor.','Sketch blade pair with states 1, 2, 3.','Explain why blade height shrinks downstream.']));
+    P.selfTest(p,'Explain why the passage gets narrower from inlet to exit.',['Compression raises density.','Mass flow and axial speed stay the same, so ρA is constant.','So area must fall as density rises.']);
+    t.refresh=function(){
+      var x0=0.1,x1=LEN-0.1,h0=hubAt(x0),h1=hubAt(x1),pr3=Math.pow(S.pr,(x1-0.2)/1.6),rho=Math.pow(pr3,1/GAM);
+      var Ai=Math.PI*(RTIP*RTIP-h0*h0)*SCALE*SCALE,Ao=Math.PI*(RTIP*RTIP-h1*h1)*SCALE*SCALE;
+      p.querySelector('#pc').innerHTML=pChart(S);
+      P.fill(p,{rho:fmt(rho,2),pr3:fmt(pr3,2),ar:fmt(1/rho,2),hin:fmt((RTIP-h0)*SCALE,3),hout:fmt((RTIP-h1)*SCALE,3),ain:fmt(Ai,3),aout:fmt(Ao,3),
+        hh:fmt((RTIP-h0)*SCALE,3)+' in',ro:fmt(h0*SCALE,3)+' in',rt:fmt(RTIP*SCALE,2),dm:fmt((RTIP+h0)*SCALE,3)+' in',rm:fmt((RTIP+h0)/2*SCALE,3)+' in',aa:fmt(Ai,3)+' in',lam:fmt(S.lam,2),prs:fmt(S.pr,2)+' / stage'})};
+  }});
+})(window.PT);
+(function(P){
+'use strict';
+var T=P.T,el=P.el,fmt=P.fmt,V3=P.V3,CP=P.CP,D2R=P.D2R,R2D=P.R2D,Arrow=P.Arrow,COL=P.COL,clamp=P.clamp;
+var KV=0.006,SP=0.6,CH=1.5,TH=0.17,SPAN=1.0,PITCH=1.3,NB=5,GAP=0.5,XT=4.0;
+function ss(a,b,x){var u=clamp((x-a)/(b-a),0,1);return u*u*(3-2*u)}
+function tn(d){return Math.tan(d*D2R)}
+function clampA(d){return clamp(d,-78,78)}
+
+function mkCascade(cfg){
+P.addTab({num:cfg.num,name:cfg.name,legend:[['--c-abs','absolute C'],['--c-rel','relative V'],['--c-u','blade speed U'],['--c-ax','axial Ca'],['--c-wh','whirl Cw']],
+  cam:{th:1.57,ph:1.4,dist:14.5,tx:1.6,ty:-1.5,tz:0},
+  build:function(t){
+    var S=JSON.parse(JSON.stringify(cfg.def)),sc=t.scene,comp=cfg.kind==='comp',i,topG=null,botG=null,geoms=[];
+    var W=NB*PITCH;
+    var moving=new T.Group(),fixed=new T.Group();sc.add(moving);sc.add(fixed);
+    var yS=[0,0,0],hTop=1,hBot=1;
+    function an(){var U=S.U,Ca=S.Ca,tA=tn(S.A),tB=tn(S.B);
+      return {tA:tA,tB:tB,b1:Math.atan(U/Ca-tA)*R2D,b2:Math.atan(U/Ca-tB)*R2D}}
+    function rowOf(g,geo,color){var gr=new T.Group(),m=P.mat(color);for(var k=0;k<NB;k++){var b=new T.Mesh(geo,m);b.position.x=(k-(NB-1)/2)*PITCH;gr.add(b)}return gr}
+    function rebuild(){
+      geoms.forEach(function(g){g.dispose()});geoms.length=0;
+      while(moving.children.length)moving.remove(moving.children[0]);while(fixed.children.length)fixed.remove(fixed.children[0]);
+      var a=an(),b1=clampA(a.b1),b2=clampA(a.b2),top,bot;
+      if(comp){top=P.bladeGeom(b1*D2R,b2*D2R,-1,CH,TH,SPAN);bot=P.bladeGeom(clampA(S.B)*D2R,clampA(S.A)*D2R,1,CH,TH,SPAN)}
+      else{top=P.bladeGeom(0,clampA(S.A)*D2R,1,CH,TH,SPAN);bot=P.bladeGeom(b1*D2R,b2*D2R,-1,CH,TH,SPAN)}
+      geoms.push(top,bot);
+      hTop=-top.boundingBox.min.y;hBot=-bot.boundingBox.min.y;
+      var gT=rowOf(null,top,comp?0x5C8DB5:0x9AA6B2),gB=rowOf(null,bot,comp?0x9AA6B2:0x5C8DB5);
+      gB.position.y=-hTop-GAP;
+      (comp?moving:fixed).add(gT);(comp?fixed:moving).add(gB);
+      yS=[0,-hTop-GAP/2,-hTop-GAP-hBot]}
+    var lab={};
+    function L(k,txt,cls){lab[k]=t.label(txt,cls);return lab[k]}
+    var tris=[0,1].map(function(){return {a:{V:new Arrow(COL.rel,0.03,0.16),C:new Arrow(COL.abs,0.03,0.16),Ca:new Arrow(COL.ax,0.03,0.16),Cw:new Arrow(COL.wh,0.03,0.16),U:new Arrow(COL.u,0.03,0.16)}}});
+    tris.forEach(function(tr,j){for(var k in tr.a)sc.add(tr.a[k].g);
+      tr.l={V:L('V'+j,'V','rel'),C:L('C'+j,'C','abs'),Ca:L('Ca'+j,'Ca','ax'),Cw:L('Cw'+j,'Cw','wh'),U:L('U'+j,'U','u'),al:L('al'+j,'α','abs'),be:L('be'+j,'β','rel')}});
+    var st=[0,1,2].map(function(k){var g=new T.BufferGeometry().setFromPoints([V3(-W/2-0.3,0,0),V3(XT+3,0,0)]);var l=new T.Line(g,new T.LineDashedMaterial({color:0x8896A3,dashSize:0.12,gapSize:0.1}));l.computeLineDistances();sc.add(l);return l});
+    [1,2,3].forEach(function(k){L('st'+k,String(k),'big')});
+    L('rowT',comp?'rotor (moves →)':'nozzle guide vane (fixed)','big');L('rowB',comp?'stator (fixed)':'rotor (moves →)','big');
+    L('uArrow','blade motion U','u');
+    var NP=120,pp=new Float32Array(NP*3),ps=[];
+    for(i=0;i<NP;i++)ps.push({x:(Math.random()-0.5)*W,y:Math.random()*4-2.5});
+    var pg=new T.BufferGeometry();pg.setAttribute('position',new T.BufferAttribute(pp,3));
+    var pts=P.trailPoints(pg,0x2D8BE0);pts.frustumCulled=false;sc.add(pts);
+    var ymax=1.2,ymin=-3.9;
+    function cwAt(y){var Cw0,Cw1,Cw2,tA=tn(S.A),tB=tn(S.B),Ca=S.Ca;
+      if(comp){Cw0=Ca*tA;Cw1=Ca*tB;Cw2=Ca*tA}else{Cw0=0;Cw1=Ca*tA;Cw2=Ca*tB}
+      var y1=-hTop,y2=-hTop-GAP,y3=-hTop-GAP-hBot;
+      if(y>0)return Cw0;if(y>y1)return Cw0+(Cw1-Cw0)*ss(0,y1,y);if(y>y2)return Cw1;if(y>y3)return Cw1+(Cw2-Cw1)*ss(y2,y3,y);return Cw2}
+    var off=0;
+    t.update=function(dt){
+      off=(off+S.U*KV*SP*dt)%PITCH;moving.position.x=off;
+      for(var j=0;j<NP;j++){var q=ps[j];q.x+=cwAt(q.y)*KV*SP*dt;q.y-=S.Ca*KV*SP*dt;
+        if(q.y<yS[2]-0.7){q.y=0.9;q.x=(Math.random()-0.5)*W}
+        if(q.x>W/2)q.x-=W;if(q.x<-W/2)q.x+=W;
+        pp[j*3]=q.x;pp[j*3+1]=q.y;pp[j*3+2]=0.0}
+      pg.attributes.position.needsUpdate=true};
+    function drawTri(j,yb,al,be,idx){
+      var tr=tris[j],U=S.U*KV,Ca=S.Ca*KV,tb=tn(be),ta=tn(al),x0=XT;
+      var Lp=V3(x0,yb,0),Rp=V3(x0+U,yb,0),Fp=V3(x0+Ca*tb,yb,0),Ap=V3(Fp.x,yb+Ca,0);
+      tr.a.V.set(Ap,Lp);tr.a.C.set(Ap,Rp);tr.a.Ca.set(Ap,Fp);tr.a.Cw.set(Fp,Rp);tr.a.U.set(V3(x0,yb-0.14,0),V3(x0+U,yb-0.14,0));
+      function mid(a,b,dx,dy){return V3((a.x+b.x)/2+dx,(a.y+b.y)/2+dy,0)}
+      tr.l.V.pos.copy(mid(Ap,Lp,-0.2,0.12));tr.l.C.pos.copy(mid(Ap,Rp,0.22,0.12));tr.l.Ca.pos.copy(mid(Ap,Fp,-0.0,0.0).add(V3(Ca*tb>=0?-0.3:0.3,0,0)));
+      tr.l.Cw.pos.copy(mid(Fp,Rp,0,0.17));tr.l.U.pos.copy(V3(x0+U/2,yb-0.38,0));
+      var v1=Fp.clone().sub(Ap).normalize(),v2=Rp.clone().sub(Ap).normalize(),v3=Lp.clone().sub(Ap).normalize();
+      tr.l.al.pos.copy(Ap.clone().add(v1.clone().add(v2).normalize().multiplyScalar(0.62)));
+      tr.l.be.pos.copy(Ap.clone().add(v1.clone().add(v3).normalize().multiplyScalar(0.62)));
+      var s=idx;tr.l.V.e.innerHTML='V<sub>'+s+'</sub>';tr.l.C.e.innerHTML='C<sub>'+s+'</sub>';tr.l.Cw.e.innerHTML='C<sub>w'+s+'</sub>';tr.l.U.e.innerHTML='U';
+      tr.l.al.e.innerHTML='α<sub>'+s+'</sub> '+fmt(al,0)+'°';tr.l.be.e.innerHTML='β<sub>'+s+'</sub> '+fmt(be,0)+'°'}
+    function layout(){
+      var a=an();
+      st.forEach(function(l,k){l.position.y=yS[k]});
+      lab.st1.pos.set(-W/2-0.5,yS[0],0);lab.st2.pos.set(-W/2-0.5,yS[1],0);lab.st3.pos.set(-W/2-0.5,yS[2],0);
+      lab.rowT.pos.set(-W/2+1.0,yS[0]+0.4,0);lab.rowB.pos.set(-W/2+0.9,yS[2]-0.45,0);lab.uArrow.pos.set(W/2+0.2,0.35,0);
+      var yIn=comp?yS[0]:yS[1],yOut=comp?yS[1]:yS[2],iIn=comp?1:2,iOut=comp?2:3;
+      drawTri(0,yIn-0.15,S.A,a.b1,iIn);drawTri(1,yOut-0.15,S.B,a.b2,iOut);
+      uA.set(V3(-W/2-1.2,yS[0]+0.85,0),V3(-W/2-1.2+S.U*KV,yS[0]+0.85,0))}
+    var uA=new Arrow(COL.u,0.03,0.18);sc.add(uA.g);
+
+    /* panel */
+    var p=t.panel;
+    P.sec(p,null,cfg.intro);
+    var s1=P.sec(p,'Controls'),c=el('div','ctls');s1.appendChild(c);
+    var sl={};
+    function sync(k){if(k==='lam'){var tb=2*S.U/S.Ca*(1-S.lam)-tn(S.A);S.B=clamp(Math.atan(tb)*R2D,cfg.rng.B[0],cfg.rng.B[1]);sl.B.set(S.B)}
+      rebuild();layout();t.refresh()}
+    sl.U=P.slider(c,{k:'U',label:'Blade speed U',min:100,max:450,step:5,unit:'m/s',dec:0},S,sync);
+    sl.Ca=P.slider(c,{k:'Ca',label:'Axial velocity Ca',min:80,max:250,step:5,unit:'m/s',dec:0},S,sync);
+    sl.A=P.slider(c,{k:'A',label:cfg.aLabel,min:cfg.rng.A[0],max:cfg.rng.A[1],step:1,unit:'°',dec:0},S,sync);
+    sl.B=P.slider(c,{k:'B',label:cfg.bLabel,min:cfg.rng.B[0],max:cfg.rng.B[1],step:1,unit:'°',dec:0},S,sync);
+    sl.lam=P.slider(c,{k:'lam',label:'Target degree of reaction Λ',min:cfg.rng.lam[0],max:cfg.rng.lam[1],step:0.05,dec:2,desc:'Moves the exit angle for you.'},S,sync);
+    var r=el('div','row');s1.appendChild(r);
+    cfg.buttons.forEach(function(bt){P.btn(r,bt[0],function(){bt[1](S,sl,an);rebuild();layout();t.refresh()})});
+    P.btn(r,'Reset',function(){var d=JSON.parse(JSON.stringify(cfg.def));for(var k in d){S[k]=d[k];if(sl[k])sl[k].set(d[k])}rebuild();layout();t.refresh()});
+    cfg.build(t,p,S,an);
+    t.refresh=function(){
+      var a=an(),U=S.U,Ca=S.Ca,w=U*Ca*(a.tB-a.tA),dh=w-0.5*Ca*Ca*(a.tB*a.tB-a.tA*a.tA),lam=1-Ca/(2*U)*(a.tA+a.tB);
+      S.lam=lam;sl.lam.set(clamp(lam,cfg.rng.lam[0],cfg.rng.lam[1]));
+      var C1=Ca/Math.cos(S.A*D2R),C2=Ca/Math.cos(S.B*D2R),V1=Ca/Math.cos(a.b1*D2R),V2=Ca/Math.cos(a.b2*D2R);
+      var v={w:fmt(w/1000,2),wj:fmt(w,0),dT:fmt(w/CP,1),dh:fmt(dh/1000,2),lam:fmt(lam,3),lam2:fmt(Ca/(2*U)*(tn(a.b1)+tn(a.b2)),3),
+        b1:fmt(a.b1,1),b2:fmt(a.b2,1),tA:fmt(a.tA,3),tB:fmt(a.tB,3),tb1:fmt(tn(a.b1),3),tb2:fmt(tn(a.b2),3),A:fmt(S.A,1),B:fmt(S.B,1),
+        U:fmt(U,0),Ca:fmt(Ca,0),C1:fmt(C1,0),C2:fmt(C2,0),V1:fmt(V1,0),V2:fmt(V2,0),cw1:fmt(Ca*a.tA,0),cw2:fmt(Ca*a.tB,0),dhs:fmt((w-dh)/1000,2),
+        sum1:fmt(a.tA+a.tB,3),sum2:fmt(U/Ca,3),sumb:fmt(tn(a.b1)+tn(a.b2),3),sumb2:fmt(2*U/Ca-(a.tA+a.tB),3),cp:'1005'};
+      layout();P.fill(p,v);cfg.refresh(t,p,S,a,{w:w,dh:dh,lam:lam,V1:V1,V2:V2,C1:C1,C2:C2},P)};
+    rebuild();layout();
+  }})}
+P.mkCascade=mkCascade;
+})(window.PT);
+(function(P){
+'use strict';
+var fmt=P.fmt,clamp=P.clamp,R2D=P.R2D,D2R=P.D2R;
+function tn(d){return Math.tan(d*D2R)}
+function setB(S,sl,tb,lo,hi){S.B=clamp(Math.atan(tb)*R2D,lo,hi);sl.B.set(S.B)}
+
+/* ================= set 4: compressor blade pair ================= */
+P.mkCascade({num:4,name:'Compressor pair',kind:'comp',
+  def:{U:250,Ca:150,A:10,B:40,lam:0.7},rng:{A:[-20,60],B:[0,70],lam:[0.2,0.8]},
+  aLabel:'Rotor inlet angle α1',bLabel:'Rotor exit angle α2',
+  intro:'<h3 class="t">One rotor and one stator, unrolled flat</h3><p class="feyn">Slice the compressor at mid height and unroll it. The rotor row slides sideways at speed U. Gas enters, gets pushed sideways by the rotor, then the stator turns it back. Each arrow triangle shows the same gas seen by a fixed observer (C) and by the moving blade (V).</p>',
+  buttons:[['Set Λ = 0.5 (symmetric)',function(S,sl){setB(S,sl,S.U/S.Ca-tn(S.A),0,70)}],['Axial entry α1 = 0',function(S,sl){S.A=0;sl.A.set(0)}]],
+  build:function(t,p,S){
+    var s2=P.sec(p,'Live equations');
+    s2.insertAdjacentHTML('beforeend','<div class="eq">w = C<sub>w2</sub>U − C<sub>w1</sub>U = U C<sub>a</sub>(tan α<sub>2</sub> − tan α<sub>1</sub>) = <b data-k="wj"></b> J/kg<br>w = U C<sub>a</sub>(tan β<sub>1</sub> − tan β<sub>2</sub>) &nbsp;<span class="n">same value</span><br>ΔT<sub>0</sub> = w / C<sub>p</sub> = <b data-k="dT"></b> K<br>Δh<sub>rotor</sub> = w − ½C<sub>a</sub>²(tan²α<sub>2</sub> − tan²α<sub>1</sub>) = <b data-k="dh"></b> kJ/kg<br>Λ = Δh / w = 1 − C<sub>a</sub>/(2U) (tan α<sub>1</sub> + tan α<sub>2</sub>) = <b data-k="lam"></b><br>Λ = C<sub>a</sub>/(2U) (tan β<sub>1</sub> + tan β<sub>2</sub>) = <b data-k="lam2"></b><br>tan α = U/C<sub>a</sub> − tan β &nbsp; β<sub>1</sub> = <b data-k="b1"></b>° &nbsp; β<sub>2</sub> = <b data-k="b2"></b>°</div>');
+    s2.insertAdjacentHTML('beforeend','<h2>Where does the static enthalpy rise happen?</h2><div class="bar"><div id="barR" style="background:var(--c-rel)"></div><div id="barS" style="background:var(--c-u)"></div></div><p class="ctl"><span class="d">Rotor takes Δh. Stator takes the rest of w, because C3 = C1 and the stage ends at the same speed it began.</span></p><h2>Checks</h2><div class="chk" id="chk"></div><div class="warn" id="dh72"></div>');
+    var s3=P.sec(p,'Derivation');
+    s3.insertAdjacentHTML('beforeend','<ol style="margin:0;padding-left:20px"><li>Euler with U1 = U2 = U: w = U(Cw2 − Cw1).</li><li>Cw = Ca tan α gives w = U Ca (tan α2 − tan α1).</li><li>Steady flow energy: w = (h2 + ½C2²) − (h1 + ½C1²).</li><li>Equate and use C = Ca / cos α with 1/cos² = 1 + tan²: Δh = w − ½Ca²(tan²α2 − tan²α1).</li><li>Divide by w. Since tan²α2 − tan²α1 = (tan α2 − tan α1)(tan α2 + tan α1): Λ = 1 − Ca/(2U)(tan α1 + tan α2).</li><li>From the triangles tan α = U/Ca − tan β. So tan α1 + tan α2 = 2U/Ca − (tan β1 + tan β2). Substitute: <b>Λ = Ca/(2U)(tan β1 + tan β2)</b>.</li><li>Put Λ = 0.5. Then tan β1 + tan β2 = U/Ca. Also tan α1 + tan β1 = U/Ca. Equal right sides give tan β2 = tan α1.</li><li>Likewise tan α1 + tan α2 = U/Ca = tan α1 + tan β1, so tan α2 = tan β1. <b>So α2 = β1 and α1 = β2.</b></li></ol><div class="eq" style="margin-top:8px">Live check of step 6: tan β1 + tan β2 = <b data-k="sumb"></b> and 2U/Ca − (tan α1 + tan α2) = <b data-k="sumb2"></b></div>');
+    var s4=P.sec(p,'Variables');
+    s4.insertAdjacentHTML('beforeend',P.varTable([
+      ['U','blade speed at mid height, U1 = U2','m/s','U'],['C<sub>a</sub>','axial velocity, constant through the pair','m/s','Ca'],['α<sub>1</sub>, α<sub>2</sub>','absolute flow angles at rotor entry and exit, from the axial direction','°','A'],
+      ['β<sub>1</sub>, β<sub>2</sub>','relative flow angles seen by the rotor','°','b1'],['C<sub>w1</sub>, C<sub>w2</sub>','whirl velocity, C<sub>w</sub> = C<sub>a</sub> tan α','m/s','cw1'],['C, V','absolute velocity and velocity relative to the rotor, V = C − U (vector)','m/s','C1'],
+      ['w','rotor work per unit mass','J/kg','wj'],['Δh','static enthalpy rise across the rotor','kJ/kg','dh'],['Λ','degree of reaction, rotor Δh over w','–','lam'],['C<sub>p</sub>','specific heat','J/kgK','cp'],['ΔT<sub>0</sub>','stagnation temperature rise','K','dT']]));
+    var s5=P.sec(p,'Prior knowledge');
+    P.det(s5,'Set 2: Euler equation','<p>Gives w from momentum. Set 4 combines it with thermodynamics.</p>');
+    P.det(s5,'Thermo: steady flow energy equation','<p>Adiabatic, work only at the rotor: w = h02 − h01 with h0 = h + C²/2 = Cp T0.</p>');
+    P.det(s5,'Fluids: relative velocity','<p>V = C − U. The blade sees the gas arrive at angle β1. Blades must meet the flow smoothly, so β sets the rotor metal angle and α2 sets the stator metal angle.</p>');
+    P.det(s5,'Fluids: separation','<p>Pressure rises through both rows. Keep Λ near 0.5 so each row takes half. Extra check, not in your notes: V2/V1 below about 0.72 warns of too much diffusion.</p>');
+    var s6=P.sec(p,'Study goals');s6.insertAdjacentHTML('beforeend',P.goals(['Read and transcribe the notes.','Derive Λ in terms of β1 and β2.','Show α2 = β1 and α1 = β2 for Λ = 0.5.']));
+    P.selfTest(p,'Why is Λ = 0.5 the best choice for a compressor blade pair?',['Pressure rises in both rotor and stator.','Sharing the rise evenly keeps each row away from separation.','At Λ = 0.5 the angles mirror: α2 = β1 and α1 = β2.']);
+  },
+  refresh:function(t,p,S,a,v){
+    var rr=p.querySelector('#barR'),rs=p.querySelector('#barS'),ok=Math.abs(v.w)>1;
+    var f=ok?clamp(v.dh/v.w,0,1)*100:0;
+    rr.style.width=f+'%';rs.style.width=(100-f)+'%';rr.textContent=ok?'rotor '+fmt(f,0)+'%':'';rs.textContent=ok?'stator '+fmt(100-f,0)+'%':'';
+    var d1=Math.abs(S.B-a.b1),d2=Math.abs(S.A-a.b2);
+    p.querySelector('#chk').innerHTML='<span class="'+(d1<0.3?'ok':'bad')+'">α2 '+fmt(S.B,1)+'° vs β1 '+fmt(a.b1,1)+'°</span><span class="'+(d2<0.3?'ok':'bad')+'">α1 '+fmt(S.A,1)+'° vs β2 '+fmt(a.b2,1)+'°</span><span class="'+(Math.abs(v.lam-0.5)<0.02?'ok':'bad')+'">Λ = '+fmt(v.lam,3)+'</span>';
+    var rt=v.V2/v.V1,m=p.querySelector('#dh72');
+    m.className='warn '+(rt<0.72?'bad':'ok');m.textContent='V2/V1 = '+fmt(rt,2)+(rt<0.72?'. Heavy diffusion, separation risk.':'. Gentle enough.')}
+});
+
+/* ================= set 5: turbine blade pair ================= */
+function wChart(S,a,v){
+  var W=340,H=175,l=40,r=10,tp=14,b=28,pw=W-l-r,ph=H-tp-b,Cw2=S.Ca*a.tA,i,h='';
+  if(Cw2<20)return '';
+  var xm=Cw2*1.05,ym=Cw2*Cw2/2/1000;
+  function X(u){return l+u/xm*pw}function Y(y){return tp+ph-clamp(y/ym,0,1.15)*ph*0.87}
+  var pts=[];for(i=0;i<=60;i++){var u=Cw2*i/60;pts.push(X(u).toFixed(1)+' '+Y(2*u*(Cw2-u)/1000).toFixed(1))}
+  h+='<polyline points="'+pts.join(' ')+'" fill="none" stroke="var(--c-rel)" stroke-width="2.4"/>';
+  h+='<line x1="'+l+'" y1="'+(tp+ph)+'" x2="'+(W-r)+'" y2="'+(tp+ph)+'" stroke="var(--muted)"/><line x1="'+l+'" y1="'+tp+'" x2="'+l+'" y2="'+(tp+ph)+'" stroke="var(--muted)"/>';
+  h+='<line x1="'+X(Cw2/2).toFixed(1)+'" y1="'+tp+'" x2="'+X(Cw2/2).toFixed(1)+'" y2="'+(tp+ph)+'" stroke="var(--c-ax)" stroke-dasharray="3 4"/>';
+  h+='<circle cx="'+X(S.U).toFixed(1)+'" cy="'+Y(-v.w/1000).toFixed(1)+'" r="6" fill="var(--c-abs)"/>';
+  h+='<text x="'+(l+4)+'" y="'+(tp+10)+'">work out |w| (kJ/kg), impulse curve</text><text x="'+(X(Cw2/2)+4).toFixed(1)+'" y="'+(tp+ph-6)+'" style="fill:var(--c-ax)">U = Cw2/2</text><text x="'+(l+pw/2-40)+'" y="'+(H-8)+'">blade speed U (m/s), 0 to Cw2</text>';
+  return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Work against blade speed">'+h+'</svg>'}
+
+P.mkCascade({num:5,name:'Turbine pair',kind:'turb',
+  def:{U:200,Ca:150,A:67,B:17,lam:0},rng:{A:[20,80],B:[-70,70],lam:[-0.5,1]},
+  aLabel:'Rotor inlet angle α2 (from nozzle)',bLabel:'Rotor exit angle α3',
+  intro:'<h3 class="t">Nozzle first, rotor second</h3><p class="feyn">The fixed nozzle guide vane speeds the gas up and aims it sideways. The moving rotor catches that fast gas and bends it back. Bending the sideways speed is what takes work out. Pressure falls through the whole pair, so the walls stay safe.</p><p>Set Λ = 0 for an impulse turbine: all the work comes from the speed change in the rotor, none from pressure.</p>',
+  buttons:[['Impulse Λ = 0',function(S,sl){setB(S,sl,2*S.U/S.Ca-tn(S.A),-70,70)}],['Λ = 0.5',function(S,sl){setB(S,sl,S.U/S.Ca-tn(S.A),-70,70)}],['Best U for this nozzle',function(S,sl){var u=clamp(S.Ca*tn(S.A)/2,100,450);S.U=u;sl.U.set(u);setB(S,sl,2*u/S.Ca-tn(S.A),-70,70)}]],
+  build:function(t,p,S){
+    var s2=P.sec(p,'Live equations');
+    s2.insertAdjacentHTML('beforeend','<div class="eq">w = C<sub>w3</sub>U − C<sub>w2</sub>U = U C<sub>a</sub>(tan α<sub>3</sub> − tan α<sub>2</sub>) = <b data-k="wj"></b> J/kg<br>w = U C<sub>a</sub>(tan β<sub>2</sub> − tan β<sub>3</sub>) &nbsp;<span class="n">same value</span><br><span class="n">Negative w means the gas gives work. Some texts flip the sign.</span><br>Work out |w| = <b data-k="wo"></b> kJ/kg &nbsp; ΔT<sub>0</sub> = w / C<sub>p</sub> = <b data-k="dT"></b> K<br>Δh<sub>rotor</sub> = w − ½C<sub>a</sub>²(tan²α<sub>3</sub> − tan²α<sub>2</sub>) = <b data-k="dh"></b> kJ/kg<br>Λ = Δh / w = 1 − C<sub>a</sub>/(2U)(tan α<sub>3</sub> + tan α<sub>2</sub>) = <b data-k="lam"></b><br>Λ = C<sub>a</sub>/(2U)(tan β<sub>3</sub> + tan β<sub>2</sub>) = <b data-k="lam2"></b><br>tan α = U/C<sub>a</sub> − tan β &nbsp; β<sub>2</sub> = <b data-k="b1"></b>° &nbsp; β<sub>3</sub> = <b data-k="b2"></b>°</div>');
+    s2.insertAdjacentHTML('beforeend','<h2>Impulse turbine (Λ = 0)</h2><div class="eq">β<sub>3</sub> = −β<sub>2</sub> &nbsp; tan α<sub>3</sub> = 2U/C<sub>a</sub> − tan α<sub>2</sub><br>w = 2U(U − C<sub>2</sub> sin α<sub>2</sub>) = 2U(U − C<sub>w2</sub>) = <b data-k="wimp"></b> J/kg &nbsp;<span class="n">valid only when Λ = 0</span><br>C<sub>2</sub> = <b data-k="C1"></b> m/s &nbsp; C<sub>w2</sub> = C<sub>2</sub> sin α<sub>2</sub> = <b data-k="cw1"></b> m/s</div><div class="chk" id="chk"></div><div class="warn" id="ke"></div><div id="wc"></div><p class="ctl"><span class="d">Orange dot: your rotor. The curve is the impulse case. The peak sits at U = Cw2/2, where the gas leaves with no whirl.</span></p>');
+    var s3=P.sec(p,'Derivation');
+    s3.insertAdjacentHTML('beforeend','<ol style="margin:0;padding-left:20px"><li>Same steps as set 4, with rotor entry at state 2 and exit at state 3.</li><li>Λ = 1 − Ca/(2U)(tan α3 + tan α2).</li><li>Λ = 0 gives tan α3 + tan α2 = 2U/Ca. Then tan β3 = U/Ca − tan α3 = tan α2 − U/Ca = −tan β2. So β3 = −β2.</li><li>w = U Ca (tan α3 − tan α2) = U Ca (2U/Ca − 2 tan α2) = 2U(U − Ca tan α2) = 2U(U − C2 sin α2).</li></ol>');
+    var s4=P.sec(p,'Variables');
+    s4.insertAdjacentHTML('beforeend',P.varTable([
+      ['U','blade speed at mid height','m/s','U'],['C<sub>a</sub>','axial velocity','m/s','Ca'],['α<sub>2</sub>, α<sub>3</sub>','absolute flow angles at rotor entry (nozzle exit) and rotor exit','°','A'],
+      ['β<sub>2</sub>, β<sub>3</sub>','relative flow angles at rotor entry and exit. Sign flips when the relative flow reverses sideways','°','b1'],['C<sub>w2</sub>, C<sub>w3</sub>','absolute whirl velocity','m/s','cw1'],['C<sub>2</sub>','gas speed leaving the nozzle','m/s','C1'],
+      ['w','rotor work per unit mass. Negative: work out','J/kg','wj'],['Δh','static enthalpy change across the rotor','kJ/kg','dh'],['Λ','degree of reaction. 0 for impulse','–','lam'],['ΔT<sub>0</sub>','stagnation temperature change','K','dT']]));
+    var s5=P.sec(p,'Prior knowledge');
+    P.det(s5,'Fluids: nozzle','<p>A converging passage turns pressure into speed. Across the nozzle h falls and h0 stays constant.</p>');
+    P.det(s5,'Thermo: expansion','<p>The rotor delivers work, so h0 falls: w = h03 − h02. Gas expands, so pressure falls and the wall layer stays attached (set 1).</p>');
+    P.det(s5,'Set 4 link','<p>Same triangle geometry and same derivation. Only the row order and the sign of w change.</p>');
+    var s6=P.sec(p,'Study goals');s6.insertAdjacentHTML('beforeend',P.goals(['Draw the diagrams yourself.','Know absolute versus relative velocity.','Derive Λ and show w = 2U(U − C2 sin α2) for Λ = 0.','Keep the sign convention consistent.']));
+    P.selfTest(p,'Why can one turbine blade pair deliver so much more work than a compressor pair?',['Pressure falls along the flow, so no separation limit.','The gas is hot and expands, giving a large speed change.','The rotor turns the whirl velocity through a big angle.']);
+  },
+  refresh:function(t,p,S,a,v){
+    var Cw2=S.Ca*a.tA,wimp=2*S.U*(S.U-Cw2);
+    P.fill(p,{wo:fmt(-v.w/1000,2),wimp:fmt(wimp,0)});
+    var ke=p.querySelector('#ke'),eff=-v.w/(0.5*v.C1*v.C1);
+    ke.className='warn '+(v.w<0?'ok':'bad');
+    ke.textContent=v.w<0?'Share of nozzle kinetic energy turned into work: '+fmt(eff*100,0)+'%.':'Work is positive here, so the rotor would act like a compressor.';
+    p.querySelector('#chk').innerHTML='<span class="'+(Math.abs(a.b2+a.b1)<0.3?'ok':'bad')+'">β2 '+fmt(a.b1,1)+'° and β3 '+fmt(a.b2,1)+'°</span><span class="'+(Math.abs(v.lam)<0.02?'ok':'bad')+'">Λ = '+fmt(v.lam,3)+'</span>';
+    p.querySelector('#wc').innerHTML=wChart(S,a,v)}
+});
+})(window.PT);
+(function(P){
+'use strict';
+var T=P.T,el=P.el,fmt=P.fmt,V3=P.V3,CP=P.CP,GAM=P.GAM,RG=P.RG,Arrow=P.Arrow,COL=P.COL,clamp=P.clamp,R2D=P.R2D;
+var G1=GAM/(GAM-1);
+P.addTab({num:6,name:'Centrifugal',legend:[['--c-u','tip speed Utip'],['--c-wh','whirl Cw'],['--c-ax','radial / axial Cr'],['--c-abs','vaneless gap']],
+  cam:{th:0.7,ph:0.95,dist:9.5,tx:0,ty:0.3,tz:0},
+  build:function(t){
+    var S={N:34000,r2:0.10,sig:0.9,psi:1.05,eta:0.8,T01:288,cr:100,rat:1.15},sc=t.scene,KV=0.005,R2V=1.5,R=null;
+    var cm=P.centrifugal({r2:R2V,rEye:0.7,b2:0.28,zTop:1.2,nV:12,nD:18,rOut:2.9});sc.add(cm.group);
+    var aU=new Arrow(COL.u,0.03,0.16),aW=new Arrow(COL.wh,0.03,0.16),aR=new Arrow(COL.ax,0.03,0.16),aW2=new Arrow(COL.wh,0.03,0.16),aR2=new Arrow(COL.ax,0.03,0.16),aE=new Arrow(COL.ax,0.04,0.22);
+    [aU,aW,aR,aW2,aR2,aE].forEach(function(a){sc.add(a.g)});
+    var lb={};function L(k,txt,cls){lb[k]=t.label(txt,cls)}
+    L('u','Utip','u');L('w','Cw2','wh');L('r','Cr2','ax');L('w2','Cw2′','wh');L('r2','Cr2′','ax');L('eye','eye: axial, no whirl','ax');L('vg','vaneless gap','abs');L('imp','impeller','big');L('dif','diffuser vanes','big');
+    function layout(){
+      if(!R)return;
+      var ri=R2V*S.rat,y=0.9;
+      aU.set(V3(R2V,y,0),V3(R2V,y,R.Ut*KV));aW.set(V3(R2V,0.5,0),V3(R2V,0.5,R.cw2*KV));aR.set(V3(R2V,0.5,0),V3(R2V+S.cr*KV,0.5,0));
+      aW2.set(V3(ri,0.5,0),V3(ri,0.5,R.cw2p*KV));aR2.set(V3(ri,0.5,0),V3(ri+R.cr2p*KV,0.5,0));
+      aE.set(V3(0,3.3,0),V3(0,1.6,0));
+      lb.u.pos.set(R2V,y+0.25,R.Ut*KV+0.25);lb.w.pos.set(R2V-0.3,0.28,R.cw2*KV+0.2);lb.r.pos.set(R2V+S.cr*KV*0.6,0.2,-0.2);
+      lb.w2.pos.set(ri+0.35,0.2,R.cw2p*KV+0.2);lb.r2.pos.set(ri+R.cr2p*KV+0.35,0.5,-0.15);
+      lb.eye.pos.set(0,3.55,0);lb.vg.pos.set((R2V+ri)/2,-0.55,-0.4);lb.imp.pos.set(0,-0.5,0);lb.dif.pos.set(2.5,-0.5,0.6);
+      cm.setDiffuser(ri,clamp(R.cr2p/R.cw2p,0.12,3))}
+    t.update=function(dt){cm.update(dt,S.N/34000*2.0)};
+
+    var p=t.panel;
+    P.sec(p,null,'<h3 class="t">Fling the gas outward, then slow it down</h3><p class="feyn">A spinning impeller throws gas outward. The gas leaves almost as fast sideways as the blade tip. The still diffuser then slows the gas and turns that speed into pressure. One stage gives a big pressure rise in a small, light package. The two 90 degree turns waste some energy.</p>');
+    var s1=P.sec(p,'Controls'),c=el('div','ctls');s1.appendChild(c);
+    var go=function(){t.refresh()};
+    P.slider(c,{k:'N',label:'Impeller speed N',min:10000,max:60000,step:500,unit:'rpm',dec:0},S,go);
+    P.slider(c,{k:'r2',label:'Impeller tip radius r2',min:0.04,max:0.2,step:0.005,unit:'m',dec:3},S,go);
+    P.slider(c,{k:'sig',label:'Slip factor σ',min:0.7,max:1,step:0.01,dec:2,desc:'Whirl at the tip is σ times the tip speed.'},S,go);
+    P.slider(c,{k:'psi',label:'Power input factor ψ',min:1,max:1.2,step:0.01,dec:2,desc:'Shroud friction costs extra work.'},S,go);
+    P.slider(c,{k:'eta',label:'Compressor efficiency ηc',min:0.6,max:1,step:0.01,dec:2},S,go);
+    P.slider(c,{k:'T01',label:'Inlet temperature T01',min:230,max:330,step:1,unit:'K',dec:0},S,go);
+    P.slider(c,{k:'cr',label:'Radial velocity at tip Cr2',min:30,max:220,step:5,unit:'m/s',dec:0},S,go);
+    P.slider(c,{k:'rat',label:'Gap ratio r2′ / r2',min:1.05,max:1.5,step:0.01,dec:2},S,go);
+    var r=el('div','row');s1.appendChild(r);P.btn(r,'Show or hide shroud',function(){cm.shroud.visible=!cm.shroud.visible});
+    P.btn(r,'Ideal machine (η = σ = ψ = 1)',function(){var ins=c.querySelectorAll('input');S.sig=1;S.psi=1;S.eta=1;[2,3,4].forEach(function(i,k){ins[i].value=1;ins[i].dispatchEvent(new Event('input'))})});
+
+    var s2=P.sec(p,'Impeller: work, temperature, pressure ratio');
+    s2.insertAdjacentHTML('beforeend','<div class="eq">U<sub>tip</sub> = ωr<sub>2</sub> = 2πN/60 · r<sub>2</sub> = <b data-k="Ut"></b> m/s<br>C<sub>w2</sub> = σU<sub>tip</sub> = <b data-k="cw2"></b> m/s &nbsp; <span class="n">inlet whirl is zero</span><br>w = ψσU<sub>tip</sub>² = <b data-k="w"></b> kJ/kg &nbsp; <span class="n">from Euler: w = U<sub>2</sub>C<sub>w2</sub></span><br>T<sub>03</sub> = T<sub>01</sub> + ψσU<sub>tip</sub>²/C<sub>p</sub> = <b data-k="T03"></b> K &nbsp; (ΔT<sub>0</sub> = <b data-k="dT"></b> K)<br>T<sub>03s</sub>/T<sub>01</sub> = 1 + η<sub>c</sub>ψσU<sub>tip</sub>²/(C<sub>p</sub>T<sub>01</sub>) = <b data-k="rt"></b><br>p<sub>03</sub>/p<sub>01</sub> = (T<sub>03s</sub>/T<sub>01</sub>)<sup>γ/(γ−1)</sup> = <b data-k="PR"></b><br><span class="n">Ideal machine, same speed: p<sub>03</sub>/p<sub>01</sub> = <b data-k="PRi"></b></span></div><div class="warn" id="m6"></div>');
+    var s3=P.sec(p,'Vaneless space: follow the gas from state 2 to 2′');
+    s3.insertAdjacentHTML('beforeend','<p>No torque, adiabatic, isentropic. Angular momentum, mass and energy are conserved. Static state at 2 comes from T<sub>03</sub>, p<sub>03</sub> and C<sub>2</sub>.</p><div class="eq">1. C<sub>w2′</sub> = (r<sub>2</sub>/r<sub>2′</sub>) C<sub>w2</sub> = <b data-k="cw2p"></b> m/s<br>2. start with ρ<sub>2′</sub> = ρ<sub>2</sub> = <b data-k="rho2"></b> kg/m³ (T<sub>2</sub> = <b data-k="T2"></b> K, M<sub>2</sub> = <b data-k="M2"></b>)<br>3. C<sub>r2′</sub> = ρ<sub>2</sub>r<sub>2</sub>C<sub>r2</sub> / (ρ<sub>2′</sub>r<sub>2′</sub>)<br>4. C<sub>2′</sub>² = C<sub>r2′</sub>² + C<sub>w2′</sub>², then T<sub>2′</sub> = T<sub>03</sub> − C<sub>2′</sub>²/(2C<sub>p</sub>)<br>5. p<sub>2′</sub> = p<sub>03</sub>(T<sub>2′</sub>/T<sub>03</sub>)<sup>γ/(γ−1)</sup>, ρ<sub>2′</sub> = p<sub>2′</sub>/(RT<sub>2′</sub>)<br>6. repeat from 3 until ρ<sub>2′</sub> stops changing<br><span class="n">iteration log (ρ<sub>2′</sub>, kg/m³):</span> <b data-k="log"></b><br>Result: C<sub>r2′</sub> = <b data-k="cr2p"></b> m/s, T<sub>2′</sub> = <b data-k="T2p"></b> K, ρ<sub>2′</sub> = <b data-k="rho2p"></b> kg/m³<br>Diffuser channel angle = tan⁻¹(C<sub>r2′</sub>/C<sub>w2′</sub>) = <b data-k="ang"></b>° from the tangent</div>');
+    var s4=P.sec(p,'Variables');
+    s4.insertAdjacentHTML('beforeend',P.varTable([
+      ['N, ω','impeller speed in rpm and rad/s','rpm, rad/s','nw'],['r<sub>2</sub>, r<sub>2′</sub>','impeller tip radius and diffuser entry radius','m','rr'],['U<sub>tip</sub>','blade speed at the impeller tip','m/s','Ut'],
+      ['σ','slip factor, below 1. Real whirl is a little less than the tip speed','–','sg'],['ψ','power input factor, above 1. Shroud friction','–','ps'],['η<sub>c</sub>','compressor isentropic efficiency on stagnation conditions','–','et'],
+      ['T<sub>01</sub>, T<sub>03</sub>','stagnation temperature in and out. T<sub>03</sub> = T<sub>02</sub>','K','tt'],['T<sub>03s</sub>','exit temperature of the ideal isentropic process','K','t3s'],['C<sub>w2</sub>, C<sub>r2</sub>','whirl and radial velocity at the impeller tip','m/s','cc'],
+      ['ρ','gas density','kg/m³','rho2'],['γ, R, C<sub>p</sub>','1.4, 287 J/kgK, 1005 J/kgK','–','–']]));
+    var s5=P.sec(p,'Prior knowledge');
+    P.det(s5,'Set 2: Euler equation','<p>Same use as in axial machines. With zero inlet whirl, w = U2Cw2.</p>');
+    P.det(s5,'Thermo: isentropic efficiency and perfect gas','<p>ηc compares ideal and real temperature rise. For an isentropic process p0 ratio = (T0 ratio)^(γ/(γ−1)).</p>');
+    P.det(s5,'Fluids: conservation laws','<p>No torque means r·Cw is constant. Mass flow ρ·Cr·(2πr·b) is constant, and density changes, so you iterate. Energy: h0 is constant with no heat or work.</p>');
+    P.det(s5,'Fluids: diffuser','<p>A diverging channel slows the gas and raises static pressure, like the stator in an axial machine.</p>');
+    var s6=P.sec(p,'Study goals');s6.insertAdjacentHTML('beforeend',P.goals(['Sketch the impeller, eye, shroud, vaneless gap and diffuser, and label states 1, 2, 2′, 3.','Follow how Euler applies, with Cw1 = 0.','Understand slip factor σ and power input factor ψ.','Follow the vaneless space iteration.']));
+    P.selfTest(p,'Explain why the impeller work is ψσUtip² and not just Utip².',['Euler gives w = U2 Cw2 with zero whirl at the eye.','Real whirl at the tip is σ Utip, less than the tip speed.','Friction from the shroud adds a factor ψ above 1.']);
+
+    t.refresh=function(){
+      var om=2*Math.PI*S.N/60,Ut=om*S.r2,w=S.psi*S.sig*Ut*Ut,dT=w/CP,T03=S.T01+dT,rt=1+S.eta*dT/S.T01,PR=Math.pow(rt,G1);
+      var PRi=Math.pow(1+Ut*Ut/(CP*S.T01),G1),cw2=S.sig*Ut,C2=Math.hypot(cw2,S.cr),T2=T03-C2*C2/(2*CP),p03=101325*PR;
+      var msg=p.querySelector('#m6'),bad=T2<=60;
+      if(bad){msg.className='warn bad';msg.textContent='Gas speed is too high for this temperature. Lower the speed or the radial velocity.';
+        R=null;P.fill(p,{Ut:fmt(Ut,0),cw2:fmt(cw2,0),w:fmt(w/1000,1),T03:fmt(T03,0),dT:fmt(dT,0),rt:fmt(rt,3),PR:fmt(PR,2),PRi:fmt(PRi,2)});return}
+      var rho2=p03*Math.pow(T2/T03,G1)/(RG*T2),M2=C2/Math.sqrt(GAM*RG*T2);
+      var cw2p=cw2/S.rat,rho=rho2,cr2p=S.cr/S.rat,T2p=T2,it,log=[];
+      for(it=0;it<60;it++){
+        cr2p=rho2*S.cr/(rho*S.rat);var C2p2=cr2p*cr2p+cw2p*cw2p;T2p=T03-C2p2/(2*CP);
+        if(T2p<=40){break}
+        var rn=p03*Math.pow(T2p/T03,G1)/(RG*T2p);if(log.length<6)log.push(fmt(rn,4));
+        if(Math.abs(rn-rho)<1e-7*rho){rho=rn;break}rho=rn}
+      var m2=M2>1?'Mach number at the impeller tip exit is above 1. Real machines choke here.':'Mach number at the impeller exit is '+fmt(M2,2)+'.';
+      msg.className='warn '+(M2>1?'bad':'ok');msg.textContent=m2+' Pressure ratio '+fmt(PR,2)+' with η = '+fmt(S.eta,2)+'.';
+      R={Ut:Ut,cw2:cw2,cw2p:cw2p,cr2p:cr2p};
+      P.fill(p,{Ut:fmt(Ut,0),cw2:fmt(cw2,0),w:fmt(w/1000,1),T03:fmt(T03,0),dT:fmt(dT,0),rt:fmt(rt,3),PR:fmt(PR,2),PRi:fmt(PRi,2),
+        cw2p:fmt(cw2p,0),rho2:fmt(rho2,3),T2:fmt(T2,0),M2:fmt(M2,2),log:log.join(' → ')+(it<60?' (converged)':''),cr2p:fmt(cr2p,0),T2p:fmt(T2p,0),rho2p:fmt(rho,3),ang:fmt(Math.atan(cr2p/cw2p)*R2D,1),
+        nw:fmt(S.N,0)+', '+fmt(om,0),rr:fmt(S.r2,3)+' / '+fmt(S.r2*S.rat,3),sg:fmt(S.sig,2),ps:fmt(S.psi,2),et:fmt(S.eta,2),tt:fmt(S.T01,0)+' / '+fmt(T03,0),t3s:fmt(S.T01*rt,0),cc:fmt(cw2,0)+' / '+fmt(S.cr,0)});
+      layout()};
+  }});
+})(window.PT);
+PT.boot();
+</script>
+
+</body></html>
